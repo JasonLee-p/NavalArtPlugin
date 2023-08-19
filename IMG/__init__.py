@@ -1,3 +1,3 @@
-from . import ICO, ImgPng
+from . import ImgPng_day, ImgPng_night
 
-__all__ = ['ICO', 'ImgPng']
+__all__ = ['ImgPng_day', 'ImgPng_night']

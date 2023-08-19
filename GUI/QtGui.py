@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # 内置库
 import ctypes
+import json
 import os
 from abc import abstractmethod
 # 第三方库
@@ -12,39 +13,24 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from base64 import b64decode
 # 本地库
-from IMG.ImgPng import *
+from path_utils import find_na_path
+
+_path = os.path.join(find_na_path(), 'plugin_config.json')
+try:
+    with open(_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    Theme = data['Config']['Theme']
+except FileNotFoundError:
+    Theme = 'Day'
+
+if Theme == 'Day':
+    from ThemeConfigColor.Day import *
+    from IMG.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, close
+elif Theme == 'Night':
+    from ThemeConfigColor.Night import *
+    from IMG.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, close
 
 WHITE = 'white'
-BG_COLOR0 = 'beige'
-BG_COLOR1 = 'ivory'
-BG_COLOR2 = '#f0f0ff'
-BG_COLOR3 = 'tan'
-FG_COLOR0 = 'black'
-FG_COLOR1 = 'firebrick'
-FG_COLOR2 = 'gray'
-THEME = 'day'
-DayColor = {
-    "背景": (0.9, 0.95, 1.0, 1.0),
-    "选择框": (0.0, 0.0, 0.0, 0.9),
-    "线框": [(0, 0, 0, 0.8), (0, 0, 0, 0.9), (0.3, 0.27, 0.25, 0.2), (0,)],
-    "水线": [(0.0, 1.0, 1.0, 0.6), (0.5, 0.4, 0.3, 0.6), (0.3, 0.25, 0.2, 0.2), (0,)],
-    "钢铁": [(0.20, 0.20, 0.20, 1.0), (0.26, 0.26, 0.26, 1.0), (0.03, 0.025, 0.02, 0.2), (40,)],
-    "甲板": [(0.3, 0.28, 0.26, 1.0), (0.2, 0.2, 0.16, 1.0), (0.03, 0.025, 0.02, 0.2), (0,)],
-    "海面": [(0.1, 0.24, 0.3, 0.3), (0.1, 0.2, 0.2, 0.3), (0.05, 0.2, 0.3, 0.2), (40,)],
-    "海底": [(0.09, 0.08, 0.05, 1), (0.0, 0.0, 0.0, 1), (0.0, 0.0, 0.0, 1), (0,)],
-    "光源": [(1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 1.0), (100,)]
-}
-NightColor = {
-    "背景": (0.1, 0.1, 0.1, 1),
-    "选择框": (0.9, 0.9, 0.9, 0.9),
-    "线框": [(0.7, 0.7, 0.7, 0.6), (0.2, 0.25, 0.3, 0.6), (0.2, 0.25, 0.3, 0.5), (0,)],
-    "水线": [(0.0, 0.7, 0.7, 0.6), (0.3, 0.4, 0.5, 0.6), (0.2, 0.25, 0.3, 0.2), (50,)],
-    "钢铁": [(0.08, 0.08, 0.08, 1.0), (0.2, 0.2, 0.2, 1.0), (0.02, 0.025, 0.03, 0.2), (20,)],
-    "甲板": [(0.13, 0.11, 0.09, 1.0), (0.15, 0.17, 0.17, 1.0), (0, 0, 0, 0.2), (0,)],
-    "海面": [(0.07, 0.1, 0.125, 0.3), (0.07, 0.1, 0.1, 0.3), (0.07, 0.1, 0.1, 0.2), (20,)],
-    "海底": [(0.09, 0.08, 0.05, 1), (0.0, 0.0, 0.0, 1), (0.0, 0.0, 0.0, 1), (0,)],
-    "光源": [(1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 1.0), (1.0, 1.0, 1.0, 1.0), (100,)]
-}
 GOLD = 'gold'
 FONT0 = 'Times New Roman'
 FONT1 = '微软雅黑'
@@ -56,6 +42,7 @@ user32 = ctypes.windll.user32
 WinWid = user32.GetSystemMetrics(0)  # 获取分辨率
 WinHei = user32.GetSystemMetrics(1)  # 获取分辨率
 RATE = WinWid / 1920
+# 图标
 ICO_ = b64decode(ICO)
 ADD_ = b64decode(add)
 CHOOSE_ = b64decode(choose)
@@ -65,10 +52,12 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
     button.setFixedSize(*size)
     if style == "普通":
         button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:14px;'
+                             f'color:{FG_COLOR0};'
                              f'font-family:{FONT1};}}'
                              f'QPushButton:hover{{background-color:{active_color};}}')
     elif style == "圆角边框":
         button.setStyleSheet(f'QPushButton{{border-radius:5px;border:1px solid gray;color:{FG_COLOR0};'
+                             f'color:{FG_COLOR0};'
                              f'font-size:14px;font-family:{FONT1};}}'
                              f'QPushButton:hover{{background-color:{active_color};}}')
     button.setFont(font)
@@ -78,7 +67,10 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
 
 
 class MainWindow(QWidget):
-    def __init__(self):
+    def __init__(self, config):
+        # 读取配置文件
+        self.config = config
+        # 设置窗口属性
         self.topH = 35
         self.three_button_size = 25
         self.logo_size = 25
@@ -114,11 +106,12 @@ class MainWindow(QWidget):
         self.setLayout(self.MainLayout)
         # 添加控件
         self.MainLayout.addLayout(self.top_layout)
-        self.MainLayout.addWidget(QFrame(  # 下方添加横线
-            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        # 绘制分割线，不使用frame
+        spl1 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)  # 添加分割线
+        self.MainLayout.addWidget(spl1, alignment=Qt.AlignTop)
         self.MainLayout.addWidget(self.down_splitter, 1)
-        self.MainLayout.addWidget(QFrame(  # 下方添加横线
-            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)  # 添加分割线
+        self.MainLayout.addWidget(spl2, alignment=Qt.AlignTop)
         self.MainLayout.addWidget(self.state_widget)
         # 初始化TabWidget
         self.MainTabWidget = MyMainTabWidget()
@@ -204,7 +197,8 @@ class MainWindow(QWidget):
         self.down_splitter.setHandleWidth(1)
         # 设置分割条的样式
         self.down_splitter.setStyleSheet("QSplitter::handle{background-color:gray;}"
-                                         "QSplitter::handle:hover{background-color:darkgray;}")
+                                         "QSplitter::handle:hover{background-color:darkgray;}"
+                                         "QSplitter::handle:pressed{background-color:lightgray;}")
 
     def showMaximized(self):
         # 检查是否已经最大化
@@ -415,7 +409,7 @@ class CircleSelectButton(QPushButton):
         self.check_color = check_color
         self.setFixedSize(half_size * 2, half_size * 2)
         self.setStyleSheet(
-            f"border-radius: {half_size}px; background-color: {color}; border: 1px solid #000000;")
+            f"border-radius: {half_size}px; background-color: {color}; border: 1px solid {FG_COLOR0};")
         # 事件
         self.setCheckable(True)
         self.setChecked(init_statu)
@@ -429,7 +423,7 @@ class CircleSelectButton(QPushButton):
         else:
             self.setChecked(False)
             self.setStyleSheet(
-                f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid #000000;")
+                f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid {FG_COLOR0};")
 
 
 class BasicDialog(QDialog):
@@ -460,15 +454,17 @@ class BasicDialog(QDialog):
         self.close_button = QPushButton()
         self.add_top_bar()
         # 分割线
-        self.main_layout.addWidget(QFrame(  # 下方添加横线
-            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        spl.setStyleSheet("background-color:gray;")
+        self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
         # 主体-----------------------------------------------------------------------------------------------
         self.top_layout = center_layout
         self.init_center_layout()
         self.main_layout.addStretch(1)
         # 分割线
-        self.main_layout.addWidget(QFrame(  # 下方添加横线
-            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        spl.setStyleSheet("background-color:gray;")
+        self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
         # 底部（按钮）
         self.bottom_layout = QHBoxLayout()
         self.cancel_button = QPushButton('取消')
@@ -492,6 +488,7 @@ class BasicDialog(QDialog):
         self.top_layout.addStretch(1)
         text_label = QLabel(self.title)
         text_label.setFont(self.TitleFont)
+        text_label.setStyleSheet(f"color:{FG_COLOR0};")
         self.top_layout.addWidget(text_label, alignment=Qt.AlignCenter)
         self.top_layout.addStretch(1)
         # 按钮

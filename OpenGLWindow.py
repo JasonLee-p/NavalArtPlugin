@@ -9,7 +9,7 @@ from OpenGL.GLU import gluPerspective, gluLookAt, gluProject
 from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
 from OpenGL_objs import *
-from GUI.basic_gui import *
+from GUI.QtGui import *
 
 # 顶点着色器代码
 VERTEX_SHADER = """
@@ -68,10 +68,7 @@ class OpenGLWin(QOpenGLWidget):
         self.width = WinWid - 365
         self.height = WinHei - 200
         self.setMaximumSize(self.width, self.height)
-        if THEME == "day":
-            self.theme_color = DayColor
-        elif THEME == "night":
-            self.theme_color = NightColor
+        self.theme_color = GLTheme
         self.light_pos = QVector3D(10000, 7000, 10000)
         self.fovy = 45
         self.gl = None

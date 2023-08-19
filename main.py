@@ -3,17 +3,18 @@
 """
 # 系统库
 import sys
-
+import webbrowser
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 用于解决打包时的bug
 from PyQt5.QtWidgets import QApplication, QFileDialog, QToolBar, QGridLayout
 
 # 本地库
-from GUI.basic_gui import *
+from path_utils import find_ptb_path
+from GUI.QtGui import *
 from OpenGLWindow import OpenGLWin
 from PTB_design_reader import AdvancedHull
 from OpenGL_objs import *
-from ProjectFile import find_ptb_path, find_na_path, NewProjectDialog, ProjectFile
+from ProjectFile import NewProjectDialog, ConfigFile, ProjectFile
 
 
 def is_admin():
@@ -27,9 +28,9 @@ def is_admin():
 def show_state(txt, msg_type='process'):
     color_map = {
         'warning': 'orange',
-        'success': 'black',
+        'success': f"{FG_COLOR0}",
         'process': 'gray',
-        'error': 'red',
+        'error': f"{FG_COLOR1}",
     }
     label_ = Handler.window.statu_label
     if msg_type in color_map:
@@ -206,8 +207,11 @@ class MainHandler:
     def full_screen(self, event):
         ...
 
-    def about(self, event):
-        ...
+    @staticmethod
+    def about(event):
+        # 打开网页
+        url = 'http://naval_plugins.e.cn.vc/'
+        webbrowser.open(url)
 
 
 class RightWidget(QWidget):
@@ -321,17 +325,22 @@ class HullDesignTab(QWidget):
     def init_select_button(self):
         self.save_button.setFont(self.Font)
         # 设置样式：圆角、背景色、边框
-        self.save_button.setStyleSheet(f"QPushButton{{background-color: {BG_COLOR0};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR0};}}"
-                                       # 鼠标悬停样式
-                                       f"QPushButton:hover{{background-color: {BG_COLOR3};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR3};}}"
-                                       # 鼠标按下样式
-                                       f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR2};}}")
+        self.save_button.setStyleSheet(
+            f"QPushButton{{background-color: {BG_COLOR0};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR0};}}"
+            # 鼠标悬停样式
+            f"QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR3};}}"
+            # 鼠标按下样式
+            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR2};}}"
+        )
         # 设置大小
         self.save_button.setFixedSize(50, 30)
         self.save_button.clicked.connect(self.save_file)
@@ -342,14 +351,17 @@ class HullDesignTab(QWidget):
         # 设置样式：圆角、背景色、边框
         self.convertAdhull_button.setStyleSheet(
             f"QPushButton{{background-color: {BG_COLOR0};"
+            f"color: {FG_COLOR0};"
             f"border-radius: 0px;"
             f"border: 1px solid {BG_COLOR0};}}"
             # 鼠标悬停样式
             f"QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
             f"border-radius: 0px;"
             f"border: 1px solid {BG_COLOR3};}}"
             # 鼠标按下样式
             f"QPushButton:pressed{{background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
             f"border-radius: 0px;"
             f"border: 1px solid {BG_COLOR2};}}"
         )
@@ -488,17 +500,22 @@ class ReadPTBAdHullTab(QWidget):
     def init_open_button(self):
         self.open_button.setFont(self.Font)
         # 设置样式：圆角、背景色、边框
-        self.open_button.setStyleSheet(f"QPushButton{{background-color: {BG_COLOR0};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR0};}}"
-                                       # 鼠标悬停样式
-                                       f"QPushButton:hover{{background-color: {BG_COLOR3};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR3};}}"
-                                       # 鼠标按下样式
-                                       f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-                                       f"border-radius: 0px;"
-                                       f"border: 1px solid {BG_COLOR2};}}")
+        self.open_button.setStyleSheet(
+            f"QPushButton{{background-color: {BG_COLOR0};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR0};}}"
+            # 鼠标悬停样式
+            f"QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR3};}}"
+            # 鼠标按下样式
+            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR2};}}"
+        )
         # 设置大小
         self.open_button.setFixedSize(50, 30)
         self.open_button.clicked.connect(self.convertAdhull_button_pressed)
@@ -543,7 +560,7 @@ class ReadPTBAdHullTab(QWidget):
 
     def update_solid_obj(self):
         self.ThreeDFrame.solid_obj["钢铁"] = self.solid_obj["钢铁"]
-        self.ThreeDFrame.solid_obj["木头"] = self.solid_obj["木头"]
+        self.ThreeDFrame.solid_obj["甲板"] = self.solid_obj["甲板"]
         self.ThreeDFrame.solid_obj["船底"] = self.solid_obj["船底"]
         self.ThreeDFrame.line_group_obj = self.line_group_obj
 
@@ -613,17 +630,22 @@ class ReadNAHullTab(QWidget):
     def init_select_button(self):
         self.select_button.setFont(self.Font)
         # 设置样式：圆角、背景色、边框
-        self.select_button.setStyleSheet(f"QPushButton{{background-color: {BG_COLOR0};"
-                                         f"border-radius: 0px;"
-                                         f"border: 1px solid {BG_COLOR0};}}"
-                                         # 鼠标悬停样式
-                                         f"QPushButton:hover{{background-color: {BG_COLOR3};"
-                                         f"border-radius: 0px;"
-                                         f"border: 1px solid {BG_COLOR3};}}"
-                                         # 鼠标按下样式
-                                         f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-                                         f"border-radius: 0px;"
-                                         f"border: 1px solid {BG_COLOR2};}}")
+        self.select_button.setStyleSheet(
+            f"QPushButton{{background-color: {BG_COLOR0};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR0};}}"
+            # 鼠标悬停样式
+            f"QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR3};}}"
+            # 鼠标按下样式
+            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
+            f"border-radius: 0px;"
+            f"border: 1px solid {BG_COLOR2};}}"
+        )
         # 设置大小
         self.select_button.setFixedSize(50, 30)
         self.select_button.clicked.connect(self.select_button_pressed)
@@ -715,9 +737,15 @@ if __name__ == '__main__':
     # 初始化路径
     PTBPath = find_ptb_path()
     NAPath = find_na_path()
+    # 读取配置
+    Config = ConfigFile()
+    Config.load_config()
+    UsingTheme = Config.UsingTheme
     # 初始化界面和事件处理器
     QApp = QApplication(sys.argv)
-    QtWindow = MainWindow()
+    QtWindow = MainWindow(Config)
     Handler = MainHandler(QtWindow)
+    # 保存配置
+    Config.save_config()
     # 主循环
     sys.exit(QApp.exec_())

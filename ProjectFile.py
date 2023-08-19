@@ -8,39 +8,55 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QGridLayout, QPushButton, QFileDialog, QVBoxLayout
 
-from GUI.basic_gui import BasicDialog, set_button_style, FG_COLOR0
-from GUI.basic_gui import MyLabel, MyLineEdit, MyComboBox, MySlider, MyMessageBox
+from GUI.QtGui import BasicDialog, set_button_style, FG_COLOR0
+from GUI.QtGui import MyLabel, MyLineEdit, MyComboBox, MySlider, MyMessageBox
 from PTB_design_reader import ReadXML
+from path_utils import find_ptb_path, find_na_path
 
 
-def find_ptb_path():
-    # 将PTB_path初始化为桌面位置
-    PTB_path = os.path.join(os.path.expanduser("~"), 'Desktop')
-    # 从C盘开始寻找：
-    # 优先在用户目录下寻找，先遍历所有账户名：
-    for user in os.listdir('C:\\Users'):
-        # 找到AppData/LocalLow/茕海开发组/工艺战舰Alpha
-        if os.path.isdir(os.path.join('C:\\Users', user, 'AppData', 'LocalLow', '茕海开发组', '工艺战舰Alpha')):
-            PTB_path = os.path.join('C:\\Users', user, 'AppData', 'LocalLow', '茕海开发组', '工艺战舰Alpha')
-            break
-    # 如果在用户目录下没有找到，就返回None
-    return PTB_path
+class ConfigFile:
+    def __init__(self):
+        """
+        配置文件类，用于处理配置文件的读写
+        配置文件用json格式存储，包含以下内容：
+        1. 用户配置
+        2. 船体节点数据
+        """
+        self.Config = {}
+        self.UsingTheme = ''
+        self.LastProject = ''
+        self.LastProjectPath = ''
 
+    def load_config(self):
+        # 从配置文件中读取配置
+        _path = os.path.join(find_na_path(), 'plugin_config.json')
+        try:
+            with open(_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                print(data)
+            self.Config = data['Config']
+            self.UsingTheme = self.Config['Theme']
+            self.LastProject = data['LastProject']
+            self.LastProjectPath = data['LastProjectPath']
+        except FileNotFoundError:
+            self.Config = {
+                'Theme': 'Day',
+                'Language': 'Chinese',
+                'AutoSave': True,
+                'AutoSaveInterval': 5,
+            }
+            self.LastProject = ''
+            self.LastProjectPath = ''
 
-def find_na_path():
-    # 将PTB_path初始化为桌面位置
-    NA_path = os.path.join(os.path.expanduser("~"), 'Desktop')
-    # 从C盘开始寻找：
-    # 优先在用户目录下寻找，先遍历所有账户名：
-    for user in os.listdir('C:\\Users'):
-        # 找到AppData/LocalLow/RZEntertainment/NavalArt/ShipSaves
-        if os.path.isdir(os.path.join(
-                'C:\\Users', user, 'AppData', 'LocalLow', 'RZEntertainment', 'NavalArt', 'ShipSaves')):
-            NA_path = os.path.join(
-                'C:\\Users', user, 'AppData', 'LocalLow', 'RZEntertainment', 'NavalArt', 'ShipSaves')
-            break
-    # 如果在用户目录下没有找到，就返回None
-    return NA_path
+    def save_config(self):
+        # 将配置写入配置文件
+        _path = os.path.join(find_na_path(), 'plugin_config.json')
+        with open(_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                'Config': self.Config,
+                'LastProject': self.LastProject,
+                'LastProjectPath': self.LastProjectPath,
+            }, f, ensure_ascii=False, indent=4)
 
 
 class NewProjectDialog(BasicDialog):
