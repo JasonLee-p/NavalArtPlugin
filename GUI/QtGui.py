@@ -3,6 +3,7 @@
 import ctypes
 import json
 import os
+import typing
 from abc import abstractmethod
 # 第三方库
 from PyQt5.QtCore import Qt, QSize
@@ -69,7 +70,7 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
 class MainWindow(QWidget):
     def __init__(self, config):
         # 读取配置文件
-        self.config = config
+        self.Config = config
         # 设置窗口属性
         self.topH = 35
         self.three_button_size = 25
@@ -85,6 +86,8 @@ class MainWindow(QWidget):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         super().__init__(parent=None)
+        # 隐藏窗口
+        self.hide()
         # 设置窗口属性
         self.setWindowTitle('NavalArt Plugin')
         self.setWindowIcon(self.ICO)
@@ -106,13 +109,14 @@ class MainWindow(QWidget):
         self.setLayout(self.MainLayout)
         # 添加控件
         self.MainLayout.addLayout(self.top_layout)
-        # 绘制分割线，不使用frame
-        spl1 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)  # 添加分割线
-        self.MainLayout.addWidget(spl1, alignment=Qt.AlignTop)
-        self.MainLayout.addWidget(self.down_splitter, 1)
-        spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)  # 添加分割线
-        self.MainLayout.addWidget(spl2, alignment=Qt.AlignTop)
-        self.MainLayout.addWidget(self.state_widget)
+        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
+        self.MainLayout.addWidget(spl, alignment=Qt.AlignTop)
+        self.MainLayout.addWidget(self.down_splitter, 1)  # 添加下方布局器
+        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
+        self.MainLayout.addWidget(spl, alignment=Qt.AlignTop)
+        self.MainLayout.addWidget(self.state_widget)  # 添加状态栏
         # 初始化TabWidget
         self.MainTabWidget = MyMainTabWidget()
         # 按钮初始化
@@ -291,8 +295,6 @@ class MyMainTabWidget(QTabWidget):
             f"color:{FG_COLOR0};"
             "padding:4px;"
             "min-width:30ex;"
-            # f"border-left:4px solid {BG_COLOR1};"  # 选中标签左边框
-            # f"border-right:4px solid {BG_COLOR1};"
             f"border-top:0px solid {FG_COLOR2};"
             f"border-bottom:1px solid {FG_COLOR2};}}"
             # 设置选中标签栏样式
@@ -300,21 +302,19 @@ class MyMainTabWidget(QTabWidget):
             f"color:{FG_COLOR0};"
             "padding:4px;"
             "min-width:30ex;"
-            # f"border-left:4px solid {BG_COLOR3};"  # 选中标签栏边框颜色
-            # f"border-right:4px solid {BG_COLOR3};"
             f"border-top:0px solid {FG_COLOR2};"
-            f"border-bottom:1px solid {FG_COLOR1};}}"
+            f"border-bottom:1px solid {FG_COLOR2};}}"
             # 设置鼠标悬停标签栏样式
-            f"QTabBar::tab:hover{{background-color:{BG_COLOR3};"
+            f"QTabBar::tab:hover{{background-color:{BG_COLOR0};"
             f"color:{FG_COLOR0};"
-            # "border-top-left-radius:12px;"
-            # "border-top-right-radius:12px;"
-            # "border-bottom-left-radius:12px;"
-            # "border-bottom-right-radius:12px;"
             "padding:4px;"
             "min-width:30ex;"
-            # f"border-left:4px solid {BG_COLOR1};"  # 鼠标悬停标签栏边框颜色
-            # f"border-right:4px solid {BG_COLOR1};"
+            f"border-top:0px solid {FG_COLOR2};"
+            f"border-bottom:1px solid {FG_COLOR1};}}"
+            # 设置鼠标按下标签栏样式
+            f"color:{FG_COLOR0};"
+            "padding:4px;"
+            "min-width:30ex;"
             f"border-top:0px solid {FG_COLOR2};"
             f"border-bottom:1px solid {FG_COLOR2};}}"
         )
@@ -327,16 +327,27 @@ class MyMessageBox(QMessageBox):
         super().__init__()
         # 设置背景色
         self.setStyleSheet(
-            f"QMessageBox{{background-color:'white';"
+            f"QMessageBox{{background-color:{BG_COLOR1};"
             f"color:{FG_COLOR0};"
-            "border:1px solid black;}}"
+            f"font-size:12px;"
+            f"border:1px solid {FG_COLOR0};}}"
             f"QMessageBox QPushButton{{background-color:{BG_COLOR1};"
             f"color:{FG_COLOR0};"
-            "border:1px solid black;}}"
+            f"font-size:12px;"
+            f"border:1px solid {FG_COLOR0};}}"
             f"QMessageBox QPushButton:hover{{background-color:{BG_COLOR3};"
             f"color:{FG_COLOR0};"
-            "border:1px solid black;}}"
+            f"font-size:12px;"
+            f"border:1px solid {FG_COLOR0};}}"
         )
+        # 设置按钮
+        self.setStandardButtons(QMessageBox.Yes)
+        self.button(QMessageBox.Yes).setStyleSheet(
+            f"background-color:{BG_COLOR1};"  # 按钮背景颜色
+            f"color:{FG_COLOR0};"  # 按钮字体颜色
+            f"border:1px solid {FG_COLOR0};"  # 按钮边框
+        )
+        self.button(QMessageBox.Yes).setCursor(Qt.PointingHandCursor)
 
 
 class MyLabel(QLabel):
@@ -426,6 +437,40 @@ class CircleSelectButton(QPushButton):
                 f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid {FG_COLOR0};")
 
 
+class CircleSelectButtonGroup:
+    """
+    用于管理一组圆形选择按钮
+    """
+    def __init__(self, button_list, parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3):
+        self.button_list = button_list
+        self.parent = parent
+        self.half_size = half_size
+        self.color = color
+        self.check_color = check_color
+        for button in self.button_list:
+            button.setFixedSize(half_size * 2, half_size * 2)
+            button.setStyleSheet(
+                f"border-radius: {half_size}px; background-color: {color}; border: 1px solid {FG_COLOR0};")
+            # 事件
+            button.setCheckable(True)
+            button.setChecked(False)
+            button.clicked.connect(self.change_color)
+        self.button_list[0].setChecked(True)
+        self.selected_bt_index = 0
+
+    def change_color(self):
+        self.selected_bt_index = self.button_list.index(self.parent.sender())
+        for i, button in enumerate(self.button_list):
+            if i == self.selected_bt_index:
+                button.setChecked(True)
+                button.setStyleSheet(
+                    f"border-radius: {self.half_size}px; background-color: {self.check_color};")
+            else:
+                button.setChecked(False)
+                button.setStyleSheet(
+                    f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid {FG_COLOR0};")
+
+
 class BasicDialog(QDialog):
     def __init__(self, parent=None, title=None, size=QSize(400, 300), center_layout=None):
         self.close_bg = b64decode(close)
@@ -455,16 +500,16 @@ class BasicDialog(QDialog):
         self.add_top_bar()
         # 分割线
         spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl.setStyleSheet("background-color:gray;")
+        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
         self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
         # 主体-----------------------------------------------------------------------------------------------
         self.top_layout = center_layout
         self.init_center_layout()
         self.main_layout.addStretch(1)
         # 分割线
-        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl.setStyleSheet("background-color:gray;")
-        self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
+        spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        spl2.setStyleSheet(f"background-color:{BG_COLOR0};")
+        self.main_layout.addWidget(spl2, alignment=Qt.AlignTop)
         # 底部（按钮）
         self.bottom_layout = QHBoxLayout()
         self.cancel_button = QPushButton('取消')

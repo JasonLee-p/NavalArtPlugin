@@ -6,7 +6,7 @@ import sys
 import webbrowser
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 用于解决打包时的bug
-from PyQt5.QtWidgets import QApplication, QFileDialog, QToolBar, QGridLayout
+from PyQt5.QtWidgets import QApplication, QFileDialog, QToolBar, QGridLayout, QSpinBox, QCheckBox, QSizePolicy
 
 # 本地库
 from path_utils import find_ptb_path
@@ -25,7 +25,35 @@ def is_admin():
         return False
 
 
+def front_completion(txt, length, add_char):
+    """
+    用于在字符串前补全字符
+    :param txt: 原字符串
+    :param length: 补全后的长度
+    :param add_char: 用于补全的字符
+    :return: 补全后的字符串
+    """
+    if len(txt) < length:
+        return add_char * (length - len(txt)) + txt
+    else:
+        return txt
+
+
+def getFG_fromBG(bg: QColor):
+    # 如果红绿蓝三色的平均值小于128，那么前景色为白色，否则为黑色
+    if (bg.red() + bg.green() + bg.blue()) / 3 < 128:
+        return QColor(255, 255, 255)
+    else:
+        return QColor(0, 0, 0)
+
+
 def show_state(txt, msg_type='process'):
+    """
+    显示状态栏信息
+    :param txt:
+    :param msg_type:
+    :return:
+    """
     color_map = {
         'warning': 'orange',
         'success': f"{FG_COLOR0}",
@@ -83,6 +111,7 @@ class MainHandler:
             },
             " 设置": {
                 "界面主题": self.set_theme,
+                "操作灵敏度": self.set_sensitivity,
                 "框线显示": self.set_lines,
             },
             " 视图": {
@@ -107,8 +136,8 @@ class MainHandler:
         self.tab_map = {
             "船体设计": self.hull_design_tab,
             "装甲设计": self.armor_design_tab,
-            "预览PTB船壳": self.read_adhull_tab,
             "预览NA船体": self.read_na_hull_tab,
+            "预览PTB船壳": self.read_adhull_tab,
         }
         for tab_name in self.tab_map:
             self.MainTabWidget.addTab(self.tab_map[tab_name], tab_name)
@@ -192,6 +221,10 @@ class MainHandler:
         theme_dialog = ThemeDialog(parent=self.window)
         theme_dialog.exec_()
 
+    def set_sensitivity(self, event):
+        sensitive_dialog = SensitiveDialog(parent=self.window)
+        sensitive_dialog.exec_()
+
     def set_lines(self, event):
         ...
 
@@ -254,7 +287,7 @@ class HullDesignTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin()
+        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -265,19 +298,17 @@ class HullDesignTab(QWidget):
         self.up_layout.addStretch()
         # -----------------------------------------------------------------------------------操作区
         self.camera = self.ThreeDFrame.camera
-        self.solid_obj = {
-            "船底": self.ThreeDFrame.solid_obj["船底"],
-            "钢铁": self.ThreeDFrame.solid_obj["钢铁"],
-            "甲板": self.ThreeDFrame.solid_obj["甲板"],
-        }
-        self.line_group_obj = self.ThreeDFrame.line_group_obj
+        self.environment_obj = self.ThreeDFrame.environment_obj
+        self.all_3d_obj = self.ThreeDFrame.all_3d_obj
 
     def add_layer(self):
         ...
 
     def choose_mode(self):
-        # 改变第一个按钮的颜色
-        self.down_tool_bar.actions()[0].setChecked(True)
+        if self.down_tool_bar.actions()[0].isChecked():
+            self.ThreeDFrame.mode = OpenGLWin.Selectable
+        else:
+            self.ThreeDFrame.mode = OpenGLWin.UnSelectable
 
     def init_style(self):
         # 设置边距
@@ -317,6 +348,9 @@ class HullDesignTab(QWidget):
         add_layer_action = QAction(self.AddImg, "添加层", self)
         choose_action.triggered.connect(self.choose_mode)
         add_layer_action.triggered.connect(self.add_layer)
+        # 设置可以选中
+        choose_action.setCheckable(True)
+        choose_action.setChecked(True)
         self.down_tool_bar.addAction(choose_action)
         self.down_tool_bar.addAction(add_layer_action)
         # 打包工具栏
@@ -400,7 +434,8 @@ class HullDesignTab(QWidget):
             reply = MyMessageBox().question(self, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
             if reply == MyMessageBox.Yes:
                 self.save_file()
-            self.line_group_obj.clear()
+            for mt, objs in self.all_3d_obj.items():
+                objs.clear()
             show_state(f"正在读取{self.PTBDesignPath}...", 'process')
             self.show_add_hull(adhull)
             show_state(f"{self.PTBDesignPath}读取成功", 'success')
@@ -410,16 +445,14 @@ class HullDesignTab(QWidget):
             self.convertAdhull_button_pressed()
             return
 
-    def show_add_hull(self, adhull_obj: AdvancedHull):
-        self.line_group_obj.append(adhull_obj)
+    def show_add_hull(self, adhull_obj: AdHull):
+        self.all_3d_obj["钢铁"].append(adhull_obj)
         # 更新ThreeDFrame的paintGL
-        self.update_solid_obj()
+        self.update_3d_obj()
 
-    def update_solid_obj(self):
-        self.ThreeDFrame.solid_obj["钢铁"] = self.solid_obj["钢铁"]
-        self.ThreeDFrame.solid_obj["甲板"] = self.solid_obj["甲板"]
-        self.ThreeDFrame.solid_obj["船底"] = self.solid_obj["船底"]
-        self.ThreeDFrame.line_group_obj = self.line_group_obj
+    def update_3d_obj(self):
+        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.all_3d_obj = self.all_3d_obj
 
     # ==============================================================================================
 
@@ -437,7 +470,7 @@ class ReadPTBAdHullTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin()
+        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -446,16 +479,14 @@ class ReadPTBAdHullTab(QWidget):
         self.up_layout.addStretch()
         # -----------------------------------------------------------------------------------操作区
         self.camera = self.ThreeDFrame.camera
-        self.solid_obj = {
-            "船底": self.ThreeDFrame.solid_obj["船底"],
-            "钢铁": self.ThreeDFrame.solid_obj["钢铁"],
-            "甲板": self.ThreeDFrame.solid_obj["甲板"],
-        }
-        self.line_group_obj = self.ThreeDFrame.line_group_obj
+        self.environment_obj = self.ThreeDFrame.environment_obj
+        self.all_3d_obj = self.ThreeDFrame.all_3d_obj
 
     def choose_mode(self):
-        # 改变第一个按钮的颜色
-        self.down_tool_bar.actions()[0].setChecked(True)
+        if self.down_tool_bar.actions()[0].isChecked():
+            self.ThreeDFrame.mode = OpenGLWin.Selectable
+        else:
+            self.ThreeDFrame.mode = OpenGLWin.UnSelectable
 
     def init_style(self):
         # 设置边距
@@ -492,6 +523,9 @@ class ReadPTBAdHullTab(QWidget):
         self.down_tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
 
         choose_action = QAction(self.ChooseImg, "框选", self)
+        # 设置可以选中
+        choose_action.setCheckable(True)
+        choose_action.setChecked(True)
         choose_action.triggered.connect(self.choose_mode)
         self.down_tool_bar.addAction(choose_action)
         # 打包工具栏
@@ -543,7 +577,8 @@ class ReadPTBAdHullTab(QWidget):
             MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
         if adhull.result["adHull"]:  # 如果存在进阶船壳
-            self.line_group_obj.clear()
+            for mt, objs in self.all_3d_obj.items():
+                objs.clear()
             show_state(f"正在读取{self.PTBDesignPath}...", 'process')
             self.show_add_hull(adhull)
             show_state(f"{self.PTBDesignPath}读取成功", 'success')
@@ -554,83 +589,96 @@ class ReadPTBAdHullTab(QWidget):
             return
 
     def show_add_hull(self, adhull_obj: AdvancedHull):
-        self.line_group_obj.append(adhull_obj)
+        self.all_3d_obj["钢铁"].append(adhull_obj)
         # 更新ThreeDFrame的paintGL
-        self.update_solid_obj()
+        self.update_3d_obj()
 
-    def update_solid_obj(self):
-        self.ThreeDFrame.solid_obj["钢铁"] = self.solid_obj["钢铁"]
-        self.ThreeDFrame.solid_obj["甲板"] = self.solid_obj["甲板"]
-        self.ThreeDFrame.solid_obj["船底"] = self.solid_obj["船底"]
-        self.ThreeDFrame.line_group_obj = self.line_group_obj
+    def update_3d_obj(self):
+        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.all_3d_obj = self.all_3d_obj
 
     # ==============================================================================================
 
 
 class ReadNAHullTab(QWidget):
     def __init__(self, parent=None):
+        self.AddImg = QIcon(QPixmap.fromImage(QImage.fromData(ADD_)))
+        self.ChooseImg = QIcon(QPixmap.fromImage(QImage.fromData(CHOOSE_)))
         self.NAPath = NAPath
         self.NADesignPath = ''
         super().__init__(parent)
-        # 设置边距
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setStyleSheet(f"background-color: {BG_COLOR0};")
+        # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
         self.Font = QFont('微软雅黑', 8)
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.down_widget = QWidget()
+        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
-        self.down_widget.setLayout(self.down_layout)
         self.down_tool_bar = QToolBar()
         self.init_layout()
-        # 设置样式
+        self.open_button = QPushButton("打开")
+        self.init_open_button()
+        self.up_layout.addStretch()
+        # -----------------------------------------------------------------------------------操作区
+        self.camera = self.ThreeDFrame.camera
+        self.environment_obj = self.ThreeDFrame.environment_obj
+        self.all_3d_obj = self.ThreeDFrame.all_3d_obj
+
+    def choose_mode(self):
+        # 切换3d界面的选择模式
+        if self.down_tool_bar.actions()[0].isChecked():
+            self.ThreeDFrame.mode = OpenGLWin.Selectable
+        else:
+            self.ThreeDFrame.mode = OpenGLWin.UnSelectable
+
+    def init_style(self):
+        # 设置边距
+        self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet(f"background-color: {BG_COLOR0};")
-        # 在upWidget添加图纸选择按钮
-        self.select_button = QPushButton("打开")
-        self.init_select_button()
 
     def init_layout(self):
         self.up_layout.setSpacing(0)
         self.up_layout.setContentsMargins(0, 0, 0, 0)
-        self.down_widget.setContentsMargins(0, 0, 0, 0)
-        self.down_widget.setStyleSheet(f"background-color: {BG_COLOR1};")
         self.down_layout.setSpacing(0)
         self.down_layout.setContentsMargins(0, 0, 0, 0)
+        self.init_tool_bar()
+        self.down_layout.addWidget(self.ThreeDFrame)
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.addLayout(self.up_layout)
+        self.main_layout.addLayout(self.up_layout, stretch=0)
         # 添加分割线
         self.main_layout.addWidget(QFrame(  # top下方添加横线
             self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken))
-        self.main_layout.addWidget(self.down_widget, 1)
+        self.main_layout.addLayout(self.down_layout, stretch=1)
         self.setLayout(self.main_layout)
 
     def init_tool_bar(self):
-        # 设置工具栏
+        # 设置工具栏  # TODO: 重构
         self.down_tool_bar.setStyleSheet(f"background-color: {BG_COLOR0};")
-        # 初始位置
         self.down_tool_bar.setOrientation(Qt.Vertical)
-        # self.down_tool_bar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.down_tool_bar.setToolButtonStyle(Qt.ToolButtonIconOnly)  # 不显示文本
+        self.down_tool_bar.setContentsMargins(0, 0, 0, 0)
+        # 按钮样式
+        self.down_tool_bar.setIconSize(QSize(26, 26))
+        self.down_tool_bar.setFixedWidth(40)
         self.down_tool_bar.setMovable(True)
         self.down_tool_bar.setFloatable(True)
         self.down_tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
-        self.down_tool_bar.setContentsMargins(0, 0, 0, 0)
-        self.down_tool_bar.setIconSize(QSize(32, 32))
-        self.down_tool_bar.setFixedWidth(32)
 
-        # 添加工具栏按钮
-        self.down_tool_bar.addAction(self.select_action)
-        self.down_tool_bar.addAction(self.check_dot_action)
-        self.down_tool_bar.addAction(self.check_slice_action)
+        choose_action = QAction(self.ChooseImg, "框选", self)
+        # 设置可以选中
+        choose_action.setCheckable(True)
+        choose_action.setChecked(True)
+        choose_action.triggered.connect(self.choose_mode)
+        self.down_tool_bar.addAction(choose_action)
         # 打包工具栏
-        self.down_widget.layout().addWidget(self.down_tool_bar)
+        self.down_layout.addWidget(self.down_tool_bar)
 
-    def init_select_button(self):
-        self.select_button.setFont(self.Font)
+    def init_open_button(self):
+        self.open_button.setFont(self.Font)
         # 设置样式：圆角、背景色、边框
-        self.select_button.setStyleSheet(
+        self.open_button.setStyleSheet(
             f"QPushButton{{background-color: {BG_COLOR0};"
             f"color: {FG_COLOR0};"
             f"border-radius: 0px;"
@@ -647,45 +695,48 @@ class ReadNAHullTab(QWidget):
             f"border: 1px solid {BG_COLOR2};}}"
         )
         # 设置大小
-        self.select_button.setFixedSize(50, 30)
-        self.select_button.clicked.connect(self.select_button_pressed)
-        self.up_layout.addWidget(self.select_button, alignment=Qt.AlignLeft)
+        self.open_button.setFixedSize(50, 30)
+        self.open_button.clicked.connect(self.convertAdhull_button_pressed)
+        self.up_layout.addWidget(self.open_button, alignment=Qt.AlignLeft)
 
-    def select_button_pressed(self):
+    def convertAdhull_button_pressed(self):
         # 打开文件选择窗口，目录为PTB目录
         file_dialog = QFileDialog(self, "选择图纸", self.NAPath)
         file_dialog.setNameFilter("na files (*.na)")
         file_dialog.exec_()
         try:
             file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
-            self.NADesignPath = file_path
-            try:
-                ...  # TODO: 读取NA文件
-            except IndexError and KeyError and AttributeError:
-                _txt = "该文件不是有效的船体设计文件，请重新选择哦"
-                # 白色背景的提示框
-                MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
-                return
-            ...  # TODO: 读取NA文件
         except IndexError:
             return
+        self.NADesignPath = file_path
+        try:
+            na_hull = NAHull(file_path)
+        except AttributeError:
+            _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
+            # 白色背景的提示框
+            MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
+            return
+        except PermissionError:
+            _txt = "该文件已被其他程序打开，请关闭后重试"
+            MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
+            return
+        show_state(f"正在读取{self.NADesignPath}...", 'process')
+        show_state(f"{self.NADesignPath}读取成功", 'success')
+        # 检测颜色种类，弹出对话框，选择颜色
+        color_dialog = ColorDialog(self, na_hull)
+        color_dialog.exec_()
+        self.show_na_hull(na_hull)
 
-    def show_add_hull(self, adhull_obj: AdvancedHull):
-        print(adhull_obj.SlicesPoints)
+    def show_na_hull(self, na_hull_obj):
+        self.all_3d_obj["钢铁"].append(na_hull_obj)
+        # 更新ThreeDFrame的paintGL
+        self.update_3d_obj()
 
-    def show_obj(self, path="J330.solid_obj"):
-        ...
+    def update_3d_obj(self):
+        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.all_3d_obj = self.all_3d_obj
 
     # ==============================================================================================
-
-    def select_action(self):
-        ...
-
-    def check_dot_action(self):
-        ...
-
-    def check_slice_action(self):
-        ...
 
 
 class ArmorDesignTab(QWidget):
@@ -695,9 +746,14 @@ class ArmorDesignTab(QWidget):
 class ThemeDialog(BasicDialog):
     def __init__(self, parent, title="设置主题", size=QSize(300, 200)):
         self.center_layout = QGridLayout()
-        self.cb0 = CircleSelectButton(7, init_statu=True)
-        self.cb1 = CircleSelectButton(7)
-        self.cb2 = CircleSelectButton(7)
+        self.cb0 = QPushButton("")
+        self.cb1 = QPushButton("")
+        self.cb2 = QPushButton("")
+        self.button_group = CircleSelectButtonGroup(
+            [self.cb0, self.cb1, self.cb2],
+            parent=self,
+            half_size=7
+        )
         self.lb0 = MyLabel("白天", font=QFont("微软雅黑", 10))
         self.lb1 = MyLabel("夜晚", font=QFont("微软雅黑", 10))
         self.lb2 = MyLabel("自定义", font=QFont("微软雅黑", 10))
@@ -707,8 +763,6 @@ class ThemeDialog(BasicDialog):
         self.center_layout.addWidget(self.lb0, 0, 1)
         self.center_layout.addWidget(self.lb1, 1, 1)
         self.center_layout.addWidget(self.lb2, 2, 1)
-        # 事件
-        self.selected_button = self.cb0
         super().__init__(parent, title, size, self.center_layout)
         self.set_widget()
 
@@ -717,6 +771,158 @@ class ThemeDialog(BasicDialog):
         self.center_layout.setContentsMargins(30, 20, 30, 0)
 
     def ensure(self):
+        super().ensure()
+        if self.button_group.selected_bt_index == 0:
+            Config.Config["Theme"] = "Day"
+        elif self.button_group.selected_bt_index == 1:
+            Config.Config["Theme"] = "Night"
+        elif self.button_group.selected_bt_index == 2:
+            # 提示自定义功能未开放
+            MyMessageBox().information(self, "提示", "自定义功能未开放", MyMessageBox.Ok)
+            return
+        # 提示保存成功，建议重启程序
+        show_state("主题保存成功，建议重启程序", "success")
+        Config.save_config()  # 保存配置
+
+
+class SensitiveDialog(BasicDialog):
+    def __init__(self, parent, title="设置灵敏度", size=QSize(300, 200)):
+        self.center_layout = QGridLayout()
+        self.lb0 = MyLabel("缩放灵敏度", font=QFont("微软雅黑", 10))
+        self.lb1 = MyLabel("旋转灵敏度", font=QFont("微软雅黑", 10))
+        self.lb2 = MyLabel("平移灵敏度", font=QFont("微软雅黑", 10))
+        # 滑动条
+        self.sld0 = QSlider(Qt.Horizontal)
+        self.sld1 = QSlider(Qt.Horizontal)
+        self.sld2 = QSlider(Qt.Horizontal)
+        self.sld0.setMinimum(0)
+        self.sld0.setMaximum(100)
+        self.sld1.setMinimum(0)
+        self.sld1.setMaximum(100)
+        self.sld2.setMinimum(0)
+        self.sld2.setMaximum(100)
+        self.sld0.setValue(int(100 * Config.Sensitivity["缩放"]))
+        self.sld1.setValue(int(100 * Config.Sensitivity["旋转"]))
+        self.sld2.setValue(int(100 * Config.Sensitivity["平移"]))
+        self.center_layout.addWidget(self.lb0, 0, 0)
+        self.center_layout.addWidget(self.lb1, 1, 0)
+        self.center_layout.addWidget(self.lb2, 2, 0)
+        self.center_layout.addWidget(self.sld0, 0, 1)
+        self.center_layout.addWidget(self.sld1, 1, 1)
+        self.center_layout.addWidget(self.sld2, 2, 1)
+        self.result = [Config.Sensitivity["缩放"], Config.Sensitivity["旋转"], Config.Sensitivity["平移"]]
+        for i in range(3):
+            self.result[i] = self.result[i] * 100
+        # 绑定事件
+        self.sld0.valueChanged.connect(self.value_changed0)
+        self.sld1.valueChanged.connect(self.value_changed1)
+        self.sld2.valueChanged.connect(self.value_changed2)
+        super().__init__(parent, title, size, self.center_layout)
+        self.set_widget()
+
+    def value_changed0(self):
+        self.result[0] = self.sld0.value()
+
+    def value_changed1(self):
+        self.result[1] = self.sld1.value()
+
+    def value_changed2(self):
+        self.result[2] = self.sld2.value()
+
+    def set_widget(self):
+        self.center_layout.setSpacing(8)
+        self.center_layout.setContentsMargins(30, 20, 30, 0)
+
+    def ensure(self):
+        super().ensure()
+        Config.Sensitivity["缩放"] = self.result[0] * 0.01
+        Config.Sensitivity["旋转"] = self.result[1] * 0.01
+        Config.Sensitivity["平移"] = self.result[2] * 0.01
+        Config.save_config()
+        for c in Camera.all_cameras:
+            c.Sensitivity = Config.Sensitivity
+
+
+class ColorDialog(BasicDialog):
+    def __init__(self, parent, na_hull):
+        self.title = "选择：该设计中 船体独有的颜色"
+        self.na_hull = na_hull
+        self.color_parts_map = self.na_hull.ColorPartsMap
+        self.color_num = len(self.color_parts_map)
+        self.color_partNum_map = {}
+        for color, parts in self.color_parts_map.items():
+            self.color_partNum_map[color] = len(parts)
+        # 把颜色按照数量排序
+        self.color_partNum_map = dict(sorted(self.color_partNum_map.items(), key=lambda x: x[1], reverse=True))
+        self.color_choose_map = {}
+        # 生成颜色选择按钮（显示出该颜色，并且在色块上显示出该颜色对应的部件数量，下方是勾选框，用于选择是否显示该颜色）
+        self.center_layout = QGridLayout()
+        for color, num in self.color_partNum_map.items():
+            index_ = list(self.color_partNum_map.keys()).index(color)
+            bg_ = QColor(color)
+            fg_ = getFG_fromBG(bg_)
+            # 色块
+            color_block = QLabel(str(num))
+            color_block.setFixedSize(55, 45)
+            color_block.setAlignment(Qt.AlignCenter)
+            color_block.setStyleSheet(f"background-color: {bg_.name()};color: {fg_.name()};"
+                                      f"border-radius: 5px;"
+                                      f"border: 1px solid {bg_.name()};"
+                                      f"font: 12pt '微软雅黑';")
+            # 16进制色名
+            color_name = QLabel(color)
+            color_name.setAlignment(Qt.AlignCenter)
+            color_name.setStyleSheet(f"color: {FG_COLOR0};"
+                                     f"font: 7pt '微软雅黑';")
+            # RGB色名
+            rgb_widget = QWidget()
+            rgb_layout = QVBoxLayout()
+            rgb_widget.setLayout(rgb_layout)
+            red = QLabel(f"R {front_completion(str(bg_.red()), 3, '0')}")
+            green = QLabel(f"G {front_completion(str(bg_.green()), 3, '0')}")
+            blue = QLabel(f"B {front_completion(str(bg_.blue()), 3, '0')}")
+            red.setAlignment(Qt.AlignCenter)
+            green.setAlignment(Qt.AlignCenter)
+            blue.setAlignment(Qt.AlignCenter)
+            red.setStyleSheet(f"color: red;font: 7pt '微软雅黑';")
+            green.setStyleSheet(f"color: green;font: 7pt '微软雅黑';")
+            blue.setStyleSheet(f"color: blue;font: 7pt '微软雅黑';")
+            rgb_layout.addWidget(red)
+            rgb_layout.addWidget(green)
+            rgb_layout.addWidget(blue)
+            rgb_layout.setSpacing(2)
+            # 选择框
+            choose_box = QCheckBox()
+            choose_box.setFixedSize(20, 20)
+            self.color_choose_map[color] = choose_box
+            # 添加到布局
+            self.center_layout.addWidget(color_block, 0, index_)
+            self.center_layout.addWidget(color_name, 1, index_)
+            self.center_layout.addWidget(rgb_widget, 2, index_)
+            self.center_layout.addWidget(choose_box, 3, index_, alignment=Qt.AlignCenter)
+            # 把其他部件的左键也绑定choose_box修改事件
+            color_block.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+            color_name.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+            rgb_widget.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+        super().__init__(parent, self.title, QSize(self.color_num * 90, 350), self.center_layout)
+        self.set_widget()
+
+    @staticmethod
+    def color_block_pressed(event, choose_box):
+        if event.button() == Qt.LeftButton:
+            choose_box.setChecked(not choose_box.isChecked())
+
+    def set_widget(self):
+        # 上下间距
+        self.center_layout.setSpacing(8)
+        self.center_layout.setContentsMargins(50, 50, 50, 0)
+
+    def ensure(self):
+        draw_map = {}
+        for color, choose_box in self.color_choose_map.items():
+            if choose_box.isChecked():
+                draw_map[color] = self.color_parts_map[color]
+        self.na_hull.DrawMap = draw_map
         super().ensure()
 
 
@@ -741,10 +947,12 @@ if __name__ == '__main__':
     Config = ConfigFile()
     Config.load_config()
     UsingTheme = Config.UsingTheme
+    Projects = Config.Projects
     # 初始化界面和事件处理器
     QApp = QApplication(sys.argv)
     QtWindow = MainWindow(Config)
     Handler = MainHandler(QtWindow)
+    QtWindow.show()  # 显示被隐藏的窗口
     # 保存配置
     Config.save_config()
     # 主循环

@@ -1,0 +1,2538 @@
+<root>
+  <ship author="2593292614" description="" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
+    <part id="0">
+      <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="1.5" frontWidth="0.32" backWidth="0.75" frontSpread="0.035" backSpread="0.05" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="2" frontWidth="0.355" backWidth="0.8" frontSpread="0.045" backSpread="0.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="2" frontWidth="0.4" backWidth="0.9" frontSpread="0.05" backSpread="0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="1" frontWidth="0.45" backWidth="1.2" frontSpread="0.1" backSpread="0.25" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="2" frontWidth="0.55" backWidth="1.45" frontSpread="0.3" backSpread="1.05" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="2" frontWidth="0.85" backWidth="2.5" frontSpread="1.55" backSpread="2.55" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="2.5" backWidth="6.2" frontSpread="2.55" backSpread="3.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="6.2" backWidth="9.8" frontSpread="3.3" backSpread="3.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="2" frontWidth="0" backWidth="0.85" frontSpread="1.5" backSpread="1.55" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="117.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="14" backWidth="16.9" frontSpread="2.8" backSpread="2.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="16.9" backWidth="19.6" frontSpread="2.4" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="19.6" backWidth="21" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21" backWidth="21.95" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21.95" backWidth="22.5" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.5" backWidth="22.8" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="22.8" backWidth="22.8" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="22.8" backWidth="22.8" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.8" backWidth="22.5" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="1.5" frontWidth="0.25" backWidth="0.7" frontSpread="0.07" backSpread="0.05" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="114.75" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1" frontWidth="0.5" backWidth="1.2" frontSpread="0.2" backSpread="0.7" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1" frontWidth="1.2" backWidth="2" frontSpread="0.7" backSpread="1.5" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="2" backWidth="4" frontSpread="1.5" backSpread="2.5" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="4" backWidth="6.6" frontSpread="2.5" backSpread="3" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="6.6" backWidth="8.5" frontSpread="3" backSpread="4" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="8.5" backWidth="10" frontSpread="4" backSpread="5" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="10" backWidth="11.3" frontSpread="5" backSpread="5.5" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="11.3" backWidth="12" frontSpread="5.5" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="12" backWidth="12.5" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="12.5" backWidth="12.5" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="12.5" backWidth="11.8" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="1.45" backWidth="3.8" frontSpread="1.05" backSpread="2.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1" frontWidth="1.2" backWidth="3.1" frontSpread="0.25" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="0.9" backWidth="2.8" frontSpread="0.3" backSpread="0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="0.8" backWidth="2.7" frontSpread="0.1" backSpread="0.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1.5" frontWidth="0.75" backWidth="2.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1.5" frontWidth="0.7" backWidth="1.9" frontSpread="0.05" backSpread="0.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="108" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1.5" frontWidth="2.5" backWidth="4.5" frontSpread="0.2" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="2.7" backWidth="5.2" frontSpread="0.1" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="2.8" backWidth="5.9" frontSpread="0.3" backSpread="0.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1" frontWidth="3.1" backWidth="6.7" frontSpread="0.7" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="9" height="2" frontWidth="3.8" backWidth="7.4" frontSpread="2.4" backSpread="2.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="1.5" frontWidth="1.9" backWidth="3.5" frontSpread="0.6" backSpread="1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="99" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.15" frontWidth="16.8" backWidth="13.1" frontSpread="0.2" backSpread="0.26" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="88.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.15" frontWidth="9.5" backWidth="5.05" frontSpread="0.24" backSpread="0.22" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="108" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="0.15" frontWidth="5.05" backWidth="2.4" frontSpread="0.22" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="114.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.3" frontWidth="17" backWidth="13.36" frontSpread="0" backSpread="0.5" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="12.8" z="88.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.3" frontWidth="13.36" backWidth="9.74" frontSpread="0.5" backSpread="0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.8" z="99" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.15" frontWidth="13.1" backWidth="9.5" frontSpread="0.26" backSpread="0.24" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="99" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="0.3" frontWidth="5.27" backWidth="2.6" frontSpread="0.49" backSpread="0.43" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.8" z="114.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.36" frontWidth="13.86" backWidth="10.24" frontSpread="0" backSpread="0.6" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="13.13" z="99" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.36" frontWidth="10.24" backWidth="5.76" frontSpread="0.6" backSpread="0.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.13" z="108" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="0.36" frontWidth="5.76" backWidth="3.03" frontSpread="0.6" backSpread="0.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.13" z="114.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.42" frontWidth="10.84" backWidth="6.36" frontSpread="0" backSpread="0.75" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="13.52" z="108" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="9.8" backWidth="14" frontSpread="3.3" backSpread="2.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="0.3" frontWidth="9.74" backWidth="5.27" frontSpread="0.5" backSpread="0.49" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.8" z="108" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="0.42" frontWidth="6.36" backWidth="3.63" frontSpread="0.75" backSpread="0.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.52" z="114.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4.5" height="0.24" frontWidth="7.11" backWidth="4.43" frontSpread="0" backSpread="0.5" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="13.85" z="114.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.15" frontWidth="2.4" backWidth="1.5" frontSpread="0.2" backSpread="0.12" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.3" frontWidth="2.6" backWidth="1.62" frontSpread="0.43" backSpread="0.38" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.8" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.36" frontWidth="3.03" backWidth="2" frontSpread="0.6" backSpread="0.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.13" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.42" frontWidth="3.63" backWidth="2.6" frontSpread="0.8" backSpread="0.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.52" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.24" frontWidth="4.43" backWidth="3.4" frontSpread="0.5" backSpread="0.52" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.85" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.15" frontWidth="1.5" backWidth="0.35" frontSpread="0.12" backSpread="0.15" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.575" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.36" frontWidth="2" backWidth="0.83" frontSpread="0.6" backSpread="0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.13" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.42" frontWidth="2.6" backWidth="1.33" frontSpread="0.8" backSpread="0.85" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.52" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.24" frontWidth="3.4" backWidth="2.18" frontSpread="0.52" backSpread="0.55" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.85" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.09" frontWidth="3.92" backWidth="2.73" frontSpread="0.22" backSpread="0.24" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14.015" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.09" frontWidth="4.93" backWidth="3.92" frontSpread="0" backSpread="0.22" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="14.015" z="117.75" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.09" frontWidth="4.14" backWidth="2.97" frontSpread="0" backSpread="0.25" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="14.105" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="0.3" frontWidth="1.62" backWidth="0.5" frontSpread="0.38" backSpread="0.33" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.8" z="119.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.18" frontWidth="2.73" backWidth="2" frontSpread="0.49" backSpread="0.39" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14.06" z="120.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.36" frontWidth="0.83" backWidth="0" frontSpread="0.5" backSpread="0.45" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.13" z="120.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.06" frontWidth="3.22" backWidth="2.39" frontSpread="0" backSpread="0.14" upCurve="0" downCurve="0" heightScale="0" heightOffset="-1" />
+      <position x="0" y="14.18" z="120.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.9" height="1" frontWidth="0" backWidth="2.2" frontSpread="0" backSpread="-1" upCurve="1" downCurve="0" heightScale="0" heightOffset="-0.7" />
+      <position x="0" y="13.76" z="122" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.42" frontWidth="1.33" backWidth="0.45" frontSpread="0.85" backSpread="1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.52" z="120.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.5" height="0.42" frontWidth="0.45" backWidth="0" frontSpread="1" backSpread="1.02" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="6.338151E-08" y="13.52" z="121.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.24" frontWidth="2.18" backWidth="1.45" frontSpread="0.55" backSpread="0.55" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.85" z="120.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.5" height="0.24" frontWidth="1.45" backWidth="1.02" frontSpread="0.55" backSpread="0.59" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.85" z="121.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.5" height="0.24" frontWidth="2" backWidth="1.61" frontSpread="0.52" backSpread="0.59" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14.09" z="121.25" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="7.4" backWidth="11.6" frontSpread="2.4" backSpread="2.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="11.6" backWidth="15.1" frontSpread="2.4" backSpread="1.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="15.1" backWidth="17.9" frontSpread="1.8" backSpread="1.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="17.9" backWidth="19.5" frontSpread="1.7" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="19.5" backWidth="20.55" frontSpread="1.5" backSpread="1.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="20.55" backWidth="21" frontSpread="1.4" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21" backWidth="21.3" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="21.3" backWidth="21.3" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="21.3" backWidth="21.3" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="143">
+      <turret manualControl="True" evevator="5" />
+      <position x="0" y="13" z="77" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="203" />
+    </part>
+    <part id="143">
+      <turret manualControl="True" evevator="8" />
+      <position x="0" y="16" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="203" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.9" frontWidth="0.45" backWidth="0.6" frontSpread="0" backSpread="-0.1" upCurve="1" downCurve="0" heightScale="0.5" heightOffset="0" />
+      <position x="0" y="8" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="2" frontWidth="0" backWidth="0" frontSpread="0.35" backSpread="1.5" upCurve="0" downCurve="0" heightScale="0.2" heightOffset="0.4" />
+      <position x="0" y="11.5" z="119.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="3.4" frontWidth="0.6" backWidth="1.35" frontSpread="-0.1" backSpread="-1" upCurve="1" downCurve="1" heightScale="0.265" heightOffset="0" />
+      <position x="0" y="9.5" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7" height="0.45" frontWidth="0.25" backWidth="0.45" frontSpread="0" backSpread="0" upCurve="1" downCurve="0" heightScale="0.55" heightOffset="0" />
+      <position x="0" y="4" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.5" height="0.245" frontWidth="0.22" backWidth="0.25" frontSpread="0" backSpread="0" upCurve="1" downCurve="0" heightScale="0.85" heightOffset="0" />
+      <position x="0" y="0.25" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="190">
+      <position x="0" y="-8.526513E-14" z="117.0312" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="0.03333336" y="0.03333367" z="0.1666679" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="5.9" backWidth="9.8" frontSpread="0.8" backSpread="1.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="6.7" backWidth="10.9" frontSpread="0.7" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="5.2" backWidth="8.9" frontSpread="0.7" backSpread="0.9" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="4.5" backWidth="8" frontSpread="0.7" backSpread="0.9" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="3.5" backWidth="6.5" frontSpread="1" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="10.9" backWidth="14.9" frontSpread="0.7" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="9.8" backWidth="14.4" frontSpread="1.1" backSpread="0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="8.9" backWidth="13.3" frontSpread="0.9" backSpread="1.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="8" backWidth="12.1" frontSpread="0.9" backSpread="1.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="6.5" backWidth="9.6" frontSpread="1.5" backSpread="2.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="14.9" backWidth="18.2" frontSpread="0.2" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="14.4" backWidth="18.2" frontSpread="0.5" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="13.3" backWidth="17.2" frontSpread="1.1" backSpread="1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="12.1" backWidth="15.5" frontSpread="1.2" backSpread="1.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="9.6" backWidth="12.5" frontSpread="2.5" backSpread="3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="12.5" backWidth="15" frontSpread="3" backSpread="3.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="15.5" backWidth="18.3" frontSpread="1.7" backSpread="1.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="17.2" backWidth="20" frontSpread="1" backSpread="0.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="18.2" backWidth="20.8" frontSpread="0" backSpread="-0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="18.2" backWidth="20.5" frontSpread="0" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="15" backWidth="16.8" frontSpread="3.3" backSpread="3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="18.3" backWidth="19.8" frontSpread="1.7" backSpread="1.9" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="20" backWidth="21.7" frontSpread="0.8" backSpread="0.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="20.8" backWidth="22.3" frontSpread="-0.3" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="20.5" backWidth="21.9" frontSpread="-0.4" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="16.8" backWidth="18" frontSpread="3" backSpread="2.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="19.8" backWidth="20.8" frontSpread="1.9" backSpread="1.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21.7" backWidth="22.4" frontSpread="0.6" backSpread="0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.3" backWidth="22.8" frontSpread="-0.4" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="21.9" backWidth="22.4" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="18" backWidth="18.5" frontSpread="2.8" backSpread="2.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.4" backWidth="22.7" frontSpread="0.4" backSpread="0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="20.8" backWidth="21.1" frontSpread="1.6" backSpread="1.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.8" backWidth="23.1" frontSpread="-0.4" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="22.4" backWidth="22.7" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="18.5" backWidth="18.5" frontSpread="2.6" backSpread="2.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="21.1" backWidth="21.1" frontSpread="1.6" backSpread="1.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="22.7" backWidth="22.7" frontSpread="0.4" backSpread="0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="23.1" backWidth="23.1" frontSpread="-0.4" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="22.7" backWidth="22.7" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="22.7" backWidth="22.4" frontSpread="0.4" backSpread="0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="18.5" backWidth="17.8" frontSpread="2.6" backSpread="2.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="21.1" backWidth="20.6" frontSpread="1.6" backSpread="1.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="23.1" backWidth="22.8" frontSpread="-0.4" backSpread="-0.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="22.7" backWidth="22.7" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="22.7" backWidth="22.1" frontSpread="-0.5" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.8" backWidth="22.1" frontSpread="-0.1" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.4" backWidth="21.3" frontSpread="0.4" backSpread="0.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="20.6" backWidth="19.1" frontSpread="1.8" backSpread="2.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="11.8" backWidth="10" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="17.8" backWidth="16" frontSpread="2.8" backSpread="3.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="22.2" backWidth="21.7" frontSpread="-0.5" backSpread="-0.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="22.2" backWidth="22.2" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="22.2" backWidth="22.2" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="21.9" backWidth="22.2" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="21.4" backWidth="21.9" frontSpread="-0.5" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="20.1" backWidth="21.4" frontSpread="-0.2" backSpread="-0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="18.2" backWidth="20.1" frontSpread="0" backSpread="-0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="15.1" backWidth="18.2" frontSpread="0.2" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="51">
+      <position x="0" y="17.5" z="14" />
+      <rotation x="-5.008956E-06" y="180" z="180" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="114">
+      <position x="0" y="1.4" z="-88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="114">
+      <position x="-4.5" y="1.4" z="-86" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="114">
+      <position x="4.5" y="1.4" z="-86" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="115">
+      <position x="0" y="1.5" z="-90" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="115">
+      <position x="4.5" y="1.5" z="-88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="115">
+      <position x="-4.5" y="1.5" z="-88.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.5" backWidth="21.8" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21.8" backWidth="20.7" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="19.3" backWidth="17.64" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="17.64" backWidth="15.36" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="143">
+      <turret manualControl="True" evevator="8" />
+      <position x="0" y="16" z="-50" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="203" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="20.7" backWidth="19.3" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="124">
+      <turret manualControl="False" evevator="8" />
+      <position x="-7.5" y="15.8" z="38" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="128" />
+    </part>
+    <part id="124">
+      <turret manualControl="False" evevator="8" />
+      <position x="7.5" y="15.8" z="38" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="128" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="11.6" backWidth="15.1" frontSpread="0.5" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="76.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21.3" backWidth="21" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="21.7" backWidth="20.75" frontSpread="-0.4" backSpread="-0.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="20.75" backWidth="19.5" frontSpread="-0.1" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="19.5" backWidth="17.95" frontSpread="0" backSpread="0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="10" backWidth="7" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="16" backWidth="13" frontSpread="3.1" backSpread="3.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="19.1" backWidth="16.4" frontSpread="2.2" backSpread="2.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21.3" backWidth="19.2" frontSpread="0.8" backSpread="1.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="22.1" backWidth="20.7" frontSpread="-0.4" backSpread="0.05" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="22.1" backWidth="20.5" frontSpread="0" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="7" backWidth="3" frontSpread="6" backSpread="6" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="3" backWidth="0" frontSpread="6" backSpread="4" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="21" backWidth="20.3" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="20.3" backWidth="19.2" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="19.2" backWidth="17.8" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="16.4" backWidth="13" frontSpread="2.8" backSpread="3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="19.2" backWidth="16" frontSpread="1.3" backSpread="2.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="12" height="2" frontWidth="20.5" backWidth="18.3" frontSpread="0.2" backSpread="1.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="12" height="1" frontWidth="20.7" backWidth="19.4" frontSpread="0.05" backSpread="0.1" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="12" height="1.5" frontWidth="13" backWidth="9" frontSpread="3.4" backSpread="4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1.5" frontWidth="9" backWidth="4" frontSpread="4" backSpread="4.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1.5" frontWidth="13" backWidth="8.5" frontSpread="3" backSpread="4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="16" backWidth="12.5" frontSpread="2.3" backSpread="3.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="18.3" backWidth="16" frontSpread="1.1" backSpread="1.65" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="19.4" backWidth="17.65" frontSpread="0.1" backSpread="0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="0" backWidth="0" frontSpread="4" backSpread="0" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1.5" frontWidth="4" backWidth="0" frontSpread="4.5" backSpread="3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="16" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1.5" frontWidth="8.5" backWidth="3" frontSpread="4" backSpread="4.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="12.5" backWidth="7.2" frontSpread="3.5" backSpread="5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="76" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="17.95" backWidth="16.14" frontSpread="0.3" backSpread="0.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="200" />
+    </part>
+    <part id="143">
+      <turret manualControl="True" evevator="5" />
+      <position x="0" y="13" z="-62" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="203" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="16" backWidth="12.2" frontSpread="1.65" backSpread="3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="140" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="2" frontWidth="17.8" backWidth="16.14" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="1" frontWidth="17.65" backWidth="15.2" frontSpread="0.3" backSpread="0.95" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="200" />
+    </part>
+    <part id="280">
+      <position x="0" y="5" z="19.5" />
+      <rotation x="0" y="0" z="180" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="0" backWidth="0" frontSpread="3" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="1.25" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1.5" frontWidth="3" backWidth="0" frontSpread="4.2" backSpread="2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="12.2" backWidth="7" frontSpread="3" backSpread="5.26" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="1" frontWidth="15.2" backWidth="12.26" frontSpread="0.95" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="16.14" backWidth="13.76" frontSpread="1.5" backSpread="1.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="2" frontWidth="7.2" backWidth="2" frontSpread="5" backSpread="5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="2" frontWidth="15.36" backWidth="13.4" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.8" height="2" frontWidth="13.4" backWidth="10.9" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-88.2" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="6.3" height="2" frontWidth="10.9" backWidth="8.05" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-95.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="2" frontWidth="8.05" backWidth="6.4" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-99.9" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2.4" height="2" frontWidth="6.4" backWidth="4.5" frontSpread="1.5" backSpread="1.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="11.5" z="-102.6" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="3" frontWidth="3.75" backWidth="5" frontSpread="1.5" backSpread="2" upCurve="1" downCurve="1" heightScale="0.75" heightOffset="0" />
+      <position x="0" y="11.5" z="-103.8" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="2" frontWidth="13.76" backWidth="11.6" frontSpread="1.6" backSpread="1.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.8" height="2" frontWidth="11.6" backWidth="8.7" frontSpread="1.8" backSpread="2.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-88.2" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="6.3" height="2" frontWidth="8.7" backWidth="5.65" frontSpread="2.2" backSpread="2.4" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-95.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="2" frontWidth="5.65" backWidth="3.6" frontSpread="2.4" backSpread="2.8" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-99.9" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2.4" height="2" frontWidth="3.6" backWidth="1" frontSpread="2.8" backSpread="3.5" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="9.5" z="-102.6" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="2.25" frontWidth="0.75" backWidth="3.75" frontSpread="0.5" backSpread="1.5" upCurve="1" downCurve="1" heightScale="0.2" heightOffset="0" />
+      <position x="0" y="9.5" z="-103.8" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="7.3" frontWidth="1.35" backWidth="1.35" frontSpread="-1" backSpread="-1" upCurve="1" downCurve="1" heightScale="0.465" heightOffset="0" />
+      <position x="0" y="11.5" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="9.4" frontWidth="1.35" backWidth="1.35" frontSpread="-1" backSpread="-1" upCurve="1" downCurve="1" heightScale="0.775" heightOffset="0" />
+      <position x="0" y="13" z="117" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1" height="0.6" frontWidth="0" backWidth="0.2" frontSpread="0" backSpread="0.63" upCurve="0" downCurve="0" heightScale="0" heightOffset="0.6" />
+      <position x="0" y="12.65" z="120.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.5" height="0.36" frontWidth="0" backWidth="0" frontSpread="0" backSpread="0.45" upCurve="0" downCurve="0" heightScale="0" heightOffset="1" />
+      <position x="0" y="13.13" z="121.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="1" frontWidth="12.26" backWidth="9.6" frontSpread="1.5" backSpread="2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="7.8" height="1" frontWidth="9.6" backWidth="6" frontSpread="2" backSpread="2.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-88.2" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="6.3" height="1" frontWidth="6" backWidth="2.75" frontSpread="2.7" backSpread="2.9" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-95.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="1" frontWidth="2.75" backWidth="0" frontSpread="2.9" backSpread="3.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="8" z="-99.9" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2.4" height="1" frontWidth="0" backWidth="0" frontSpread="1" backSpread="3.6" upCurve="0" downCurve="0" heightScale="0.2" heightOffset="0.4" />
+      <position x="0" y="8" z="-102.6" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.2" height="0.45" frontWidth="0" backWidth="0.75" frontSpread="0" backSpread="0.5" upCurve="1" downCurve="1" heightScale="0" heightOffset="0" />
+      <position x="0" y="8.4" z="-103.8" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="323232" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="7.8" height="2" frontWidth="1.4" backWidth="2.4" frontSpread="4.6" backSpread="7.2" upCurve="0" downCurve="1" heightScale="0.7" heightOffset="0.15" />
+      <position x="0" y="6.5" z="-88.2" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="0.7" frontWidth="0" backWidth="0.5" frontSpread="0" backSpread="2.25" upCurve="0" downCurve="1" heightScale="0" heightOffset="0.9" />
+      <position x="0" y="7.15" z="-99.9" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="2" frontWidth="7" backWidth="1" frontSpread="5.26" backSpread="8.6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="2.5" frontWidth="2.4" backWidth="5.5" frontSpread="7.2" backSpread="6.76" upCurve="0" downCurve="1" heightScale="0.8" heightOffset="0.1" />
+      <position x="0" y="6.25" z="-80.55" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="20" height="6" frontWidth="0.2" backWidth="0.2" frontSpread="0" backSpread="0" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.5" z="-74.3" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="2" frontWidth="2" backWidth="0.3" frontSpread="5" backSpread="0.7" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="4.5" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="32" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="1.5" frontWidth="0" backWidth="0" frontSpread="2" backSpread="0.3" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="2.75" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="2" frontWidth="1" backWidth="0" frontSpread="8.6" backSpread="2" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="6.5" z="-85.3" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="2" frontWidth="0" backWidth="0" frontSpread="0" backSpread="2" upCurve="0" downCurve="0" heightScale="0" heightOffset="0" />
+      <position x="0" y="6.5" z="-87.3" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="3" frontWidth="0" backWidth="0.2" frontSpread="0" backSpread="0.8" upCurve="0" downCurve="0" heightScale="0" heightOffset="0.8" />
+      <position x="0" y="4" z="-85.3" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="6.3" height="1.4" frontWidth="0.5" backWidth="1.4" frontSpread="2.25" backSpread="4.6" upCurve="0" downCurve="1" heightScale="0.5" heightOffset="0.25" />
+      <position x="0" y="6.8" z="-95.25" />
+      <rotation x="0" y="180" z="1.221333E-12" />
+      <scale x="1" y="1" z="1" />
+      <color hex="975740" />
+      <armor value="5" />
+    </part>
+    <part id="280">
+      <position x="0" y="5" z="8" />
+      <rotation x="0" y="180" z="180" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="18.9" backWidth="20.6" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="64.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="20.6" backWidth="22" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="22" backWidth="23" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="23" backWidth="23.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="23.5" backWidth="23.8" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="0.02" frontWidth="23.8" backWidth="23.8" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="0.02" frontWidth="23.8" backWidth="23.8" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-5.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.15" frontWidth="19.3" backWidth="16.8" frontSpread="0" backSpread="0.2" upCurve="0" downCurve="0" heightScale="1" heightOffset="-1" />
+      <position x="0" y="12.575" z="76.5" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6E6E" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="23.8" backWidth="23.6" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-16.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="23.6" backWidth="22.9" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-28.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="22.9" backWidth="21.8" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-40.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="0.02" frontWidth="21.8" backWidth="20.4" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-51.45" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.9" height="0.02" frontWidth="20.4" backWidth="18.8" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-61.35" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="10.5" height="0.02" frontWidth="18.8" backWidth="16.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-71.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="6" height="3" frontWidth="8.5" backWidth="16" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="61.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="8.5" frontWidth="8.5" backWidth="8.5" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="64.5" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="8.5" frontWidth="8.5" backWidth="8.5" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-50" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9" height="3" frontWidth="16.5" backWidth="16.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="42" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="14.4" height="3.3" frontWidth="3.3" backWidth="3.3" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="19.7" z="11" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="14.4" height="3.3" frontWidth="3.3" backWidth="3.3" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="19.7" z="16" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="5" height="14.4" frontWidth="3.3" backWidth="3.3" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="19.7" z="13.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="19.5" height="3" frontWidth="3" backWidth="3" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="22.25" z="24" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="19.5" height="3" frontWidth="3" backWidth="3" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="22.25" z="27" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="19.5" height="3" frontWidth="3" backWidth="3" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="22.25" z="25.5" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="242">
+      <position x="-9" y="12.445" z="25.1" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="242">
+      <position x="9" y="12.445" z="25.1" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="242">
+      <position x="-9" y="12.445" z="-18.4" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="242">
+      <position x="9" y="12.445" z="-18.4" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="8" height="3" frontWidth="15" backWidth="8.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-46" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="18" height="3" frontWidth="15" backWidth="15" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-33" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="1.5" height="3" frontWidth="9" backWidth="15" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-23.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="16.5" height="3" frontWidth="9" backWidth="9" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-14.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2.4" height="3" frontWidth="13.5" backWidth="9" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-4.8" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2.4" height="3" frontWidth="13.5" backWidth="13.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="-2.4" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="3" frontWidth="3" backWidth="3" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="17" z="-3" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="194">
+      <catapult angle="90" />
+      <position x="0" y="19.9" z="-5.55" />
+      <rotation x="-1.267037E-06" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="215">
+      <mountPoints index="0">
+        <loadout id="3" />
+      </mountPoints>
+      <mountPoints index="1">
+        <loadout id="3" />
+      </mountPoints>
+      <mountPoints index="2">
+        <loadout id="11" smokeColor="3451FF" smokeDuration="20" />
+      </mountPoints>
+      <mountPoints index="3">
+        <loadout id="6" smokeColor="D92529" smokeDuration="20" />
+      </mountPoints>
+      <position x="1.748456E-07" y="22.6" z="-5" />
+      <rotation x="-1.267037E-06" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="FFFFFF" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="12" height="2.5" frontWidth="6" backWidth="6" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="16.75" z="-12" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.3" frontWidth="6" backWidth="6" frontSpread="-6" backSpread="-6" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="18.15" z="-12" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="75">
+      <position x="0" y="17.46" z="120" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="107">
+      <flag flagName="" />
+      <position x="-0.3" y="19.5" z="120" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="0" />
+    </part>
+    <part id="174">
+      <position x="1.7" y="13" z="90.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="50" />
+    </part>
+    <part id="174">
+      <position x="-1.7" y="13" z="90.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="50" />
+    </part>
+    <part id="311">
+      <position x="-6.2" y="14" z="51.95" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1.3" y="1" z="1.3" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="311">
+      <position x="6.2" y="14" z="51.95" />
+      <rotation x="0" y="270" z="0" />
+      <scale x="1.3" y="1" z="1.3" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="311">
+      <position x="-6.2" y="14" z="48.05" />
+      <rotation x="0" y="90" z="0" />
+      <scale x="1.3" y="1" z="1.3" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="311">
+      <position x="6.2" y="14" z="48.05" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1.3" y="1" z="1.3" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="3" frontWidth="13.2" backWidth="9.2" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="52.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="3" height="3" frontWidth="9.2" backWidth="9.2" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="50" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="2" height="3" frontWidth="9.2" backWidth="13.2" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="47.5" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="121">
+      <turret manualControl="False" />
+      <position x="-8.7" y="12.57" z="50" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="105" />
+    </part>
+    <part id="0">
+      <data length="5" height="3" frontWidth="16" backWidth="16.4" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="14" z="56" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="5" />
+    </part>
+    <part id="121">
+      <turret manualControl="False" />
+      <position x="8.7" y="12.57" z="50" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="105" />
+    </part>
+    <part id="71">
+      <position x="9" y="19.4" z="3" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="71">
+      <position x="-9" y="19.4" z="3" />
+      <rotation x="0" y="180" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="50" />
+    </part>
+    <part id="124">
+      <turret manualControl="False" evevator="5" />
+      <position x="-9" y="12.9" z="-7" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="128" />
+    </part>
+    <part id="124">
+      <turret manualControl="False" evevator="5" />
+      <position x="9" y="12.9" z="-7" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="6F6F6F" />
+      <armor value="128" />
+    </part>
+    <part id="215">
+      <mountPoints index="0" />
+      <mountPoints index="1" />
+      <mountPoints index="2" />
+      <mountPoints index="3" />
+      <position x="0" y="12.1" z="-10" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="FFFFFF" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="7.5" height="0.02" frontWidth="16.5" backWidth="14.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-80.55" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="7.8" height="0.02" frontWidth="14.5" backWidth="12.1" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-88.2" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="6.3" height="0.02" frontWidth="12.1" backWidth="9.2" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.51" z="-95.25" />
+      <rotation x="0" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="89391D" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.01" height="5" frontWidth="5" backWidth="5" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.525" z="-95.25" />
+      <rotation x="90" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="E9E9E9" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.01" height="4" frontWidth="0.5" backWidth="0.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.535" z="-95.25" />
+      <rotation x="90" y="45" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="0B0B0B" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4" height="0.01" frontWidth="0.5" backWidth="0.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.535" z="-95.25" />
+      <rotation x="0" y="315" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="0B0B0B" />
+      <armor value="5" />
+    </part>
+    <part id="84">
+      <position x="0" y="13.4" z="120.6" />
+      <rotation x="290" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="636363" />
+      <armor value="50" />
+    </part>
+    <part id="0">
+      <data length="12.005" height="0.02" frontWidth="16.7" backWidth="18.9" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.587" z="76.5" />
+      <rotation x="359.27" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="12" height="0.02" frontWidth="13.6" backWidth="16.7" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="12.817" z="88.5" />
+      <rotation x="358.55" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="827461" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="9.005" height="0.02" frontWidth="10.6" backWidth="13.6" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.15" z="99" />
+      <rotation x="357.7" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="89391D" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.01" height="5" frontWidth="5" backWidth="5" frontSpread="0" backSpread="0" upCurve="1" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.175" z="99.0002" />
+      <rotation x="87.70016" y="0" z="0" />
+      <scale x="1" y="1" z="1" />
+      <color hex="E9E9E9" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="0.01" height="4" frontWidth="0.5" backWidth="0.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.185" z="98.9998" />
+      <rotation x="87.70049" y="0.0002127798" z="315.0002" />
+      <scale x="1" y="1" z="1" />
+      <color hex="0B0B0B" />
+      <armor value="5" />
+    </part>
+    <part id="0">
+      <data length="4" height="0.01" frontWidth="0.5" backWidth="0.5" frontSpread="0" backSpread="0" upCurve="0" downCurve="0" heightScale="1" heightOffset="0" />
+      <position x="0" y="13.185" z="98.9998" />
+      <rotation x="358.3739" y="314.9769" z="1.626783" />
+      <scale x="1" y="1" z="1" />
+      <color hex="0B0B0B" />
+      <armor value="50" />
+    </part>
+  </ship>
+</root>

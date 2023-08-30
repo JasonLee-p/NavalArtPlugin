@@ -794,7 +794,7 @@ class SplitAdHull(AdvancedHull):
         return triangles
 
 
-class ReadXML:
+class ReadPTB:
     """
     读取XML文件，把数据分别存放到各个类里分别使用
     """

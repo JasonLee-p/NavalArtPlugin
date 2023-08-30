@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QGridLayout, QPushButton, QFileDialog, QVBoxLayout
 
 from GUI.QtGui import BasicDialog, set_button_style, FG_COLOR0
 from GUI.QtGui import MyLabel, MyLineEdit, MyComboBox, MySlider, MyMessageBox
-from PTB_design_reader import ReadXML
+from PTB_design_reader import ReadPTB
 from path_utils import find_ptb_path, find_na_path
 
 
@@ -24,8 +24,8 @@ class ConfigFile:
         """
         self.Config = {}
         self.UsingTheme = ''
-        self.LastProject = ''
-        self.LastProjectPath = ''
+        self.Sensitivity = {}
+        self.Projects = {}
 
     def load_config(self):
         # 从配置文件中读取配置
@@ -33,20 +33,18 @@ class ConfigFile:
         try:
             with open(_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                print(data)
             self.Config = data['Config']
             self.UsingTheme = self.Config['Theme']
-            self.LastProject = data['LastProject']
-            self.LastProjectPath = data['LastProjectPath']
+            self.Sensitivity = self.Config['Sensitivity']
+            self.Projects = data['Projects']
         except FileNotFoundError:
             self.Config = {
                 'Theme': 'Day',
                 'Language': 'Chinese',
                 'AutoSave': True,
                 'AutoSaveInterval': 5,
+                'Sensitivity': self.Sensitivity,
             }
-            self.LastProject = ''
-            self.LastProjectPath = ''
 
     def save_config(self):
         # 将配置写入配置文件
@@ -54,8 +52,7 @@ class ConfigFile:
         with open(_path, 'w', encoding='utf-8') as f:
             json.dump({
                 'Config': self.Config,
-                'LastProject': self.LastProject,
-                'LastProjectPath': self.LastProjectPath,
+                'Projects': self.Projects,
             }, f, ensure_ascii=False, indent=4)
 
 
@@ -276,7 +273,7 @@ class NewProjectDialog(BasicDialog):
             file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
             self.PTBDesignPath = file_path
             try:
-                design_reader = ReadXML(file_path)
+                design_reader = ReadPTB(file_path)
             except IndexError and KeyError and AttributeError:
                 _txt = "该文件不是有效的船体设计文件，请重新选择哦"
                 # 白色背景的提示框
@@ -319,7 +316,13 @@ class ProjectFile:
         self.Name = ''
         self.Code = ''
         self.CreateTime = ''
-        self.Config = {}
+        self.Config = {
+            'Camera': {
+                'tar': [0, 0, 0],
+                'pos': [125, 25, 50],
+                'fovy': 0,
+            },
+        }
         self.HullData = {}
         if create_mode and read_path:
             raise ValueError('create_mode和read_path不能同时指定')

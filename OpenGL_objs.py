@@ -18,7 +18,7 @@ from abc import abstractmethod
 from PyQt5.QtGui import QVector3D
 # 自定义库
 from NA_design_reader import ReadNA
-from PTB_design_reader import ReadXML
+from PTB_design_reader import ReadPTB
 
 
 def get_normal(dot1, dot2, dot3, center):
@@ -51,27 +51,25 @@ class GLObject:
         pass
 
 
-class LineGroupObject:
+class LineGroupObject(GLObject):
     def __init__(self, gl):
         self.gl = gl
         self.lines = {
             # 序号: [(颜色), 线宽, 点集]
         }
+        super(LineGroupObject, self).__init__(gl)
 
-    def draw(self, gl, theme_color=None, mt="线框"):
-        if mt != "选择框":
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[mt][0])
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[mt][1])
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[mt][2])
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[mt][3])
-        else:
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, (1.0, 0.2, 0.0, 1.0))
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, (1.0, 0.2, 0.0, 1.0))
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, (1.0, 0.2, 0.0, 1.0))
-            gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, (0,))
+    def get_set(self):
+        pass
+
+    def draw(self, gl, theme_color, material):
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
+        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[material][3])
         for num, line in self.lines.items():
             gl.glLineWidth(line[1])
-            gl.glColor3f(*line[0])
+            gl.glColor4f(*line[0])
             gl.glBegin(gl.GL_LINE_STRIP)
             for dot in line[2]:
                 gl.glNormal3f(0, 1, 0)
@@ -140,6 +138,40 @@ class SolidObject(GLObject):
         return normal.normalized()
 
 
+class GridLine(LineGroupObject):
+    def __init__(self, gl, num=50, scale=10, normal=(0, 1, 0), central=(0.0, 0.0, 0.0), color=(0.2, 0.3, 0.7, 1)):
+        self.num = num
+        self.normal = normal
+        self.central = central
+        self.color = color
+        self.line_width0 = 0.4
+        self.line_width1 = 1
+        super(GridLine, self).__init__(gl)
+        for i in range(-num, num + 1):
+            if i % 10 == 0 or i == num + 1 or i == -num:
+                self.lines[f"{i}"] = [
+                    self.color, self.line_width1,
+                    [(i * scale + central[0], central[1], -num * scale + central[2]),
+                     (i * scale + central[0], central[1], num * scale + central[2])]
+                ]
+                self.lines[f"{i + num * 2}"] = [
+                    self.color, self.line_width1,
+                    [(-num * scale + central[0], central[1], i * scale + central[2]),
+                     (num * scale + central[0], central[1], i * scale + central[2])]
+                ]
+            else:
+                self.lines[f"{i}"] = [
+                    self.color, self.line_width0,
+                    [(i * scale + central[0], central[1], -num * scale + central[2]),
+                     (i * scale + central[0], central[1], num * scale + central[2])]
+                ]
+                self.lines[f"{i + num * 2}"] = [
+                    self.color, self.line_width0,
+                    [(-num * scale + central[0], central[1], i * scale + central[2]),
+                     (num * scale + central[0], central[1], i * scale + central[2])]
+                ]
+
+
 class LargeSurface(SolidObject):
     def __init__(self, gl, r=10000, normal=(0, 1, 0), central=(0.0, 0.0, 0.0), color=(0.2, 0.3, 0.7, 1)):
         self.r = r
@@ -160,18 +192,18 @@ class LargeSurface(SolidObject):
             "normal": [QVector3D(0, 1, 0) for _ in range(20)],
             "faces": [
                 ((
-                    self.central[0] + self.r * math.cos(i * math.pi / 10),
-                    self.central[1],
-                    self.central[2] + self.r * math.sin(i * math.pi / 10)
-                ), (
-                    self.central[0] + self.r * math.cos((i + 1) * math.pi / 10),
-                    self.central[1],
-                    self.central[2] + self.r * math.sin((i + 1) * math.pi / 10)
-                ), (
-                    self.central[0],
-                    self.central[1],
-                    self.central[2]
-                ))
+                     self.central[0] + self.r * math.cos(i * math.pi / 10),
+                     self.central[1],
+                     self.central[2] + self.r * math.sin(i * math.pi / 10)
+                 ), (
+                     self.central[0] + self.r * math.cos((i + 1) * math.pi / 10),
+                     self.central[1],
+                     self.central[2] + self.r * math.sin((i + 1) * math.pi / 10)
+                 ), (
+                     self.central[0],
+                     self.central[1],
+                     self.central[2]
+                 ))
                 for i in range(20)]
         }
 
@@ -286,7 +318,7 @@ class LightSphere(SolidObject):
         super(LightSphere, self).draw(gl, material, theme_color)
 
 
-class AdHull(ReadXML, SolidObject):
+class AdHull(ReadPTB, SolidObject):
     def __init__(self, path):
         super(AdHull, self).__init__(path)
 
@@ -380,7 +412,7 @@ class AdHull(ReadXML, SolidObject):
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[mt][1])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[mt][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[mt][3])
-        gl.glNormal3f(0, -1, 0)
+        gl.glNormal3f(0, 1, 0)
         gl.glBegin(gl.GL_QUAD_STRIP)
         for dot in self.deck_dots:
             gl.glVertex3f(*dot)
@@ -414,27 +446,33 @@ class AdHull(ReadXML, SolidObject):
         return SlicesPoints
 
 
-class NAHull(ReadNA, LineGroupObject):
+class NAHull(ReadNA, SolidObject):
     def __init__(self, path):
+        self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
         super(NAHull, self).__init__(path)
-        self.path = path
-        ...  # TODO
+
+    def draw(self, gl, material="钢铁", theme_color=None):
+        pass
 
 
 class Camera:
     """
     摄像机类，用于处理视角变换
     """
+    all_cameras = []
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, sensitivity):
         self.width = width
         self.height = height
-        self.tar = QVector3D(0, 0, 10)  # 摄像机的目标位置
+        self.tar = QVector3D(0, 0, 0)  # 摄像机的目标位置
         self.pos = QVector3D(125, 25, 50)  # 摄像机的位置
         self.angle = self.calculate_angle()  # 摄像机的方向
         self.distance = (self.tar - self.pos).length()  # 摄像机到目标的距离
         self.up = QVector3D(0, 1, 0)  # 摄像机的上方向，y轴正方向
         self.fovy = 45
+        # 灵敏度
+        self.sensitivity = sensitivity
+        Camera.all_cameras.append(self)
 
     def calculate_angle(self):
         return QVector3D(self.tar - self.pos).normalized()
@@ -446,24 +484,28 @@ class Camera:
         :param dy:
         :return:
         """
-        rate_ = self.distance / 300
+        dx = dx * 2 * self.sensitivity["平移"]
+        dy = dy * 2 * self.sensitivity["平移"]
+        rate_ = self.distance / 500
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
         self.tar += up * dy * rate_ - left * dx * rate_
         self.pos += up * dy * rate_ - left * dx * rate_
         self.distance = (self.tar - self.pos).length()
 
-    def zoom(self, rate):
+    def zoom(self, add_rate):
         """
         缩放摄像机
         """
-        self.pos = self.tar + (self.pos - self.tar) * rate
+        self.pos = self.tar + (self.pos - self.tar) * (1 + add_rate * self.sensitivity["缩放"])
         self.distance = (self.tar - self.pos).length()
 
     def rotate(self, dx, dy):
         """
         根据鼠标移动，以视点为锚点，等距，旋转摄像头
         """
+        dx = dx * 2 * self.sensitivity["旋转"]
+        dy = dy * 2 * self.sensitivity["旋转"]
         _rate = self.distance / 300
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
@@ -475,9 +517,20 @@ class Camera:
         if self.angle.y() < -0.99 and dy < 0:
             return
 
+    def get_world_to_camera_matrix(self):
+        """
+        获取世界坐标系到摄像机坐标系的变换矩阵
+        """
+        return self.look_at(self.pos, self.tar, self.up)
+
     def __str__(self):
         return str(
-            f"target:   {self.tar.x()}, {self.tar.y()}, {self.tar.z()}\n"
-            f"position: {self.pos.x()}, {self.pos.y()}, {self.pos.z()}\n"
-            f"angle:    {self.angle.x()}, {self.angle.y()}, {self.angle.z()}\n"
-            f"distance: {self.distance}\n")
+            f"target:     {self.tar.x()}, {self.tar.y()}, {self.tar.z()}\n"
+            f"position:   {self.pos.x()}, {self.pos.y()}, {self.pos.z()}\n"
+            f"angle:      {self.angle.x()}, {self.angle.y()}, {self.angle.z()}\n"
+            f"distance:   {self.distance}\n"
+            f"sensitivity:\n"
+            f"    zoom:   {self.sensitivity['缩放']}\n"
+            f"    rotate: {self.sensitivity['旋转']}\n"
+            f"    move:   {self.sensitivity['平移']}\n"
+        )
