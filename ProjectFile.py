@@ -26,6 +26,7 @@ class ConfigFile:
         self.UsingTheme = ''
         self.Sensitivity = {}
         self.Projects = {}
+        self.ProjectsFolder = ''
 
     def load_config(self):
         # 从配置文件中读取配置
@@ -37,7 +38,8 @@ class ConfigFile:
             self.UsingTheme = self.Config['Theme']
             self.Sensitivity = self.Config['Sensitivity']
             self.Projects = data['Projects']
-        except FileNotFoundError:
+            self.ProjectsFolder = data['ProjectsFolder']
+        except FileNotFoundError or KeyError:
             self.Config = {
                 'Theme': 'Day',
                 'Language': 'Chinese',
@@ -45,6 +47,14 @@ class ConfigFile:
                 'AutoSaveInterval': 5,
                 'Sensitivity': self.Sensitivity,
             }
+            self.UsingTheme = "Night"
+            self.Sensitivity = {
+                '缩放': 0.5,
+                '旋转': 0.5,
+                '平移': 0.5,
+            }
+            self.Projects = {}
+            self.ProjectsFolder = ''
 
     def save_config(self):
         # 将配置写入配置文件
@@ -53,6 +63,7 @@ class ConfigFile:
             json.dump({
                 'Config': self.Config,
                 'Projects': self.Projects,
+                'ProjectsFolder': self.ProjectsFolder,
             }, f, ensure_ascii=False, indent=4)
 
 
