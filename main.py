@@ -720,6 +720,8 @@ class ReadNAHullTab(QWidget):
             _txt = "该文件已被其他程序打开，请关闭后重试"
             MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
+        for mt, objs in self.all_3d_obj.items():
+            objs.clear()
         show_state(f"正在读取{self.NADesignPath}...", 'process')
         show_state(f"{self.NADesignPath}读取成功", 'success')
         # 检测颜色种类，弹出对话框，选择颜色
@@ -904,7 +906,7 @@ class ColorDialog(BasicDialog):
             color_block.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
             color_name.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
             rgb_widget.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
-        super().__init__(parent, self.title, QSize(self.color_num * 90, 350), self.center_layout)
+        super().__init__(parent, self.title, QSize(self.color_num * 90 if self.color_num > 3 else 360, 350), self.center_layout)
         self.set_widget()
 
     @staticmethod

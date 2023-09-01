@@ -234,9 +234,9 @@ class OpenGLWin(QOpenGLWidget):
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         if event.angleDelta().y() > 0:
-            self.camera.zoom(-0.2)
+            self.camera.zoom(-0.12)
         else:
-            self.camera.zoom(0.2)
+            self.camera.zoom(0.12)
         self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -327,3 +327,5 @@ class OpenGLWin(QOpenGLWidget):
         self.gl.glEnable(self.gl.GL_TEXTURE_2D)  # 启用纹理
         self.gl.glEnable(self.gl.GL_LINE_SMOOTH)  # 启用线条平滑
         # self.gl.glEnable(self.gl.GL_POLYGON_SMOOTH)  # 启用多边形平滑
+        self.gl.glEnable(self.gl.GL_CULL_FACE)  # 启用背面剔除
+

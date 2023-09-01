@@ -1,13 +1,11 @@
-import math
 import xml.etree.ElementTree as ET
-
 import numpy as np
 
 """
 文件格式：
 <root>
   <ship author="22222222222" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
-    <part id="0">                            # 可调节船体
+    <part id="0">
       <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
       <position x="0" y="0" z="114.75" />
       <rotation x="0" y="0" z="0" />
@@ -15,7 +13,7 @@ import numpy as np
       <color hex="975740" />
       <armor value="5" />
     </part>
-    <part id="190">                         # 非可调节船体
+    <part id="190">
       <position x="0" y="-8.526513E-14" z="117.0312" />
       <rotation x="90" y="0" z="0" />
       <scale x="0.03333336" y="0.03333367" z="0.1666679" />
@@ -25,48 +23,27 @@ import numpy as np
   </root>
 """
 
-Using_GL_QUADS = "GL_QUADS"
-Using_GL_QUAD_STRIP = "GL_QUAD_STRIP"
-Using_GL_TRIANGLES = "GL_TRIANGLES"
-Using_GL_TRIANGLE_STRIP = "GL_TRIANGLE_STRIP"
-Using_GL_TRIANGLE_FAN = "GL_TRIANGLE_FAN"
 
-
-def rotate(x, y, z, rotX, rotY, rotZ) -> np.array:
-    # 将角度转换为弧度
-    rotX_rad = math.radians(rotX)
-    rotY_rad = math.radians(rotY)
-    rotZ_rad = math.radians(rotZ)
-    # 定义旋转矩阵
-    rotation_matrix_x = [
-        [1, 0, 0],
-        [0, math.cos(rotX_rad), -math.sin(rotX_rad)],
-        [0, math.sin(rotX_rad), math.cos(rotX_rad)]
-    ]
-    rotation_matrix_y = [
-        [math.cos(rotY_rad), 0, math.sin(rotY_rad)],
-        [0, 1, 0],
-        [-math.sin(rotY_rad), 0, math.cos(rotY_rad)]
-    ]
-    rotation_matrix_z = [
-        [math.cos(rotZ_rad), -math.sin(rotZ_rad), 0],
-        [math.sin(rotZ_rad), math.cos(rotZ_rad), 0],
+def rotate(dot_dict, rot):
+    # 对整个零件的坐标进行旋转
+    # 旋转矩阵
+    rot_matrix = np.array([
+        [np.cos(np.deg2rad(rot[2])), -np.sin(np.deg2rad(rot[2])), 0],
+        [np.sin(np.deg2rad(rot[2])), np.cos(np.deg2rad(rot[2])), 0],
         [0, 0, 1]
-    ]
-    # 计算旋转后的坐标
-    rotated_x = x * rotation_matrix_z[0][0] + y * rotation_matrix_z[0][1] + z * rotation_matrix_z[0][2]
-    rotated_y = x * rotation_matrix_z[1][0] + y * rotation_matrix_z[1][1] + z * rotation_matrix_z[1][2]
-    rotated_z = x * rotation_matrix_z[2][0] + y * rotation_matrix_z[2][1] + z * rotation_matrix_z[2][2]
-
-    rotated_x = rotated_x * rotation_matrix_y[0][0] + rotated_y * rotation_matrix_y[0][1] + rotated_z * rotation_matrix_y[0][2]
-    rotated_y = rotated_x * rotation_matrix_y[1][0] + rotated_y * rotation_matrix_y[1][1] + rotated_z * rotation_matrix_y[1][2]
-    rotated_z = rotated_x * rotation_matrix_y[2][0] + rotated_y * rotation_matrix_y[2][1] + rotated_z * rotation_matrix_y[2][2]
-
-    rotated_x = rotated_x * rotation_matrix_x[0][0] + rotated_y * rotation_matrix_x[0][1] + rotated_z * rotation_matrix_x[0][2]
-    rotated_y = rotated_x * rotation_matrix_x[1][0] + rotated_y * rotation_matrix_x[1][1] + rotated_z * rotation_matrix_x[1][2]
-    rotated_z = rotated_x * rotation_matrix_x[2][0] + rotated_y * rotation_matrix_x[2][1] + rotated_z * rotation_matrix_x[2][2]
-
-    return np.array([rotated_x, rotated_y, rotated_z])
+    ]) @ np.array([
+        [np.cos(np.deg2rad(rot[1])), 0, np.sin(np.deg2rad(rot[1]))],
+        [0, 1, 0],
+        [-np.sin(np.deg2rad(rot[1])), 0, np.cos(np.deg2rad(rot[1]))]
+    ]) @ np.array([
+        [1, 0, 0],
+        [0, np.cos(np.deg2rad(rot[0])), -np.sin(np.deg2rad(rot[0]))],
+        [0, np.sin(np.deg2rad(rot[0])), np.cos(np.deg2rad(rot[0]))]
+    ])
+    # 旋转
+    for key in dot_dict.keys():
+        dot_dict[key] = rot_matrix @ dot_dict[key]
+    return dot_dict
 
 
 class Part:
@@ -105,7 +82,6 @@ class AdjustableHull(Part):
             length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve, heightScale,
             heightOffset):
         """
-
         :param Id: 字符串，零件ID
         :param pos: 元组，三个值分别为x,y,z轴的位置
         :param rot: 元组，三个值分别为x,y,z轴的旋转角度
@@ -123,7 +99,7 @@ class AdjustableHull(Part):
         :param heightScale: 浮点型，前端高度缩放
         :param heightOffset: 浮点型，前端高度偏移
         """
-        super().__init__(Id, pos, rot, scale, color, armor)
+        Part.__init__(self, Id, pos, rot, scale, color, armor)
         self.Len = length
         self.Hei = height
         self.FWid = frontWidth
@@ -132,60 +108,101 @@ class AdjustableHull(Part):
         self.BSpr = backSpread
         self.UCur = upCurve
         self.DCur = downCurve
-        self.HScl = heightScale
-        self.HOff = heightOffset
+        self.HScl = heightScale  # 高度缩放
+        self.HOff = heightOffset  # 高度偏移
         AdjustableHull.All.append(self)
-        self.draw_method, self.Triangles = self.get_plot_triangles()
+        self._y_limit = [-self.Hei / 2, self.Hei / 2]
+        # ==============================================================================初始化零件的各个坐标
+        self.front_z = self.Len / 2  # 零件前端的z坐标
+        self.back_z = -self.Len / 2  # 零件后端的z坐标
+        half_height_scale = self.Hei * self.HScl / 2  # 高度缩放的一半
+        center_height_offset = self.HOff * self.Hei  # 高度偏移
+        self.front_down_y = center_height_offset - half_height_scale  # 零件前端下端的y坐标
+        self.front_up_y = center_height_offset + half_height_scale  # 零件前端上端的y坐标
+        if self.front_down_y < self._y_limit[0]:
+            self.front_down_y = self._y_limit[0]
+        elif self.front_down_y > self._y_limit[1]:
+            self.front_down_y = self._y_limit[1]
+        if self.front_up_y > self._y_limit[1]:
+            self.front_up_y = self._y_limit[1]
+        elif self.front_up_y < self._y_limit[0]:
+            self.front_up_y = self._y_limit[0]
+        self.back_down_y = - self.Hei / 2
+        self.back_up_y = self.Hei / 2
+        self.front_down_x = self.FWid / 2
+        self.back_down_x = self.BWid / 2
+        self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
+        self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
+        self.front_mid_y = (self.front_up_y + self.front_down_y) / 2  # 初始化中间坐标
+        self.back_mid_y = (self.back_up_y + self.back_down_y) / 2  # 初始化中间坐标
+        self.front_mid_x = (self.front_up_x + self.front_down_x) / 2
+        self.back_mid_x = (self.back_up_x + self.back_down_x) / 2
+        # 计算中间坐标
+        if self.front_mid_y > self.front_up_y:
+            self.front_mid_y = self.front_up_y
+        elif self.front_mid_y < self.front_down_y:
+            self.front_mid_y = self.front_down_y
+        if self.back_mid_y > self.back_up_y:
+            self.back_mid_y = self.back_up_y
+        elif self.back_mid_y < self.back_down_y:
+            self.back_mid_y = self.back_down_y
+        # ==============================================================================计算绘图所需的数据
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_faces = self.get_plot_faces()
 
-    def get_plot_triangles(self):
+    def get_plot_faces(self):
         """
         :return: 绘制零件的方法，绘制零件需的三角形集
         """
-        # 获取零件顶点的坐标（相对于零件中心）
-        front_z = self.Len / 2  # 零件前端的z坐标
-        back_z = -self.Len / 2  # 零件后端的z坐标
-        front_down_y = - self.Hei / 2 * self.HScl + self.HOff
-        front_down_y = - self.Hei / 2 if front_down_y < - self.Hei / 2 else front_down_y
-        front_up_y = self.Hei / 2 * self.HScl + self.HOff
-        front_up_y = self.Hei / 2 if front_up_y > self.Hei / 2 else front_up_y
-        back_down_y = - self.Hei / 2
-        back_up_y = self.Hei / 2
-        front_down_x = self.FWid / 2
-        back_down_x = self.BWid / 2
-        front_up_x = front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
-        back_up_x = back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
         if self.UCur == 0 and self.DCur == 0:
             # 旋转
-            dots = {
-                "front_up_left": rotate(front_up_x, front_up_y, front_z, *self.Rot),
-                "front_up_right": rotate(-front_up_x, front_up_y, front_z, *self.Rot),
-                "front_down_left": rotate(front_down_x, front_down_y, front_z, *self.Rot),
-                "front_down_right": rotate(-front_down_x, front_down_y, front_z, *self.Rot),
-                "back_up_left": rotate(back_up_x, back_up_y, back_z, *self.Rot),
-                "back_up_right": rotate(-back_up_x, back_up_y, back_z, *self.Rot),
-                "back_down_left": rotate(back_down_x, back_down_y, back_z, *self.Rot),
-                "back_down_right": rotate(-back_down_x, back_down_y, back_z, *self.Rot),
-            }
+            dots = rotate(self.vertex_coordinates, self.Rot)
+            # 平移
             for key in dots.keys():
                 dots[key] *= self.Scl  # 缩放
                 dots[key] += self.Pos  # 平移
-            # 返回绘制方法和三角形集
-            return Using_GL_QUADS, [
+            result = {
+                "GL_QUADS": [],
+                "GL_TRIANGLES": []
+            }
+            faces = [
                 [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
-                [dots["back_up_left"], dots["back_up_right"], dots["back_down_right"], dots["back_down_left"]],
-                [dots["front_up_left"], dots["front_up_right"], dots["back_up_right"], dots["back_up_left"]],
+                [dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]],
+                [dots["front_up_left"], dots["back_up_left"], dots["back_up_right"], dots["front_up_right"]],
                 [dots["front_down_left"], dots["front_down_right"], dots["back_down_right"], dots["back_down_left"]],
                 [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
-                [dots["front_up_right"], dots["front_down_right"], dots["back_down_right"], dots["back_up_right"]],
+                [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
             ]
+            # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
+            for face in faces:
+                use_triangles = False
+                added_face = None
+                for i in range(3):
+                    if np.array_equal(face[i], face[i + 1]):
+                        # 去除重复点
+                        added_face = face[:i] + face[i + 1:]
+                        use_triangles = True
+                        break
+                if use_triangles:
+                    result["GL_TRIANGLES"].append(added_face)
+                else:
+                    result["GL_QUADS"].append(face)
+            # 返回绘制方法和三角形集字典
+            return result
         else:
-            # 计算中间坐标
-            front_mid_y = (front_up_y + front_down_y) / 2
-            if front_mid_y > front_up_y:
-                front_mid_y = front_up_y
-            elif front_mid_y < front_down_y:
-                front_mid_y = front_down_y
-            front_mid_x = (front_up_x + front_down_x) / 2
+            return {"GL_QUAD_STRIP": []}  # TODO: 有曲率的零件的绘制方法
+
+    def get_initial_vertex_coordinates(self):
+        return {
+            "front_up_left": np.array([self.front_up_x, self.front_up_y, self.front_z]),
+            "front_up_right": np.array([-self.front_up_x, self.front_up_y, self.front_z]),
+            "front_down_left": np.array([self.front_down_x, self.front_down_y, self.front_z]),
+            "front_down_right": np.array([-self.front_down_x, self.front_down_y, self.front_z]),
+            "back_up_left": np.array([self.back_up_x, self.back_up_y, self.back_z]),
+            "back_up_right": np.array([-self.back_up_x, self.back_up_y, self.back_z]),
+            "back_down_left": np.array([self.back_down_x, self.back_down_y, self.back_z]),
+            "back_down_right": np.array([-self.back_down_x, self.back_down_y, self.back_z]),
+        }
 
     def __str__(self):
         part_type = self.__class__.__name__
@@ -228,7 +245,10 @@ class ReadNA:
         self.Author = self.root.find('ship').attrib['author']
         self.HornType = self.root.find('ship').attrib['hornType']
         self.HornPitch = self.root.find('ship').attrib['hornPitch']
-        self.TracerCol = self.root.find('ship').attrib['tracerCol']
+        try:
+            self.TracerCol = self.root.find('ship').attrib['tracerCol']
+        except KeyError:
+            self.TracerCol = None
         self._all_parts = self.root.findall('ship/part')
         self.Parts = Part.ShipsAllParts
         self.Weapons = MainWeapon.All

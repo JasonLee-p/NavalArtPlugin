@@ -694,12 +694,14 @@ class SplitAdHull(AdvancedHull):
         more_dots = None
         # 初始化结果（加入船底）
         triangles = [(
-            (front_dots[0][0], front_dots[0][1], front_dots[0][2]),
             (back_dots[0][0], back_dots[0][1], back_dots[0][2]),
+            (front_dots[0][0], front_dots[0][1], front_dots[0][2]),
+
             (-back_dots[0][0], back_dots[0][1], back_dots[0][2])
         ), (
-            (front_dots[0][0], front_dots[0][1], front_dots[0][2]),
+
             (-back_dots[0][0], back_dots[0][1], back_dots[0][2]),
+            (front_dots[0][0], front_dots[0][1], front_dots[0][2]),
             (-front_dots[0][0], front_dots[0][1], front_dots[0][2])
         )]
         if len(front_dots) < len(back_dots):
@@ -712,18 +714,18 @@ class SplitAdHull(AdvancedHull):
             # 直接添加三角形然后返回
             for i in range(len(front_dots) - 1):
                 if i < len(front_dots) // 2:
-                    triangles.append((front_dots[i], back_dots[i], front_dots[i + 1]))
                     triangles.append((front_dots[i + 1], back_dots[i], back_dots[i + 1]))
+                    triangles.append((front_dots[i], back_dots[i], front_dots[i + 1]))
                 else:
-                    triangles.append((front_dots[i], back_dots[i], back_dots[i + 1]))
                     triangles.append((front_dots[i + 1], front_dots[i], back_dots[i + 1]))
+                    triangles.append((front_dots[i], back_dots[i], back_dots[i + 1]))
             # 把所有三角形的点的y值都翻转，添加到结果
             right_triangles = []
             for t in triangles:
                 right_triangles.append((
                     (-t[0][0], t[0][1], t[0][2]),
-                    (-t[1][0], t[1][1], t[1][2]),
-                    (-t[2][0], t[2][1], t[2][2])
+                    (-t[2][0], t[2][1], t[2][2]),
+                    (-t[1][0], t[1][1], t[1][2])
                 ))
             triangles.extend(right_triangles)
             # triangles = []  # TODO: 临时Debug
@@ -773,22 +775,28 @@ class SplitAdHull(AdvancedHull):
             connections.sort(key=lambda y: y[1])
             next_connections.sort(key=lambda y: y[1])
             len_ = len(connections)
-            if len_ > 1:
-                for _i in range(len(connections) - 1):
-                    triangles.append((ld, connections[_i], connections[_i + 1]))
-            if mode == "normal":
+            if (mode == "back" and more_dots == back_dots) or (
+                    mode == "normal" and more_dots == back_dots):
+                if len_ > 1:
+                    for _i in range(len(connections) - 1):
+                        triangles.append((connections[_i + 1], ld, connections[_i]))
+                triangles.append((next_ld, connections[-1], next_connections[0]))
                 triangles.append((ld, connections[-1], next_ld))
-                triangles.append((next_ld, next_connections[0], connections[-1]))
-            elif mode == "back":
-                triangles.append((ld, connections[-1], next_connections[0]))
+            elif (mode == "normal" and more_dots == front_dots) or (
+                    mode == "back" and more_dots == front_dots):
+                if len_ > 1:
+                    for _i in range(len(connections) - 1):
+                        triangles.append((connections[_i + 1], connections[_i], ld))
                 triangles.append((next_ld, next_connections[0], ld))
+                triangles.append((ld, next_connections[0], connections[-1]))
+
         # 把所有三角形的点的y值都翻转，添加到结果
         right_triangles = []
         for t in triangles:
             right_triangles.append((
                 (-t[0][0], t[0][1], t[0][2]),
-                (-t[1][0], t[1][1], t[1][2]),
-                (-t[2][0], t[2][1], t[2][2])
+                (-t[2][0], t[2][1], t[2][2]),
+                (-t[1][0], t[1][1], t[1][2])
             ))
         triangles.extend(right_triangles)
         return triangles

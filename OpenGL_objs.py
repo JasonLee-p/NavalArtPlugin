@@ -15,6 +15,7 @@
 import math
 from abc import abstractmethod
 # 第三方库
+import numpy as np
 from PyQt5.QtGui import QVector3D
 # 自定义库
 from NA_design_reader import ReadNA
@@ -24,16 +25,22 @@ from PTB_design_reader import ReadPTB
 def get_normal(dot1, dot2, dot3, center):
     """
     计算三角形的法向量，输入为元组
+    :param dot1: 元组，三角形的第一个点
+    :param dot2: 元组，三角形的第二个点
+    :param dot3: 元组，三角形的第三个点
+    :param center: QVector3D，三角形的中心点
     :return: QVector3D
     """
+    if type(center) == tuple:
+        center = QVector3D(*center)
     v1 = QVector3D(*dot2) - QVector3D(*dot1)
     v2 = QVector3D(*dot3) - QVector3D(*dot1)
     triangle_center = QVector3D(*dot1) + QVector3D(*dot2) + QVector3D(*dot3)
-    # 如果法向量与视线夹角大于90度，翻转法向量
-    if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
-        return QVector3D.crossProduct(v1, v2).normalized()
-    else:
-        return -QVector3D.crossProduct(v1, v2).normalized()
+    # # 如果法向量与视线夹角大于90度，翻转法向量
+    # if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
+    #     return QVector3D.crossProduct(v1, v2).normalized()
+    # else:
+    return QVector3D.crossProduct(v1, v2).normalized()
 
 
 class GLObject:
@@ -320,8 +327,8 @@ class LightSphere(SolidObject):
 
 class AdHull(ReadPTB, SolidObject):
     def __init__(self, path):
-        super(AdHull, self).__init__(path)
-
+        ReadPTB.__init__(self, path)
+        SolidObject.__init__(self, None)
         self.path = path
         self.obj = self.result['adHull']
         self.ShipName = self.obj.ShipName
@@ -373,8 +380,8 @@ class AdHull(ReadPTB, SolidObject):
             # 翻转node_set后一半的顺序
             node_set_transposed = node_set[:slice_node_num] + node_set[slice_node_num:][::-1]
             # 生成甲板
-            self.deck_dots.append(node_set_transposed[0])
             self.deck_dots.append(node_set_transposed[-1])
+            self.deck_dots.append(node_set_transposed[0])
 
     def draw(self, gl, material="钢铁", theme_color=None):
         super(AdHull, self).draw(gl, "钢铁", theme_color)
@@ -449,10 +456,32 @@ class AdHull(ReadPTB, SolidObject):
 class NAHull(ReadNA, SolidObject):
     def __init__(self, path):
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        super(NAHull, self).__init__(path)
+        ReadNA.__init__(self, path)
+        SolidObject.__init__(self, None)
 
     def draw(self, gl, material="钢铁", theme_color=None):
-        pass
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        # 绘制面
+        for color, part_set in self.DrawMap.items():
+            # 16进制颜色转换为RGBA
+            color_ = int(color[1:3], 16) / 440, int(color[3:5], 16) / 440, int(color[5:7], 16) / 440, 1
+            gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
+            gl.glColor4f(*color_)
+            for part in part_set:
+                try:
+                    for draw_method, faces_dots in part.plot_faces.items():
+                        # draw_method是字符串，需要转换为OpenGL的常量
+                        gl.glBegin(eval(f"gl.{draw_method}"))
+                        for face in faces_dots:
+                            normal = get_normal(face[0], face[1], face[2], part.Pos)
+                            gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                            for dot in face:
+                                gl.glVertex3f(dot[0], dot[1], dot[2])
+                        gl.glEnd()
+                except AttributeError as e:
+                    pass
 
 
 class Camera:
@@ -465,7 +494,7 @@ class Camera:
         self.width = width
         self.height = height
         self.tar = QVector3D(0, 0, 0)  # 摄像机的目标位置
-        self.pos = QVector3D(125, 25, 50)  # 摄像机的位置
+        self.pos = QVector3D(100, 20, 40)  # 摄像机的位置
         self.angle = self.calculate_angle()  # 摄像机的方向
         self.distance = (self.tar - self.pos).length()  # 摄像机到目标的距离
         self.up = QVector3D(0, 1, 0)  # 摄像机的上方向，y轴正方向
@@ -486,7 +515,7 @@ class Camera:
         """
         dx = dx * 2 * self.sensitivity["平移"]
         dy = dy * 2 * self.sensitivity["平移"]
-        rate_ = self.distance / 500
+        rate_ = self.distance / 650
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
         self.tar += up * dy * rate_ - left * dx * rate_
@@ -506,7 +535,7 @@ class Camera:
         """
         dx = dx * 2 * self.sensitivity["旋转"]
         dy = dy * 2 * self.sensitivity["旋转"]
-        _rate = self.distance / 300
+        _rate = self.distance / 400
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
         self.pos += up * dy * _rate - left * dx * _rate
