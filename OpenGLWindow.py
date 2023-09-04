@@ -1,17 +1,19 @@
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QMouseEvent, QWheelEvent
-from PyQt5.QtGui import QOpenGLVersionProfile
+from PyQt5.QtGui import QOpenGLVersionProfile, QOpenGLContext
 
-# from OpenGL.GL.shaders import compileProgram, compileShader
+from OpenGL.GL.shaders import compileProgram, compileShader
 from OpenGL.GLU import gluPerspective, gluLookAt, gluProject
-# from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
+from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
 from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
 from OpenGL_objs import *
 from GUI.QtGui import *
 
 # 顶点着色器代码
+from utils import FragmentShader
+
 VERTEX_SHADER = """
 #version 330
 layout(location = 0) in vec3 position;
@@ -20,43 +22,11 @@ void main() {
 }
 """
 
-# 片段着色器代码（包括FXAA抗锯齿）
-FRAGMENT_SHADER = """
-#version 330
-uniform sampler2D tex;
+FRAGMENT_SHADER = FragmentShader.FS
 
-out vec4 fragColor;
-
-void main() {
-    vec2 fragCoord = gl_FragCoord.xy;
-    vec2 resolution = vec2(800.0, 600.0);  // 设置分辨率
-
-    vec3 color = texture(tex, fragCoord.xy / resolution).rgb;
-
-    // FXAA抗锯齿
-    vec3 luma = vec3(0.299, 0.587, 0.114);
-    float lumaNW = dot(texture(tex, (fragCoord.xy + vec2(-1.0, -1.0)) / resolution).rgb, luma);
-    float lumaNE = dot(texture(tex, (fragCoord.xy + vec2(1.0, -1.0)) / resolution).rgb, luma);
-    float lumaSW = dot(texture(tex, (fragCoord.xy + vec2(-1.0, 1.0)) / resolution).rgb, luma);
-    float lumaSE = dot(texture(tex, (fragCoord.xy + vec2(1.0, 1.0)) / resolution).rgb, luma);
-    float lumaM = dot(color, luma);
-
-    vec2 dir = vec2(lumaNW + lumaNE - lumaSW - lumaSE, lumaNW + lumaSW - lumaNE - lumaSE);
-    vec2 offset = dir * vec2(1.0 / resolution.x, 1.0 / resolution.y);
-
-    vec3 rgbA = 0.5 * (
-        texture(tex, fragCoord.xy / resolution + offset).rgb +
-        texture(tex, fragCoord.xy / resolution - offset).rgb
-    );
-
-    vec3 rgbB = rgbA * 0.5 + 0.25 * (
-        texture(tex, fragCoord.xy / resolution + offset * 2.0).rgb +
-        texture(tex, fragCoord.xy / resolution - offset * 2.0).rgb
-    );
-
-    fragColor = vec4(mix(rgbA, rgbB, 0.5), 1.0);
-}
-"""
+# # 片段着色器代码（包括FXAA抗锯齿）
+# with open("FragmentShader.frag", "r") as f:
+#     FRAGMENT_SHADER = f.read()
 
 
 class OpenGLWin(QOpenGLWidget):
@@ -93,12 +63,12 @@ class OpenGLWin(QOpenGLWidget):
     def initializeGL(self) -> None:
         self.init_gl()
         self.gl.glClearColor(*self.theme_color["背景"])
+
         # 基础物体
         self.environment_obj["海面"].append(GridLine(
             self.gl, scale=10, num=50, central=(0, 0, 0), color=(0.1, 0.2, 0.5, 1)))
-        # self.environment_obj["海底"].append(GridLine(
-        #     self.gl, scale=100, num=5, central=(0, -100, 0), color=(0.1, 0.2, 0.5, 1)))
-        self.environment_obj["光源"].append(LightSphere(self.gl, central=self.light_pos, radius=20))
+        self.environment_obj["光源"].append(LightSphere(
+            self.gl, central=self.light_pos, radius=20))
 
     def paintGL(self) -> None:
         self.gl.glClear(self.gl.GL_COLOR_BUFFER_BIT | self.gl.GL_DEPTH_BUFFER_BIT)
@@ -135,7 +105,12 @@ class OpenGLWin(QOpenGLWidget):
         self.gl.glPushMatrix()
         self.gl.glLoadIdentity()
         # 颜色
-        self.gl.glColor4f(*self.theme_color["选择框"])
+        self.gl.glColor4f(*self.theme_color["选择框"][0])
+        # 重设材质
+        self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_AMBIENT, self.theme_color["选择框"][0])
+        self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_DIFFUSE, self.theme_color["选择框"][1])
+        self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SPECULAR, self.theme_color["选择框"][2])
+        self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SHININESS, self.theme_color["选择框"][3])
         # 画虚线框
         self.gl.glEnable(GL_LINE_STIPPLE)  # 启用虚线模式
         self.gl.glLineStipple(0, 0x00FF)  # 设置虚线的样式
@@ -296,8 +271,7 @@ class OpenGLWin(QOpenGLWidget):
         self.gl.glEnable(self.gl.GL_LIGHT0)
         self.gl.glLightfv(self.gl.GL_LIGHT0, self.gl.GL_POSITION, (
             self.light_pos.x(), self.light_pos.y(), self.light_pos.z(),  # 光源位置
-            100.0))  # Q: 这个参数如果我写100会怎样？
-        # A: 会变成一个很亮的点光源
+            100.0))
         self.gl.glLightfv(self.gl.GL_LIGHT0, self.gl.GL_AMBIENT, (1.0, 1.0, 1.0, 1.0))  # 设置环境光
         self.gl.glLightfv(self.gl.GL_LIGHT0, self.gl.GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))  # 设置漫反射光
         self.gl.glLightfv(self.gl.GL_LIGHT0, self.gl.GL_SPECULAR, (1.0, 1.0, 1.0, 1.0))  # 设置镜面光
@@ -328,4 +302,20 @@ class OpenGLWin(QOpenGLWidget):
         self.gl.glEnable(self.gl.GL_LINE_SMOOTH)  # 启用线条平滑
         # self.gl.glEnable(self.gl.GL_POLYGON_SMOOTH)  # 启用多边形平滑
         self.gl.glEnable(self.gl.GL_CULL_FACE)  # 启用背面剔除
+        self.gl.glCullFace(self.gl.GL_BACK)  # 剔除背面
+        self.gl.glEnable(self.gl.GL_VERTEX_PROGRAM_POINT_SIZE)  # 启用点大小
+        self.gl.glEnable(self.gl.GL_VERTEX_PROGRAM_TWO_SIDE)  # 启用两面渲染
+        self.gl.glEnable(self.gl.GL_VERTEX_PROGRAM_POINT_SIZE_ARB)  # 启用点大小
+        self.gl.glEnable(self.gl.GL_VERTEX_PROGRAM_TWO_SIDE_ARB)  # 启用两面渲染
+        self.gl.glEnable(self.gl.GL_MULTISAMPLE)  # 启用多重采样
+        self.gl.glEnable(self.gl.GL_SAMPLE_ALPHA_TO_COVERAGE)  # 启用alpha到coverage
+        self.gl.glEnable(self.gl.GL_SAMPLE_ALPHA_TO_ONE)  # 启用alpha到one
+        self.gl.glEnable(self.gl.GL_SAMPLE_COVERAGE)  # 启用采样覆盖
+        self.gl.glEnable(self.gl.GL_SAMPLE_MASK)  # 启用采样掩码
+        self.gl.glEnable(self.gl.GL_SAMPLE_SHADING)  # 启用采样着色
+        self.gl.glEnable(self.gl.GL_SAMPLE_COVERAGE_INVERT)  # 启用采样覆盖反转
+        self.gl.glEnable(self.gl.GL_SAMPLE_COVERAGE_VALUE)  # 启用采样覆盖值
+        self.gl.glEnable(self.gl.GL_SAMPLE_MASK_VALUE)  # 启用采样掩码值
+        self.gl.glEnable(self.gl.GL_SAMPLE_BUFFERS)  # 启用采样缓冲区
+
 

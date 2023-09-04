@@ -22,7 +22,7 @@ from NA_design_reader import ReadNA
 from PTB_design_reader import ReadPTB
 
 
-def get_normal(dot1, dot2, dot3, center):
+def get_normal(dot1, dot2, dot3, center=None):
     """
     计算三角形的法向量，输入为元组
     :param dot1: 元组，三角形的第一个点
@@ -35,12 +35,14 @@ def get_normal(dot1, dot2, dot3, center):
         center = QVector3D(*center)
     v1 = QVector3D(*dot2) - QVector3D(*dot1)
     v2 = QVector3D(*dot3) - QVector3D(*dot1)
+    if center is None:
+        return QVector3D.crossProduct(v1, v2).normalized()
     triangle_center = QVector3D(*dot1) + QVector3D(*dot2) + QVector3D(*dot3)
-    # # 如果法向量与视线夹角大于90度，翻转法向量
-    # if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
-    #     return QVector3D.crossProduct(v1, v2).normalized()
-    # else:
-    return QVector3D.crossProduct(v1, v2).normalized()
+    # 如果法向量与视线夹角大于90度，翻转法向量
+    if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
+        return QVector3D.crossProduct(v1, v2).normalized()
+    else:
+        return QVector3D.crossProduct(v1, v2).normalized()
 
 
 class GLObject:
@@ -151,8 +153,8 @@ class GridLine(LineGroupObject):
         self.normal = normal
         self.central = central
         self.color = color
-        self.line_width0 = 0.4
-        self.line_width1 = 1
+        self.line_width0 = 0.05
+        self.line_width1 = 0.6
         super(GridLine, self).__init__(gl)
         for i in range(-num, num + 1):
             if i % 10 == 0 or i == num + 1 or i == -num:
@@ -167,16 +169,17 @@ class GridLine(LineGroupObject):
                      (num * scale + central[0], central[1], i * scale + central[2])]
                 ]
             else:
-                self.lines[f"{i}"] = [
-                    self.color, self.line_width0,
-                    [(i * scale + central[0], central[1], -num * scale + central[2]),
-                     (i * scale + central[0], central[1], num * scale + central[2])]
-                ]
-                self.lines[f"{i + num * 2}"] = [
-                    self.color, self.line_width0,
-                    [(-num * scale + central[0], central[1], i * scale + central[2]),
-                     (num * scale + central[0], central[1], i * scale + central[2])]
-                ]
+                pass
+                # self.lines[f"{i}"] = [
+                #     self.color, self.line_width0,
+                #     [(i * scale + central[0], central[1], -num * scale + central[2]),
+                #      (i * scale + central[0], central[1], num * scale + central[2])]
+                # ]
+                # self.lines[f"{i + num * 2}"] = [
+                #     self.color, self.line_width0,
+                #     [(-num * scale + central[0], central[1], i * scale + central[2]),
+                #      (num * scale + central[0], central[1], i * scale + central[2])]
+                # ]
 
 
 class LargeSurface(SolidObject):
@@ -454,32 +457,62 @@ class AdHull(ReadPTB, SolidObject):
 
 
 class NAHull(ReadNA, SolidObject):
-    def __init__(self, path):
+    def __init__(self, path=False, data=None):
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        ReadNA.__init__(self, path)
+        ReadNA.__init__(self, path, data)
         SolidObject.__init__(self, None)
 
+    @staticmethod
+    def toJson(data):
+        # 将ColorPartMap转换为字典形式，以便于json序列化
+        result = {}
+        for color, part_set in data.items():
+            result[color] = []
+            for part in part_set:
+                result[color].append(part.to_dict())
+        return result
+
     def draw(self, gl, material="钢铁", theme_color=None):
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
+
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         # 绘制面
         for color, part_set in self.DrawMap.items():
             # 16进制颜色转换为RGBA
-            color_ = int(color[1:3], 16) / 440, int(color[3:5], 16) / 440, int(color[5:7], 16) / 440, 1
+            if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
+                _rate = 600
+                color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+            else:  # 说明是黑夜模式
+                _rate = 1000
+                color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+                # 减去一定的值
+                difference = 0.08
+                color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, 1)
+                # 如果小于0，就等于0
+                color_ = (color_[0] if color_[0] > 0 else 0,
+                          color_[1] if color_[1] > 0 else 0,
+                          color_[2] if color_[2] > 0 else 0,
+                          1)
+            light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, 1
             gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
+            gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
             gl.glColor4f(*color_)
             for part in part_set:
                 try:
                     for draw_method, faces_dots in part.plot_faces.items():
                         # draw_method是字符串，需要转换为OpenGL的常量
-                        gl.glBegin(eval(f"gl.{draw_method}"))
                         for face in faces_dots:
-                            normal = get_normal(face[0], face[1], face[2], part.Pos)
+                            gl.glBegin(eval(f"gl.{draw_method}"))
+                            if len(face) == 3 or len(face) == 4:
+                                normal = get_normal(face[0], face[1], face[2])
+                            elif len(face) > 12:
+                                normal = get_normal(face[0], face[6], face[12])
+                            else:
+                                continue
                             gl.glNormal3f(normal.x(), normal.y(), normal.z())
                             for dot in face:
                                 gl.glVertex3f(dot[0], dot[1], dot[2])
-                        gl.glEnd()
+                            gl.glEnd()
                 except AttributeError as e:
                     pass
 

@@ -8,15 +8,15 @@ from abc import abstractmethod
 # 第三方库
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar
 from PyQt5.QtWidgets import QTabWidget, QMenu, QAction, QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from base64 import b64decode
 # 本地库
-from path_utils import find_na_path
+from path_utils import find_na_root_path
 
-_path = os.path.join(find_na_path(), 'plugin_config.json')
+_path = os.path.join(find_na_root_path(), 'plugin_config.json')
 try:
     with open(_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -49,6 +49,28 @@ ADD_ = b64decode(add)
 CHOOSE_ = b64decode(choose)
 
 
+def getFG_fromBG(bg: QColor):
+    # 如果红绿蓝三色的平均值小于128，那么前景色为白色，否则为黑色
+    if (bg.red() + bg.green() + bg.blue()) / 3 < 128:
+        return QColor(255, 255, 255)
+    else:
+        return QColor(0, 0, 0)
+
+
+def front_completion(txt, length, add_char):
+    """
+    用于在字符串前补全字符
+    :param txt: 原字符串
+    :param length: 补全后的长度
+    :param add_char: 用于补全的字符
+    :return: 补全后的字符串
+    """
+    if len(txt) < length:
+        return add_char * (length - len(txt)) + txt
+    else:
+        return txt
+
+
 def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style="普通", active_color='gray', icon=None):
     button.setFixedSize(*size)
     if style == "普通":
@@ -67,9 +89,56 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
         button.setIconSize(QSize(*size))
 
 
+def set_top_button_style(button: QPushButton, width=50):
+    """
+    设置标签页内顶部的按钮样式
+    :param button:
+    :param width:
+    :return:
+    """
+    button.setFont(QFont('微软雅黑', 8))
+    # 设置样式：圆角、背景色、边框
+    button.setStyleSheet(
+        f"QPushButton{{background-color: {BG_COLOR0};"
+        f"color: {FG_COLOR0};"
+        f"border-radius: 0px;"
+        f"border: 1px solid {BG_COLOR0};}}"
+        # 鼠标悬停样式
+        f"QPushButton:hover{{background-color: {BG_COLOR3};"
+        f"color: {FG_COLOR0};"
+        f"border-radius: 0px;"
+        f"border: 1px solid {BG_COLOR3};}}"
+        # 鼠标按下样式
+        f"QPushButton:pressed{{background-color: {BG_COLOR2};"
+        f"color: {FG_COLOR0};"
+        f"border-radius: 0px;"
+        f"border: 1px solid {BG_COLOR2};}}"
+    )
+    # 设置大小
+    button.setFixedSize(width, 30)
+
+
+def set_tool_bar_style(tool_bar: QToolBar):
+    """
+    设置工具栏样式
+    :param tool_bar:
+    :return:
+    """
+    tool_bar.setStyleSheet(f"background-color: {BG_COLOR0};")
+    tool_bar.setOrientation(Qt.Vertical)
+    tool_bar.setToolButtonStyle(Qt.ToolButtonIconOnly)  # 不显示文本
+    tool_bar.setContentsMargins(0, 0, 0, 0)
+    # 按钮样式
+    tool_bar.setIconSize(QSize(26, 26))
+    tool_bar.setFixedWidth(40)
+    tool_bar.setMovable(True)
+    tool_bar.setFloatable(True)
+    tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
+
+
 class MainWindow(QWidget):
     def __init__(self, config):
-        # 读取配置文件
+        # 获取配置文件
         self.Config = config
         # 设置窗口属性
         self.topH = 35
@@ -155,7 +224,7 @@ class MainWindow(QWidget):
         self.maximize_button.clicked.connect(self.showMaximized)
         # 关闭按钮
         self.set_button_style(self.close_button, self.close_bg, self.three_button_size, 'white', 'red')
-        self.close_button.clicked.connect(self.close)
+        # 在main文件MainHandler中绑定关闭事件
         # 添加拖动条，控制窗口位置
         self.drag = self.add_drag_bar()
         # 添加按钮到子布局器
@@ -229,57 +298,6 @@ class MainWindow(QWidget):
         if Qt.LeftButton and self.m_flag:
             self.move(QMouseEvent.globalPos() - self.m_Position)
             QMouseEvent.accept()
-
-    def new_ship(self, event):
-        ...
-
-    def save_file(self, event):
-        ...
-
-    def save_as_file(self, event):
-        ...
-
-    def undo(self, event):
-        ...
-
-    def redo(self, event):
-        ...
-
-    def cut(self, event):
-        ...
-
-    def copy(self, event):
-        ...
-
-    def paste(self, event):
-        ...
-
-    def delete(self, event):
-        ...
-
-    def select_all(self, event):
-        ...
-
-    def set_theme(self, event):
-        ...
-
-    def set_lines(self, event):
-        ...
-
-    def thd_view(self, event):
-        ...
-
-    def zoom_out(self, event):
-        ...
-
-    def zoom_reset(self, event):
-        ...
-
-    def full_screen(self, event):
-        ...
-
-    def about(self, event):
-        ...
 
 
 class MyMainTabWidget(QTabWidget):
@@ -503,7 +521,7 @@ class BasicDialog(QDialog):
         spl.setStyleSheet(f"background-color:{BG_COLOR0};")
         self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
         # 主体-----------------------------------------------------------------------------------------------
-        self.top_layout = center_layout
+        self._center_layout = center_layout
         self.init_center_layout()
         self.main_layout.addStretch(1)
         # 分割线
@@ -546,7 +564,7 @@ class BasicDialog(QDialog):
         self.top_layout.addWidget(self.close_button, alignment=Qt.AlignRight)
 
     def init_center_layout(self):
-        self.main_layout.addLayout(self.top_layout, stretch=1)
+        self.main_layout.addLayout(self._center_layout, stretch=1)
 
     def add_bottom_bar(self):
         self.bottom_layout.setContentsMargins(0, 0, 0, 0)

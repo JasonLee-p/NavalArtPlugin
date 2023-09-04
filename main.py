@@ -2,19 +2,21 @@
 
 """
 # 系统库
+import os.path
 import sys
 import webbrowser
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 用于解决打包时的bug
-from PyQt5.QtWidgets import QApplication, QFileDialog, QToolBar, QGridLayout, QSpinBox, QCheckBox, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QCheckBox
 
 # 本地库
-from path_utils import find_ptb_path
+from path_utils import find_ptb_path, find_na_root_path
 from GUI.QtGui import *
 from OpenGLWindow import OpenGLWin
 from PTB_design_reader import AdvancedHull
 from OpenGL_objs import *
-from ProjectFile import NewProjectDialog, ConfigFile, ProjectFile
+from ProjectFile import NewProjectDialog, ConfigFile
+from ProjectFile import ProjectFile as PF
 
 
 def is_admin():
@@ -23,28 +25,6 @@ def is_admin():
     except Exception as e:
         print(e)
         return False
-
-
-def front_completion(txt, length, add_char):
-    """
-    用于在字符串前补全字符
-    :param txt: 原字符串
-    :param length: 补全后的长度
-    :param add_char: 用于补全的字符
-    :return: 补全后的字符串
-    """
-    if len(txt) < length:
-        return add_char * (length - len(txt)) + txt
-    else:
-        return txt
-
-
-def getFG_fromBG(bg: QColor):
-    # 如果红绿蓝三色的平均值小于128，那么前景色为白色，否则为黑色
-    if (bg.red() + bg.green() + bg.blue()) / 3 < 128:
-        return QColor(255, 255, 255)
-    else:
-        return QColor(0, 0, 0)
 
 
 def show_state(txt, msg_type='process'):
@@ -89,15 +69,76 @@ class Operation:
         Operation.history.append(self)
 
 
+class CurrentProject(PF):
+    def __init__(self, name, path, original_na_file_path,
+                 na_parts_data=None, operations=None, mode='空白', code='', save_time=''):
+        PF.__init__(self, name, path, original_na_file_path,
+                    na_parts_data, operations, mode, code, save_time)
+        """
+        修改配置文件对象Config，格式为：
+        {
+            'Config': self.Config,
+            'ConfigProjects': self.ConfigProjects,
+            'ProjectsFolder': self.ProjectsFolder
+        }
+        """
+        Config.ProjectsFolder = os.path.dirname(self.Path)
+        Config.Projects[self.Name] = self.Path
+
+    @staticmethod
+    def load_project(path) -> 'CurrentProject':
+        prj = PF.load_project(path)
+        return prj
+
+    @staticmethod
+    def init_project_from_config():
+        global CurrentPrj
+        path = list(Config.Projects.values())[-1]  # 获取最后一个项目的路径
+        show_state(f"正在读取{path}...", 'process')  # 显示状态
+
+        obj = CurrentProject.load_project(path)  # 读取项目文件
+        if obj is None:
+            return  # 如果读取失败，直接返回
+        try:
+            Handler.CurrentProjectData["Path"] = path  # 设置当前项目路径
+            Handler.CurrentProjectData["Name"] = list(Config.Projects.keys())[-1]  # 设置当前项目名称
+            Handler.CurrentProjectData["Object"] = obj
+            Handler.CurrentProjectData["OriginalFilePath"] = Handler.CurrentProjectData["Object"].OriginalFilePath
+            Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
+            # 读取成功，开始绘制
+            na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData)  # 通过读取的船体设计文件，新建NaHull对象
+            na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
+            Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+            CurrentPrj = Handler.CurrentProjectData["Object"]
+            show_state(f"{path}读取成功", 'success')  # 显示状态
+        except FileNotFoundError:
+            show_state(f"未找到配置中的{path}", "error")  # 显示状态
+            # 删除配置中的该项目
+            del Config.Projects[Handler.CurrentProjectData["Name"]]
+            Config.save_config()  # 保存配置文件
+
+
 class MainHandler:
     def __init__(self, window):
+        # -------------------------------------------------------------------------------------信号与槽
+        self.CurrentProjectData = {
+            # 格式为：
+            # "Object": None,
+            # "Path": None,
+            # "Name": None,
+            # "OriginalFilePath": None,
+            # "PartsData": None,
+        }
+        self.OperationHistory = Operation.history  # 用于记录操作的列表
+        self.OperationIndex = Operation.index
+        # -------------------------------------------------------------------------------------GUI设置
         self.window = window
         self.MenuMap = {
             " 设计": {
                 "打开工程": self.open_project,
                 "新建工程": self.new_project,
                 "导出为": self.export_file,
-                "保存工程": self.save_file,
+                "保存工程": self.save_project,
                 "另存为": self.save_as_file,
             },
             " 编辑": {
@@ -124,10 +165,10 @@ class MainHandler:
         }
         self.MainTabWidget = self.window.MainTabWidget
         self.window.add_top_bar(self.MenuMap)
+        self.window.close_button.clicked.connect(self.close)
         self.window.init_down_splitter()
         self.window.init_state_widget()
         self.MainLayout = self.window.MainLayout
-
         # 添加工作区选项卡
         self.read_adhull_tab = ReadPTBAdHullTab()
         self.read_na_hull_tab = ReadNAHullTab()
@@ -142,7 +183,6 @@ class MainHandler:
         for tab_name in self.tab_map:
             self.MainTabWidget.addTab(self.tab_map[tab_name], tab_name)
         self.show_top_bar()
-
         # 添加标签页
         self.window.down_splitter.addWidget(self.MainTabWidget)
         self.right_widget = RightWidget()
@@ -152,9 +192,6 @@ class MainHandler:
         # 计算屏幕宽度5/6
         self.window.down_splitter.setSizes([int(self.window.width() * 5 / 6), int(self.window.width() / 6)])
         self.window.showMaximized()
-        # -----------------------------------------------------------------------------------------信号与槽
-        self.OperationHistory = Operation.history  # 用于记录操作的列表
-        self.OperationIndex = Operation.index
 
     def tab_changed(self):
         """
@@ -180,18 +217,80 @@ class MainHandler:
     # ---------------------------------------------------------------------------------------------------
 
     def open_project(self, event):
+        global CurrentPrj
         # 选择路径
-        project_path = ''
+        if Config.ProjectsFolder == '':
+            desktop_path = os.path.join(os.path.expanduser("~"), 'Desktop')
+            file_dialog = QFileDialog(self.window, "选择工程", desktop_path)
+        else:
+            file_dialog = QFileDialog(self.window, "选择工程", os.path.dirname(Config.ProjectsFolder))
+        file_dialog.setNameFilter("json files (*.json)")
+        file_dialog.exec_()
+        try:
+            file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
+        except IndexError:
+            return
+        # 修改Handler.CurrentProjectData
+        obj = CurrentProject.load_project(file_path)
+        if obj is None:
+            return
+        Handler.CurrentProjectData["Object"] = obj
+        Handler.CurrentProjectData["Path"] = file_path  # 设置当前项目路径
+        Handler.CurrentProjectData["Name"] = file_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
+        Handler.CurrentProjectData["OriginalFilePath"] = Handler.CurrentProjectData["Object"].OriginalFilePath
+        Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
+        # 清空原来的所有对象，保存原来的工程文件对象
+        for mt, objs in Handler.hull_design_tab.all_3d_obj.items():
+            objs.clear()
+        # 读取成功，开始绘制
+        na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData)  # 通过读取的船体设计文件，新建NaHull对象
+        na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
+        Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+        CurrentPrj = Handler.CurrentProjectData["Object"]
+        show_state(f"{file_path}读取成功", 'success')  # 显示状态
 
-    def new_project(self, event):
+    def new_project(self, event=None):
+        global CurrentPrj
+        # 弹出对话框，获取工程名称和路径，以及其他相关信息
         new_project_dialog = NewProjectDialog(parent=self.window)
         new_project_dialog.exec_()
+        # 如果确定新建工程
+        if new_project_dialog.create_new_project:
+            if new_project_dialog.generate_mode == 'NA':
+                # 获取对话框返回的数据
+                _original_na_path = new_project_dialog.OriginalNAPath
+                _prj_path = new_project_dialog.ProjectPath  # name已经包含在path里了
+                # 新建NAHull对象
+                _na_hull = NAHull(path=_original_na_path)
+                # 检测颜色种类，弹出对话框，选择颜色
+                color_dialog = ColorDialog(self, _na_hull)
+                color_dialog.exec_()
+                self.hull_design_tab.show_iron_obj(_na_hull)
+                # 生成工程文件对象
+                Handler.CurrentProjectData["Path"] = _prj_path  # 设置当前项目路径
+                Handler.CurrentProjectData["Name"] = _prj_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
+                Handler.CurrentProjectData["OriginalFilePath"] = _original_na_path
+                Handler.CurrentProjectData["PartsData"] = NAHull.toJson(_na_hull.DrawMap)
+                Handler.CurrentProjectData["Object"] = CurrentProject(
+                    Handler.CurrentProjectData["Name"], _prj_path,
+                    _original_na_path, Handler.CurrentProjectData["PartsData"],
+                    operations={}, mode=PF.NA, code='', save_time=''
+                )
+                CurrentPrj = Handler.CurrentProjectData["Object"]
+                # 保存工程文件
+                Handler.CurrentProjectData["Object"].save()
+                time = Handler.CurrentProjectData["Object"].SaveTime
+                show_state(f"{time} {_prj_path}已保存", 'success')
+                # 更新配置文件
+                Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
 
     def export_file(self, event):
         ...
 
-    def save_file(self, event):
-        ...
+    def save_project(self, event):
+        self.CurrentProjectData["Object"].save()
+        time = self.CurrentProjectData["Object"].SaveTime
+        show_state(f"{time} {self.CurrentProjectData['Path']}已保存", 'success')
 
     def save_as_file(self, event):
         ...
@@ -246,6 +345,21 @@ class MainHandler:
         url = 'http://naval_plugins.e.cn.vc/'
         webbrowser.open(url)
 
+    def close(self) -> bool:
+        # 重写关闭事件
+        reply = QMessageBox().question(self.window, "提示", "是否退出？", MyMessageBox.Yes | MyMessageBox.No)
+        if reply == QMessageBox.Yes:
+            Config.save_config()  # 保存配置文件
+            # 检查Handler是否有"object"属性，防止报错
+            if "Object" in Handler.CurrentProjectData and Handler.CurrentProjectData["Object"] is not None:
+                Handler.CurrentProjectData["Object"].save()  # 保存当前项目
+                time = Handler.CurrentProjectData["Object"].SaveTime
+                show_state(f"{time} {Handler.CurrentProjectData['Path']}已保存", 'success')
+            self.window.close()
+            return True
+        else:
+            return False
+
 
 class RightWidget(QWidget):
     def __init__(self, parent=None):
@@ -278,6 +392,7 @@ class HullDesignTab(QWidget):
     def __init__(self, parent=None):
         self.AddImg = QIcon(QPixmap.fromImage(QImage.fromData(ADD_)))
         self.ChooseImg = QIcon(QPixmap.fromImage(QImage.fromData(CHOOSE_)))
+        self.NAPath = NAPath
         self.PTBPath = PTBPath
         self.PTBDesignPath = ''
         super().__init__(parent)
@@ -292,9 +407,9 @@ class HullDesignTab(QWidget):
         self.down_tool_bar = QToolBar()
         self.init_layout()
         self.save_button = QPushButton("保存")
+        self.read_from_na_button = QPushButton("从NA新建")
         self.convertAdhull_button = QPushButton("从PTB转换")
-        self.init_select_button()
-        self.init_convertAdhull_button()
+        self.init_buttons()
         self.up_layout.addStretch()
         # -----------------------------------------------------------------------------------操作区
         self.camera = self.ThreeDFrame.camera
@@ -332,18 +447,7 @@ class HullDesignTab(QWidget):
         self.setLayout(self.main_layout)
 
     def init_tool_bar(self):
-        # 设置工具栏
-        self.down_tool_bar.setStyleSheet(f"background-color: {BG_COLOR0};")
-        self.down_tool_bar.setOrientation(Qt.Vertical)
-        self.down_tool_bar.setToolButtonStyle(Qt.ToolButtonIconOnly)  # 不显示文本
-        self.down_tool_bar.setContentsMargins(0, 0, 0, 0)
-        # 按钮样式
-        self.down_tool_bar.setIconSize(QSize(26, 26))
-        self.down_tool_bar.setFixedWidth(40)
-        self.down_tool_bar.setMovable(True)
-        self.down_tool_bar.setFloatable(True)
-        self.down_tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
-
+        set_tool_bar_style(self.down_tool_bar)
         choose_action = QAction(self.ChooseImg, "框选", self)
         add_layer_action = QAction(self.AddImg, "添加层", self)
         choose_action.triggered.connect(self.choose_mode)
@@ -356,97 +460,126 @@ class HullDesignTab(QWidget):
         # 打包工具栏
         self.down_layout.addWidget(self.down_tool_bar)
 
-    def init_select_button(self):
-        self.save_button.setFont(self.Font)
-        # 设置样式：圆角、背景色、边框
-        self.save_button.setStyleSheet(
-            f"QPushButton{{background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR0};}}"
-            # 鼠标悬停样式
-            f"QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR3};}}"
-            # 鼠标按下样式
-            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR2};}}"
-        )
-        # 设置大小
-        self.save_button.setFixedSize(50, 30)
+    def init_buttons(self):
+        set_top_button_style(self.save_button, 50)  # 保存按钮
         self.save_button.clicked.connect(self.save_file)
         self.up_layout.addWidget(self.save_button, alignment=Qt.AlignLeft)
-
-    def init_convertAdhull_button(self):
-        self.convertAdhull_button.setFont(self.Font)
-        # 设置样式：圆角、背景色、边框
-        self.convertAdhull_button.setStyleSheet(
-            f"QPushButton{{background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR0};}}"
-            # 鼠标悬停样式
-            f"QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR3};}}"
-            # 鼠标按下样式
-            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR2};}}"
-        )
-        # 设置大小
-        self.convertAdhull_button.setFixedSize(100, 30)
+        set_top_button_style(self.read_from_na_button, 100)  # 从NA读取按钮
+        self.read_from_na_button.clicked.connect(self.read_from_na_button_pressed)
+        self.up_layout.addWidget(self.read_from_na_button, alignment=Qt.AlignLeft)
+        set_top_button_style(self.convertAdhull_button, 100)  # 从PTB转换按钮
         self.convertAdhull_button.clicked.connect(self.convertAdhull_button_pressed)
         self.up_layout.addWidget(self.convertAdhull_button, alignment=Qt.AlignLeft)
 
     def save_file(self):
         ...
 
-    def convertAdhull_button_pressed(self):
-        # 打开文件选择窗口，目录为PTB目录
-        file_dialog = QFileDialog(self, "选择图纸", self.PTBPath)
-        file_dialog.setNameFilter("xml files (*.xml)")
+    def read_from_na_button_pressed(self):
+        # 打开文件选择窗口，目录为NavalArt目录 ===================================================
+        file_dialog = QFileDialog(self, "选择图纸", self.NAPath)
+        file_dialog.setNameFilter("na files (*.na)")
         file_dialog.exec_()
         try:
-            file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
+            _original_na_p = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
         except IndexError:
             return
-        self.PTBDesignPath = file_path
         try:
-            adhull = AdHull(file_path)
+            _na_hull = NAHull(path=_original_na_p)
         except AttributeError:
             _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
             # 白色背景的提示框
             MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
         except PermissionError:
-            _txt = "该文件已被其他程序打开，请关闭后重试"
+            _txt = "该文件已被其他程序打开或不存在，请关闭后重试"
             MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
-        if adhull.result["adHull"]:  # 如果存在进阶船壳
-            # 弹出对话框，询问是否保存当前设计
-            _txt = "是否保存当前设计？"
-            reply = MyMessageBox().question(self, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
-            if reply == MyMessageBox.Yes:
-                self.save_file()
-            for mt, objs in self.all_3d_obj.items():
-                objs.clear()
-            show_state(f"正在读取{self.PTBDesignPath}...", 'process')
-            self.show_add_hull(adhull)
-            show_state(f"{self.PTBDesignPath}读取成功", 'success')
-        else:
-            _txt = "该设计不含进阶船体外壳，请重新选择哦"
-            MyMessageBox.information(self, "提示", _txt, MyMessageBox.Ok)
-            self.convertAdhull_button_pressed()
+        show_state(f"{_original_na_p}读取成功", 'success')
+        # 获取用户选择的工程路径 ==========================================================================
+        chosen_path = find_na_root_path() if Config.Projects == {} else os.path.dirname(Config.ProjectsFolder)
+        save_dialog = QFileDialog(self, "选择工程保存路径", chosen_path)
+        save_dialog.setFileMode(QFileDialog.AnyFile)
+        save_dialog.setAcceptMode(QFileDialog.AcceptSave)
+        save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+        save_dialog.exec_()
+        # 获取选择的文件路径
+        try:
+            _prj_path = save_dialog.selectedFiles()[0]
+        except IndexError:
             return
+        # 清空原来的所有对象，保存原来的工程文件对象
+        for mt, objs in self.all_3d_obj.items():
+            objs.clear()
+        if Handler.CurrentProjectData["Object"] is not None:
+            Handler.CurrentProjectData["Object"].save()
+            time = Handler.CurrentProjectData["Object"].SaveTime
+            show_state(f"{time} {_prj_path}已保存", 'success')
+        # 检测颜色种类，弹出对话框，选择颜色
+        color_dialog = ColorDialog(self, _na_hull)
+        color_dialog.exec_()
+        self.show_iron_obj(_na_hull)
+        # 生成工程文件对象
+        Handler.CurrentProjectData["Path"] = _prj_path  # 设置当前项目路径
+        Handler.CurrentProjectData["Name"] = _prj_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
+        Handler.CurrentProjectData["OriginalFilePath"] = _prj_path
+        Handler.CurrentProjectData["PartsData"] = NAHull.toJson(_na_hull.DrawMap)
+        Handler.CurrentProjectData["Object"] = CurrentProject(
+            Handler.CurrentProjectData["Name"], _prj_path,
+            _original_na_p, Handler.CurrentProjectData["PartsData"],
+            operations={}, mode=PF.NA, code='', save_time=''
+        )
+        # 保存工程文件
+        Handler.CurrentProjectData["Object"].save()
+        time = Handler.CurrentProjectData["Object"].SaveTime
+        show_state(f"{time} {_prj_path}已保存", 'success')
+        # 更新配置文件
+        Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
 
-    def show_add_hull(self, adhull_obj: AdHull):
-        self.all_3d_obj["钢铁"].append(adhull_obj)
+    def convertAdhull_button_pressed(self):
+        """
+        功能暂未实现
+        :return:
+        """
+        MyMessageBox().information(self, "提示", "该功能暂未实现哦", MyMessageBox.Ok)
+        # # 打开文件选择窗口，目录为PTB目录
+        # file_dialog = QFileDialog(self, "选择图纸", self.PTBPath)
+        # file_dialog.setNameFilter("xml files (*.xml)")
+        # file_dialog.exec_()
+        # try:
+        #     file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
+        # except IndexError:
+        #     return
+        # self.PTBDesignPath = file_path
+        # try:
+        #     adhull = AdHull(file_path)
+        # except AttributeError:
+        #     _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
+        #     # 白色背景的提示框
+        #     MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
+        #     return
+        # except PermissionError:
+        #     _txt = "该文件已被其他程序打开，请关闭后重试"
+        #     MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
+        #     return
+        # if adhull.result["adHull"]:  # 如果存在进阶船壳
+        #     # 弹出对话框，询问是否保存当前设计
+        #     _txt = "是否保存当前设计？"
+        #     reply = MyMessageBox().question(self, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
+        #     if reply == MyMessageBox.Yes:
+        #         self.save_project()
+        #     for mt, objs in self.all_3d_obj.items():
+        #         objs.clear()
+        #     show_state(f"正在读取{self.PTBDesignPath}...", 'process')
+        #     self.show_iron_obj(adhull)
+        #     show_state(f"{self.PTBDesignPath}读取成功", 'success')
+        # else:
+        #     _txt = "该设计不含进阶船体外壳，请重新选择哦"
+        #     MyMessageBox.information(self, "提示", _txt, MyMessageBox.Ok)
+        #     self.convertAdhull_button_pressed()
+        #     return
+
+    def show_iron_obj(self, obj):
+        self.all_3d_obj["钢铁"].append(obj)
         # 更新ThreeDFrame的paintGL
         self.update_3d_obj()
 
@@ -532,26 +665,7 @@ class ReadPTBAdHullTab(QWidget):
         self.down_layout.addWidget(self.down_tool_bar)
 
     def init_open_button(self):
-        self.open_button.setFont(self.Font)
-        # 设置样式：圆角、背景色、边框
-        self.open_button.setStyleSheet(
-            f"QPushButton{{background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR0};}}"
-            # 鼠标悬停样式
-            f"QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR3};}}"
-            # 鼠标按下样式
-            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR2};}}"
-        )
-        # 设置大小
-        self.open_button.setFixedSize(50, 30)
+        set_top_button_style(self.open_button, 50)  # 打开按钮
         self.open_button.clicked.connect(self.convertAdhull_button_pressed)
         self.up_layout.addWidget(self.open_button, alignment=Qt.AlignLeft)
 
@@ -676,31 +790,12 @@ class ReadNAHullTab(QWidget):
         self.down_layout.addWidget(self.down_tool_bar)
 
     def init_open_button(self):
-        self.open_button.setFont(self.Font)
-        # 设置样式：圆角、背景色、边框
-        self.open_button.setStyleSheet(
-            f"QPushButton{{background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR0};}}"
-            # 鼠标悬停样式
-            f"QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR3};}}"
-            # 鼠标按下样式
-            f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-            f"color: {FG_COLOR0};"
-            f"border-radius: 0px;"
-            f"border: 1px solid {BG_COLOR2};}}"
-        )
-        # 设置大小
-        self.open_button.setFixedSize(50, 30)
-        self.open_button.clicked.connect(self.convertAdhull_button_pressed)
+        set_top_button_style(self.open_button, 50)  # 打开按钮
+        self.open_button.clicked.connect(self.find_na_ship_button_pressed)
         self.up_layout.addWidget(self.open_button, alignment=Qt.AlignLeft)
 
-    def convertAdhull_button_pressed(self):
-        # 打开文件选择窗口，目录为PTB目录
+    def find_na_ship_button_pressed(self):
+        # 打开文件选择窗口，目录为NavalArt目录
         file_dialog = QFileDialog(self, "选择图纸", self.NAPath)
         file_dialog.setNameFilter("na files (*.na)")
         file_dialog.exec_()
@@ -710,7 +805,7 @@ class ReadNAHullTab(QWidget):
             return
         self.NADesignPath = file_path
         try:
-            na_hull = NAHull(file_path)
+            na_hull = NAHull(path=file_path)
         except AttributeError:
             _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
             # 白色背景的提示框
@@ -858,19 +953,23 @@ class ColorDialog(BasicDialog):
         self.color_partNum_map = dict(sorted(self.color_partNum_map.items(), key=lambda x: x[1], reverse=True))
         self.color_choose_map = {}
         # 生成颜色选择按钮（显示出该颜色，并且在色块上显示出该颜色对应的部件数量，下方是勾选框，用于选择是否显示该颜色）
-        self.center_layout = QGridLayout()
+        self.center_grid_layout = QGridLayout()
+        # 颜色行数
+        lines = -1
         for color, num in self.color_partNum_map.items():
             index_ = list(self.color_partNum_map.keys()).index(color)
+            lines += 1 if index_ % 15 == 0 else 0
             bg_ = QColor(color)
             fg_ = getFG_fromBG(bg_)
             # 色块
             color_block = QLabel(str(num))
-            color_block.setFixedSize(55, 45)
+            color_block.setFixedSize(60, 65)
             color_block.setAlignment(Qt.AlignCenter)
             color_block.setStyleSheet(f"background-color: {bg_.name()};color: {fg_.name()};"
-                                      f"border-radius: 5px;"
-                                      f"border: 1px solid {bg_.name()};"
-                                      f"font: 12pt '微软雅黑';")
+                                      f"border-radius: 7px;"
+                                      # 上边距
+                                      f"margin-top: 20px;"
+                                      f"font: 11pt '微软雅黑';")
             # 16进制色名
             color_name = QLabel(color)
             color_name.setAlignment(Qt.AlignCenter)
@@ -892,21 +991,41 @@ class ColorDialog(BasicDialog):
             rgb_layout.addWidget(red)
             rgb_layout.addWidget(green)
             rgb_layout.addWidget(blue)
-            rgb_layout.setSpacing(2)
+            rgb_layout.setSpacing(0)
             # 选择框
             choose_box = QCheckBox()
-            choose_box.setFixedSize(20, 20)
+            choose_box.setFixedSize(60, 16)
+            # 居中
+            choose_box.setStyleSheet("QCheckBox::indicator {width: 60px;height: 16px;}")
             self.color_choose_map[color] = choose_box
             # 添加到布局
-            self.center_layout.addWidget(color_block, 0, index_)
-            self.center_layout.addWidget(color_name, 1, index_)
-            self.center_layout.addWidget(rgb_widget, 2, index_)
-            self.center_layout.addWidget(choose_box, 3, index_, alignment=Qt.AlignCenter)
+            i_vertical = lines * 4
+            i_horizontal = index_ % 15
+            self.center_grid_layout.addWidget(color_block, i_vertical, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(color_name, i_vertical + 1, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(rgb_widget, i_vertical + 2, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(choose_box, i_vertical + 3, i_horizontal, alignment=Qt.AlignCenter)
+
             # 把其他部件的左键也绑定choose_box修改事件
             color_block.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
             color_name.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
             rgb_widget.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
-        super().__init__(parent, self.title, QSize(self.color_num * 90 if self.color_num > 3 else 360, 350), self.center_layout)
+        # 添加全选按钮
+        self.all_choose_box = QCheckBox("全选")
+        self.all_choose_box.setStyleSheet(f"color: {FG_COLOR0};"
+                                          f"font: 11pt '微软雅黑';")
+        self.all_choose_box.setFixedSize(80, 80)
+        self.all_choose_box.stateChanged.connect(self.all_choose_box_state_changed)
+        self.center_grid_layout.addWidget(
+            self.all_choose_box, lines * 4 + 4, 0, 1, min(15, self.color_num), alignment=Qt.AlignCenter)
+        # 设置布局
+        if 3 < self.color_num <= 15:
+            size = QSize(100 + self.color_num * 85, 380)
+        elif self.color_num > 15:
+            size = QSize(100 + 15 * 85, 380 + lines * 170)
+        else:
+            size = QSize(360, 380)
+        super().__init__(parent, self.title, size, self.center_grid_layout)
         self.set_widget()
 
     @staticmethod
@@ -914,10 +1033,19 @@ class ColorDialog(BasicDialog):
         if event.button() == Qt.LeftButton:
             choose_box.setChecked(not choose_box.isChecked())
 
+    def all_choose_box_state_changed(self):
+        if self.all_choose_box.isChecked():
+            for color, choose_box in self.color_choose_map.items():
+                choose_box.setChecked(True)
+        else:
+            for color, choose_box in self.color_choose_map.items():
+                choose_box.setChecked(False)
+
     def set_widget(self):
         # 上下间距
-        self.center_layout.setSpacing(8)
-        self.center_layout.setContentsMargins(50, 50, 50, 0)
+        self.center_grid_layout.setSpacing(5)
+        self.center_grid_layout.setContentsMargins(50, 30, 50, 0)
+        # 居中
 
     def ensure(self):
         draw_map = {}
@@ -925,7 +1053,10 @@ class ColorDialog(BasicDialog):
             if choose_box.isChecked():
                 draw_map[color] = self.color_parts_map[color]
         self.na_hull.DrawMap = draw_map
-        super().ensure()
+        if draw_map:
+            super().ensure()
+        else:
+            MyMessageBox().information(self, "提示", "未选择任何颜色", MyMessageBox.Ok)
 
 
 if __name__ == '__main__':
@@ -944,18 +1075,17 @@ if __name__ == '__main__':
     """
     # 初始化路径
     PTBPath = find_ptb_path()
-    NAPath = find_na_path()
+    NAPath = os.path.join(find_na_root_path(), "ShipSaves")
     # 读取配置
     Config = ConfigFile()
-    Config.load_config()
-    UsingTheme = Config.UsingTheme
-    Projects = Config.Projects
     # 初始化界面和事件处理器
     QApp = QApplication(sys.argv)
     QtWindow = MainWindow(Config)
     Handler = MainHandler(QtWindow)
+    if Config.Projects != {}:
+        CurrentProject.init_project_from_config()
+    else:
+        CurrentPrj = None
     QtWindow.show()  # 显示被隐藏的窗口
-    # 保存配置
-    Config.save_config()
     # 主循环
     sys.exit(QApp.exec_())

@@ -1,3 +1,3 @@
 from . import QtGui
 
-__all__ = ['QtGui.py']
+__all__ = ['QtGui']

@@ -6,5 +6,5 @@ class TestReadNA(unittest.TestCase):
     path = "KMS Hindenburg.na"
     ShipReader = Reader(path)
 
-    def test1(self):
+    def test(self):
         print(TestReadNA.ShipReader.ColorPartsMap)
