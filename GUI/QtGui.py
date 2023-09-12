@@ -3,7 +3,6 @@
 import ctypes
 import json
 import os
-import typing
 from abc import abstractmethod
 # 第三方库
 from PyQt5.QtCore import Qt, QSize
@@ -16,14 +15,16 @@ from base64 import b64decode
 # 本地库
 from path_utils import find_na_root_path
 
+# 读取配置文件中的主题信息
 _path = os.path.join(find_na_root_path(), 'plugin_config.json')
 try:
     with open(_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     Theme = data['Config']['Theme']
-except FileNotFoundError:
+except FileNotFoundError or PermissionError:
     Theme = 'Day'
 
+# 根据主题选择颜色，图片
 if Theme == 'Day':
     from ThemeConfigColor.Day import *
     from IMG.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, close
@@ -31,6 +32,7 @@ elif Theme == 'Night':
     from ThemeConfigColor.Night import *
     from IMG.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, close
 
+# 常量
 WHITE = 'white'
 GOLD = 'gold'
 FONT0 = 'Times New Roman'
@@ -72,6 +74,16 @@ def front_completion(txt, length, add_char):
 
 
 def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style="普通", active_color='gray', icon=None):
+    """
+    设置按钮样式
+    :param button: QPushButton对象
+    :param size: Tuple[int, int]，按钮大小
+    :param font: QFont对象
+    :param style: "普通"或"圆角边框"
+    :param active_color: 鼠标悬停时的颜色
+    :param icon: QIcon对象
+    :return:
+    """
     button.setFixedSize(*size)
     if style == "普通":
         button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:14px;'
@@ -92,8 +104,8 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
 def set_top_button_style(button: QPushButton, width=50):
     """
     设置标签页内顶部的按钮样式
-    :param button:
-    :param width:
+    :param button: QPushButton对象
+    :param width: int，按钮宽度
     :return:
     """
     button.setFont(QFont('微软雅黑', 8))
@@ -121,7 +133,7 @@ def set_top_button_style(button: QPushButton, width=50):
 def set_tool_bar_style(tool_bar: QToolBar):
     """
     设置工具栏样式
-    :param tool_bar:
+    :param tool_bar: QToolBar对象
     :return:
     """
     tool_bar.setStyleSheet(f"background-color: {BG_COLOR0};")
@@ -266,12 +278,11 @@ class MainWindow(QWidget):
         self.statu_label.setText("None")
 
     def init_down_splitter(self):
-        # 设置分割条的宽度
-        self.down_splitter.setHandleWidth(1)
-        # 设置分割条的样式
-        self.down_splitter.setStyleSheet("QSplitter::handle{background-color:gray;}"
-                                         "QSplitter::handle:hover{background-color:darkgray;}"
-                                         "QSplitter::handle:pressed{background-color:lightgray;}")
+        self.down_splitter.setHandleWidth(1)  # 设置分割条的宽度
+        self.down_splitter.setStyleSheet(  # 设置分割条的样式
+            "QSplitter::handle{background-color:gray;}"
+            "QSplitter::handle:hover{background-color:darkgray;}"
+            "QSplitter::handle:pressed{background-color:lightgray;}")
 
     def showMaximized(self):
         # 检查是否已经最大化
@@ -329,15 +340,7 @@ class MyMainTabWidget(QTabWidget):
             "min-width:30ex;"
             f"border-top:0px solid {FG_COLOR2};"
             f"border-bottom:1px solid {FG_COLOR1};}}"
-            # 设置鼠标按下标签栏样式
-            f"color:{FG_COLOR0};"
-            "padding:4px;"
-            "min-width:30ex;"
-            f"border-top:0px solid {FG_COLOR2};"
-            f"border-bottom:1px solid {FG_COLOR2};}}"
         )
-        # # 设置标签栏
-        # self.setTabBar(self.tabBar)
 
 
 class MyMessageBox(QMessageBox):
@@ -369,10 +372,12 @@ class MyMessageBox(QMessageBox):
 
 
 class MyLabel(QLabel):
-    def __init__(self, text, font=QFont("微软雅黑", 9), color=FG_COLOR0):
+    def __init__(self, text, font=QFont("微软雅黑", 9), color=FG_COLOR0, side=Qt.AlignLeft):
         super().__init__(text)
         self.setFont(font)
         self.setStyleSheet(f"color:{color};")
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAlignment(side)
 
 
 class MyLineEdit(QLineEdit):
@@ -459,6 +464,7 @@ class CircleSelectButtonGroup:
     """
     用于管理一组圆形选择按钮
     """
+
     def __init__(self, button_list, parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3):
         self.button_list = button_list
         self.parent = parent

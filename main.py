@@ -7,9 +7,11 @@ import sys
 import webbrowser
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 用于解决打包时的bug
-from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QCheckBox
+from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QCheckBox, QTreeWidgetItem, QTreeWidget, QTextEdit
 
 # 本地库
+from NA_design_reader import Part
 from path_utils import find_ptb_path, find_na_root_path
 from GUI.QtGui import *
 from OpenGLWindow import OpenGLWin
@@ -84,10 +86,21 @@ class CurrentProject(PF):
         """
         Config.ProjectsFolder = os.path.dirname(self.Path)
         Config.Projects[self.Name] = self.Path
+        # 重置NavalArt的Part的ShipsAllParts
+        Part.ShipsAllParts = []
 
     @staticmethod
     def load_project(path) -> 'CurrentProject':
         prj = PF.load_project(path)
+        if prj is None:
+            return None
+        # 重置NavalArt的Part的ShipsAllParts
+        Part.ShipsAllParts = []
+        # 修改配置文件的ProjectsFolder和Projects
+        Config.ProjectsFolder = os.path.dirname(path)
+        Config.Projects[prj.Name] = path
+        # 重置NavalArt的Part的ShipsAllParts
+        Part.ShipsAllParts = []
         return prj
 
     @staticmethod
@@ -116,6 +129,21 @@ class CurrentProject(PF):
             # 删除配置中的该项目
             del Config.Projects[Handler.CurrentProjectData["Name"]]
             Config.save_config()  # 保存配置文件
+
+
+class MainWin(MainWindow):
+    def __init__(self, parent=None):
+        MainWindow.__init__(self, parent)
+
+
+class GLWin(OpenGLWin):
+    def __init__(self, parent=None):
+        OpenGLWin.__init__(self, parent)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        super().mouseReleaseEvent(event)
+        if event.button() == Qt.LeftButton:
+            Handler.right_widget.update_tab1()
 
 
 class MainHandler:
@@ -185,12 +213,12 @@ class MainHandler:
         self.show_top_bar()
         # 添加标签页
         self.window.down_splitter.addWidget(self.MainTabWidget)
-        self.right_widget = RightWidget()
+        self.right_widget = RightTabWidget()
         self.window.down_splitter.addWidget(self.right_widget)
         # 给标签页添加信号
         self.MainTabWidget.currentChanged.connect(self.tab_changed)
         # 计算屏幕宽度5/6
-        self.window.down_splitter.setSizes([int(self.window.width() * 5 / 6), int(self.window.width() / 6)])
+        self.window.down_splitter.setSizes([self.window.width(), 1])
         self.window.showMaximized()
 
     def tab_changed(self):
@@ -248,6 +276,10 @@ class MainHandler:
         Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
         CurrentPrj = Handler.CurrentProjectData["Object"]
         show_state(f"{file_path}读取成功", 'success')  # 显示状态
+        # 更新配置文件（把该条目改到字典的最后一项）
+        del Config.Projects[Handler.CurrentProjectData["Name"]]
+        Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
+        Config.save_config()  # 保存配置文件
 
     def new_project(self, event=None):
         global CurrentPrj
@@ -361,31 +393,254 @@ class MainHandler:
             return False
 
 
-class RightWidget(QWidget):
+class RightTabWidget(QTabWidget):
     def __init__(self, parent=None):
-        self.ActiveTab = "读取PTB船壳"
+        """
+        右侧工具栏
+        :param parent:
+        """
         super().__init__(parent)
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setStyleSheet(f"background-color: {BG_COLOR0};")
         self.ICO = QIcon(QPixmap.fromImage(QImage.fromData(ICO_)))  # 把图片编码转换成QIcon
-        self.logo = QLabel()
-        self.layout = QVBoxLayout()
-        self.top1_layout = QHBoxLayout()
-        self.init_layout()
+        self.tab1_main_layout = QVBoxLayout()
+        self.tab2_main_layout = QVBoxLayout()
+        self.tab1_grid_singlePart = QGridLayout()
+        self.tab1_grid_verticalPartSet = QGridLayout()
+        self.tab1_grid_horizontalPartSet = QGridLayout()
+        self.tab1_content_singlePart = {
+            "类型": MyLabel("未选择物体", QFont('微软雅黑', 10), side=Qt.AlignCenter),
+            "坐标": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
+            "旋转": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
+            "缩放": {"value": [1, 1, 1], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
+            "颜色": {"value": [0.5, 0.5, 0.5], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
+            "装甲": {"value": [0], "QTextEdit": [QTextEdit()]},
+            # 可调节零件模型信息
+            "原长度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "原高度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "前宽度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "后宽度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "前扩散": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "后扩散": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "上弧度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "下弧度": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "高缩放": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "高偏移": {"value": [0], "QTextEdit": [QTextEdit()]}
+        }
+        self.init_style()
 
-    def init_layout(self):
-        # 添加图片
-        # self.logo.setPixmap(QPixmap.fromImage(QImage.fromData(ICO_)))
-        # self.logo.setScaledContents(True)
-        # self.logo.setFixedSize(256, 256)
-        # self.top1_layout.setContentsMargins(0, 0, 0, 0)
-        # self.top1_layout.setSpacing(0)
-        # self.layout.setContentsMargins(0, 0, 0, 0)
-        # self.layout.setSpacing(0)
-        # 添加布局
-        # self.top1_layout.addWidget(self.logo, 0, Qt.AlignTop)
-        self.layout.addLayout(self.top1_layout)
-        self.setLayout(self.layout)
+    def init_style(self):
+        self.setTabPosition(QTabWidget.East)
+        self.setMovable(True)
+        self.setDocumentMode(True)
+        self.setStyleSheet(
+            f"QTabBar::tab{{background-color:{BG_COLOR0};"
+            f"color:{FG_COLOR0};"
+            "padding:4px;"
+            "min-height:30ex;"
+            f"border-right:0px solid {FG_COLOR2};"
+            f"border-left:1px solid {FG_COLOR2};}}"
+            # 设置选中标签栏样式
+            f"QTabBar::tab:selected{{background-color:{BG_COLOR3};"
+            f"color:{FG_COLOR0};"
+            "padding:4px;"
+            "min-height:30ex;"
+            f"border-right:0px solid {FG_COLOR2};"
+            f"border-left:1px solid {FG_COLOR2};}}"
+            # 设置鼠标悬停标签栏样式
+            f"QTabBar::tab:hover{{background-color:{BG_COLOR3};"
+            f"color:{FG_COLOR0};"
+            "padding:4px;"
+            "min-height:30ex;"
+            f"border-right:0px solid {FG_COLOR2};"
+            f"border-left:1px solid {FG_COLOR1};}}"
+        )
+        # 添加标签页
+        self.addTab(self.init_tab1(), "元素检视器")
+        self.addTab(self.init_tab2(), "属性编辑器")
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setTabText(0, "元素检视器")
+        self.setTabText(1, "属性编辑器")
+        self.setTabToolTip(0, "元素检视器")
+        self.setTabToolTip(1, "属性编辑器")
+
+    def init_tab1(self):
+        tab = QWidget()
+        tab.setLayout(self.tab1_main_layout)
+        # 标题
+        title = MyLabel("元素检视器", QFont('微软雅黑', 11), side=Qt.AlignCenter)
+        self.tab1_main_layout.addWidget(title)
+        # 添加分割线
+        self.tab1_main_layout.addWidget(QFrame(  # top下方添加横线
+            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken))
+        # grid
+        self.tab1_grid_singlePart.setSpacing(7)
+        self.tab1_grid_singlePart.setContentsMargins(0, 0, 0, 0)
+        self.tab1_grid_singlePart.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.tab1_main_layout.addLayout(self.tab1_grid_singlePart)
+        # 按照tab1_content0的内容，添加控件
+        # 只添加类型的结果，并且放大一个字号占据所有列
+        self.tab1_grid_singlePart.addWidget(self.tab1_content_singlePart["类型"], 0, 0, 1, 4)
+        # 添加其他的控件
+        text_font = QFont('微软雅黑', 9)
+        for i, key_ in enumerate(self.tab1_content_singlePart):
+            if key_ != "类型":
+                # 添加标签
+                label = MyLabel(key_, text_font, side=Qt.AlignLeft | Qt.AlignVCenter)
+                MyLabel.setFixedHeight(label, 25)
+                MyLabel.setFixedWidth(label, 70)
+                self.tab1_grid_singlePart.addWidget(label, i, 0)
+                # 添加输入框，并设置样式
+                for j, textEdit in enumerate(self.tab1_content_singlePart[key_]["QTextEdit"]):
+                    textEdit.setFont(text_font)
+                    textEdit.setFixedWidth(60)
+                    textEdit.setFixedHeight(25)
+                    textEdit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 不显示滚动条
+                    textEdit.wheelEvent = self.tab1_grid_qte_mouse_wheel  # 重写鼠标滚轮事件
+                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
+                    self.tab1_grid_singlePart.addWidget(textEdit, i, j + 1)
+        # 底部弹簧
+        self.tab1_main_layout.addStretch(1)
+        return tab
+
+    def init_tab2(self):
+        tab = QWidget()
+        tab.setLayout(self.tab2_main_layout)
+        # 标题
+        title = MyLabel("属性编辑器", QFont('微软雅黑', 11), side=Qt.AlignCenter)
+        self.tab2_main_layout.addWidget(title)
+        return tab
+
+    def lock_grid1(self):
+        # 锁定grid1中所有的输入框
+        for key in self.tab1_content_singlePart:
+            if key != "类型":
+                for textEdit in self.tab1_content_singlePart[key]["QTextEdit"]:
+                    textEdit.setReadOnly(True)
+                    textEdit.setText("")  # 清空
+                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
+        self.tab1_content_singlePart["类型"].setText("未选择物体")
+
+    def lock_grid1_adjustableHull(self):
+        # 锁定grid1中所有的输入框
+        for key in self.tab1_content_singlePart:
+            if key in ["原长度", "原高度", "前宽度", "后宽度", "前扩散", "后扩散", "上弧度", "下弧度", "高缩放", "高偏移"]:
+                for textEdit in self.tab1_content_singlePart[key]["QTextEdit"]:
+                    textEdit.setReadOnly(False)
+                    textEdit.setText("")  # 清空
+                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
+
+    def unlock_grid1(self):
+        # 解锁grid1中所有的输入框
+        for key in self.tab1_content_singlePart:
+            if key != "类型":
+                for textEdit in self.tab1_content_singlePart[key]["QTextEdit"]:
+                    textEdit.setReadOnly(False)
+                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
+
+    def update_tab1(self):
+        _len = len(Handler.hull_design_tab.ThreeDFrame.selected_gl_objects)
+        if _len == 0:
+            self.lock_grid1()
+            return
+        # 当被选中物体变化的时候，更新tab1的内容
+        elif _len == 1:
+            # TODO: 显示self.tab1_grid_singlePart（如果曾经被隐藏，那么就显示）
+            self.unlock_grid1()
+            # 获取选中的物体
+            part_obj = Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[0]
+            # 更新类型
+            _type = "可调节船体" if part_obj.Id == "0" else "其他零件"
+            self.tab1_content_singlePart["类型"].setText(_type)
+            for i in range(3):
+                self.tab1_content_singlePart["坐标"]["QTextEdit"][i].setText(str(part_obj.Pos[i]))
+                self.tab1_content_singlePart["旋转"]["QTextEdit"][i].setText(str(part_obj.Rot[i]))
+                self.tab1_content_singlePart["缩放"]["QTextEdit"][i].setText(str(part_obj.Scl[i]))
+                self.tab1_content_singlePart["颜色"]["QTextEdit"][i].setText(str(part_obj.Col[i]))
+            self.tab1_content_singlePart["装甲"]["QTextEdit"][0].setText(str(part_obj.Amr))
+            if _type == "可调节船体":
+                self.unlock_grid1()
+                # 更新可调节零件模型信息
+                self.tab1_content_singlePart["原长度"]["QTextEdit"][0].setText(str(part_obj.Len))
+                self.tab1_content_singlePart["原高度"]["QTextEdit"][0].setText(str(part_obj.Hei))
+                self.tab1_content_singlePart["前宽度"]["QTextEdit"][0].setText(str(part_obj.FWid))
+                self.tab1_content_singlePart["后宽度"]["QTextEdit"][0].setText(str(part_obj.BWid))
+                self.tab1_content_singlePart["前扩散"]["QTextEdit"][0].setText(str(part_obj.FSpr))
+                self.tab1_content_singlePart["后扩散"]["QTextEdit"][0].setText(str(part_obj.BSpr))
+                self.tab1_content_singlePart["上弧度"]["QTextEdit"][0].setText(str(part_obj.UCur))
+                self.tab1_content_singlePart["下弧度"]["QTextEdit"][0].setText(str(part_obj.DCur))
+                self.tab1_content_singlePart["高缩放"]["QTextEdit"][0].setText(str(part_obj.HScl))
+                self.tab1_content_singlePart["高偏移"]["QTextEdit"][0].setText(str(part_obj.HOff))
+            else:
+                self.lock_grid1_adjustableHull()
+        else:
+            # TODO: 隐藏self.tab1_grid_singlePart
+            x_list = []
+            z_list = []
+            y_list = []
+            for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects:
+                if x_list.count(part_obj.Pos[0]) == 0:
+                    x_list.append(part_obj.Pos[0])
+                if y_list.count(part_obj.Pos[1]) == 0:
+                    y_list.append(part_obj.Pos[1])
+                if z_list.count(part_obj.Pos[2]) == 0:
+                    z_list.append(part_obj.Pos[2])
+            # 如果所有零件的x和z坐标都相同，那么就说明这是一组纵向排列的船体截块
+            if len(set(x_list)) == 1 and len(set(z_list)) == 1:
+                # TODO: 判断是否上下相连
+                # TODO: 如果相连，接下来要显示self.tab1_grid_verticalPartSet
+                ...
+            # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
+            elif len(set(x_list)) == 1 and len(set(y_list)) == 1:
+                # TODO: 判断是否前后相连
+                # TODO: 如果相连，接下来要显示self.tab1_grid_horizontalPartSet
+                ...
+            elif ...:  # TODO: 还有集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
+                """
+                （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
+                所有等y零件的前后面相切，所有等z零件的上下面相切）
+                示例（左视简图）：
+                -----------------------------------------
+                | x |   x   |  x  |     x     |   x   |x|
+                -----------------------------------------
+                |   |       |     |           |       | |
+                | x |   x   |  x  |     x     |   x   |x|
+                |   |       |     |           |       | |
+                -----------------------------------------
+                | x |   x   |  x  |     x     |   x   |x|
+                -----------------------------------------
+                """
+                # 首先判断是否满足矩形点阵
+                # 然后计算第一层零件前后是否相连
+                # 接着计算第一竖排零件上下是否相连
+                ...
+            else:
+                self.lock_grid1()
+                return
+
+    def tab1_grid_qte_mouse_wheel(self, event=None):
+        # 寻找当前鼠标所在的输入框
+        active_textEdit = None
+        for key in self.tab1_content_singlePart:
+            if key != "类型":
+                for qte in self.tab1_content_singlePart[key]["QTextEdit"]:
+                    if qte.hasFocus():
+                        active_textEdit = qte
+                        break
+        if active_textEdit is None:
+            return
+        # 获取输入框的值
+        value = float(active_textEdit.toPlainText())
+        # 获取鼠标滚轮的滚动值
+        delta = event.angleDelta().y()
+        # 根据滚动值，修改输入框的值
+        if delta > 0:
+            value += 0.05
+        else:
+            value -= 0.05
+        active_textEdit.setText(str(value))
 
 
 class HullDesignTab(QWidget):
@@ -402,7 +657,7 @@ class HullDesignTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
+        self.ThreeDFrame = GLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -414,7 +669,11 @@ class HullDesignTab(QWidget):
         # -----------------------------------------------------------------------------------操作区
         self.camera = self.ThreeDFrame.camera
         self.environment_obj = self.ThreeDFrame.environment_obj
-        self.all_3d_obj = self.ThreeDFrame.all_3d_obj
+        # 在不同模式下显示的物体：
+        self.all_3d_obj = self.ThreeDFrame.all_3d_obj  # 普通模式
+        self.zx_layer_obj = self.ThreeDFrame.zx_layer_obj  # 横剖面模式
+        self.yx_layer_obj = self.ThreeDFrame.yx_layer_obj  # 纵剖面模式
+        self.left_view_obj = self.ThreeDFrame.left_view_obj  # 左视图模式
 
     def add_layer(self):
         ...
@@ -471,8 +730,12 @@ class HullDesignTab(QWidget):
         self.convertAdhull_button.clicked.connect(self.convertAdhull_button_pressed)
         self.up_layout.addWidget(self.convertAdhull_button, alignment=Qt.AlignLeft)
 
-    def save_file(self):
-        ...
+    @staticmethod
+    def save_file():
+        # 保存工程文件
+        Handler.CurrentProjectData["Object"].save()
+        time = Handler.CurrentProjectData["Object"].SaveTime
+        show_state(f"{time} {Handler.CurrentProjectData['Path']}已保存", 'success')
 
     def read_from_na_button_pressed(self):
         # 打开文件选择窗口，目录为NavalArt目录 ===================================================
@@ -584,10 +847,14 @@ class HullDesignTab(QWidget):
         self.update_3d_obj()
 
     def update_3d_obj(self):
-        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.environment_obj = self.environment_obj
         self.ThreeDFrame.all_3d_obj = self.all_3d_obj
-
-    # ==============================================================================================
+        self.ThreeDFrame.zx_layer_obj = self.zx_layer_obj
+        self.ThreeDFrame.yx_layer_obj = self.yx_layer_obj
+        self.ThreeDFrame.left_view_obj = self.left_view_obj
+        for gl_plot_obj in self.all_3d_obj["钢铁"]:  # 找到NA船壳，把所有零件添加到ThreeDFrame的ShipsAllParts
+            if type(gl_plot_obj) == NAHull:
+                self.ThreeDFrame.ShipsAllParts = gl_plot_obj.Parts
 
 
 class ReadPTBAdHullTab(QWidget):
@@ -708,7 +975,7 @@ class ReadPTBAdHullTab(QWidget):
         self.update_3d_obj()
 
     def update_3d_obj(self):
-        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.environment_obj = self.environment_obj
         self.ThreeDFrame.all_3d_obj = self.all_3d_obj
 
     # ==============================================================================================
@@ -727,7 +994,7 @@ class ReadNAHullTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
+        self.ThreeDFrame = GLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -830,8 +1097,11 @@ class ReadNAHullTab(QWidget):
         self.update_3d_obj()
 
     def update_3d_obj(self):
-        self.environment_obj = self.environment_obj
+        self.ThreeDFrame.environment_obj = self.environment_obj
         self.ThreeDFrame.all_3d_obj = self.all_3d_obj
+        for gl_plot_obj in self.all_3d_obj["钢铁"]:
+            if type(gl_plot_obj) == NAHull:
+                self.ThreeDFrame.ShipsAllParts = gl_plot_obj.Parts
 
     # ==============================================================================================
 
@@ -1080,7 +1350,7 @@ if __name__ == '__main__':
     Config = ConfigFile()
     # 初始化界面和事件处理器
     QApp = QApplication(sys.argv)
-    QtWindow = MainWindow(Config)
+    QtWindow = MainWin(Config)
     Handler = MainHandler(QtWindow)
     if Config.Projects != {}:
         CurrentProject.init_project_from_config()

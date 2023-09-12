@@ -481,11 +481,20 @@ class ProjectFile:
 
     @staticmethod
     def load_project(path) -> 'ProjectFile':  # 从文件加载工程
+        # 判断是否为json
+        if not path.endswith('.json'):
+            # 提示错误
+            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
+            return None
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        project_file = ProjectFile(
-            data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], data['Operations'], mode=ProjectFile.LOAD,
-            code=data['Code'], save_time=data['SaveTime'])
+        try:
+            project_file = ProjectFile(
+                data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], data['Operations'], mode=ProjectFile.LOAD,
+                code=data['Code'], save_time=data['SaveTime'])
+        except KeyError:
+            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
+            return None
         if project_file._succeed_init:
             return project_file
         else:

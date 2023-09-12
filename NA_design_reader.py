@@ -1,11 +1,11 @@
 import xml.etree.ElementTree as ET
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+from quaternion import quaternion
 
 """
 文件格式：
 <root>
-  <ship author="22222222222" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
+  <ship author="XXXXXXXXX" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
     <part id="0">
       <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
       <position x="0" y="0" z="114.75" />
@@ -87,15 +87,31 @@ def rotate_quaternion2(dot_dict, rot):
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
-    # 转换为四元数
-    r = R.from_euler('xyz', rot, degrees=True)
+    # 转换为弧度
+    rot = np.radians(rot)
+    # 计算旋转矩阵
+    rot_x = np.array([[1, 0, 0],
+                      [0, np.cos(rot[0]), -np.sin(rot[0])],
+                      [0, np.sin(rot[0]), np.cos(rot[0])]])
+
+    rot_y = np.array([[np.cos(rot[1]), 0, np.sin(rot[1])],
+                      [0, 1, 0],
+                      [-np.sin(rot[1]), 0, np.cos(rot[1])]])
+
+    rot_z = np.array([[np.cos(rot[2]), -np.sin(rot[2]), 0],
+                      [np.sin(rot[2]), np.cos(rot[2]), 0],
+                      [0, 0, 1]])
+
+    # 合并旋转矩阵
+    rotation_matrix = rot_z.dot(rot_y).dot(rot_x)
+
     # 遍历点集进行旋转
     rotated_dot_dict = {}
     for key, pointset in dot_dict.items():
         # 转换为NumPy数组
         pointset_np = np.array(pointset)
         # 进行旋转
-        rotated_pointset = r.apply(pointset_np)
+        rotated_pointset = np.dot(pointset_np, rotation_matrix.T)
         # 将结果保存到字典中
         rotated_dot_dict[key] = rotated_pointset
 
@@ -110,13 +126,29 @@ def rotate_quaternion(dot_dict, rot):
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
-    # 转换为四元数
-    r = R.from_euler('xyz', rot, degrees=True)
+    # 将角度转换为弧度
+    rot = np.radians(rot)
+
+    # 计算旋转的四元数
+    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
+    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
+    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
+
+    # 合并三个旋转四元数
+    q = quaternion(1, 0, 0, 0)
+    q = q * quaternion(*q_x)
+    q = q * quaternion(*q_y)
+    q = q * quaternion(*q_z)
+
     # 遍历点集进行旋转
     rotated_dot_dict = {}
     for key, point in dot_dict.items():
-        # 进行旋转
-        rotated_point = r.apply(np.array(point))
+        # 将点坐标转换为四元数
+        point_quat = np.quaternion(0, *point)
+        # 进行四元数旋转
+        rotated_point_quat = q * point_quat * np.conj(q)
+        # 提取旋转后的点坐标
+        rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
         # 将结果保存到字典中
         rotated_dot_dict[key] = rotated_point
 
@@ -236,6 +268,7 @@ class AdjustableHull(Part):
         elif self.back_mid_y < self.back_down_y:
             self.back_mid_y = self.back_down_y
         # ==============================================================================计算绘图所需的数据
+        self.all_dots = []
         self.vertex_coordinates = self.get_initial_vertex_coordinates()
         self.plot_faces = self.get_plot_faces()
 
@@ -263,6 +296,9 @@ class AdjustableHull(Part):
                 [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
                 [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
             ]
+            self.all_dots = [
+                dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
+                dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
             # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
             for face in faces:
                 use_triangles = False
@@ -322,6 +358,7 @@ class AdjustableHull(Part):
             for i in range(23):
                 result["GL_QUADS"].append([front_set[i], back_set[i], back_set[i + 1], front_set[i + 1]])
             result["GL_QUADS"].append([front_set[-1], back_set[-1], back_set[0], front_set[0]])
+            self.all_dots = front_set + back_set
         return result
 
     def get_initial_Curve_face_dots(self):
@@ -485,6 +522,7 @@ class ReadNA:
         :param filepath:
         :param data: 字典，键是颜色的十六进制表示，值是零件的列表，但是尚未实例化，是字典形式的数据
         """
+        self.Parts = []
         if filepath is False:
             # 实例化data中的零件
             self.ColorPartsMap = {}
@@ -533,6 +571,7 @@ class ReadNA:
                     if _color not in self.ColorPartsMap.keys():
                         self.ColorPartsMap[_color] = []
                     self.ColorPartsMap[_color].append(obj)
+                    self.Parts.append(obj)
         else:  # 读取文件
             self.filename = filepath.split('\\')[-1]
             self.filepath = filepath
@@ -549,7 +588,6 @@ class ReadNA:
             except KeyError:
                 self.TracerCol = None
             self._all_parts = self.root.findall('ship/part')
-            self.Parts = Part.ShipsAllParts
             self.Weapons = MainWeapon.All
             self.AdjustableHulls = AdjustableHull.All
             self.ColorPartsMap = {}
@@ -594,3 +632,4 @@ class ReadNA:
                 if _color not in self.ColorPartsMap.keys():
                     self.ColorPartsMap[_color] = []
                 self.ColorPartsMap[_color].append(obj)
+                self.Parts.append(obj)

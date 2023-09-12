@@ -15,7 +15,6 @@
 import math
 from abc import abstractmethod
 # 第三方库
-import numpy as np
 from PyQt5.QtGui import QVector3D
 # 自定义库
 from NA_design_reader import ReadNA
