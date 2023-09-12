@@ -8,11 +8,11 @@ import webbrowser
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 用于解决打包时的bug
 from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QCheckBox, QTreeWidgetItem, QTreeWidget, QTextEdit
+from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QCheckBox, QTextEdit
 
 # 本地库
 from NA_design_reader import Part
-from path_utils import find_ptb_path, find_na_root_path
+from path_utils import find_ptb_path
 from GUI.QtGui import *
 from OpenGLWindow import OpenGLWin
 from PTB_design_reader import AdvancedHull
@@ -251,7 +251,7 @@ class MainHandler:
             desktop_path = os.path.join(os.path.expanduser("~"), 'Desktop')
             file_dialog = QFileDialog(self.window, "选择工程", desktop_path)
         else:
-            file_dialog = QFileDialog(self.window, "选择工程", os.path.dirname(Config.ProjectsFolder))
+            file_dialog = QFileDialog(self.window, "选择工程", Config.ProjectsFolder)
         file_dialog.setNameFilter("json files (*.json)")
         file_dialog.exec_()
         try:
@@ -484,37 +484,46 @@ class RightTabWidget(QTabWidget):
                     y_list.append(part_obj.Pos[1])
                 if z_list.count(part_obj.Pos[2]) == 0:
                     z_list.append(part_obj.Pos[2])
-            # 如果所有零件的x和z坐标都相同，那么就说明这是一组纵向排列的船体截块
-            if len(set(x_list)) == 1 and len(set(z_list)) == 1:
-
+            if len(set(x_list)) != 1:  # 排除零件的x坐标不相同的情况
+                return
+            # 如果所有零件的z坐标都相同，那么就说明这是一组纵向排列的船体截块
+            if len(set(z_list)) == 1:
                 connected = True  # 判断是否上下相连
                 # 把selected_gl_obj 按照 part_obj.Pos[1] 从小到大排序:
-                up_y_set = [
-                    part.Pos[1] + part.Hei * part.Scl[1] / 2
-                    for part in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects
-                ]
-                up_y_set.sort()
-                last_up_y = up_y_set[0]
-                for i in range(1, _len):
-                    if up_y_set[i] - last_up_y > 0.1:
+                Handler.hull_design_tab.ThreeDFrame.selected_gl_objects.sort(key=lambda x: x.Pos[1])
+                last_part = Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[0]
+                for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[1:]:
+                    last_up = last_part.Pos[1] + last_part.Hei * last_part.Scl[1] / 2
+                    this_down = part_obj.Pos[1] - part_obj.Hei * part_obj.Scl[1] / 2
+                    print(last_up, this_down)
+                    if last_up < this_down:
                         connected = False
                         break
-                    last_up_y = up_y_set[i]
+                    last_part = part_obj
                 if connected:  # 如果相连，接下来要显示self.tab1_grid_verticalPartSet
                     self.tab1_widget_verticalPartSet.show()
                     self.tab1_current_widget = self.tab1_widget_verticalPartSet
                     self.show_tab1_grid_verticalPartSet()
 
             # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
-            elif len(set(x_list)) == 1 and len(set(y_list)) == 1:
-                # TODO: 判断是否前后相连
+            elif len(set(y_list)) == 1:
                 connected = True  # 判断是否前后相连
-                # TODO: 如果相连，接下来要显示self.tab1_grid_horizontalPartSet
-                if connected:
+                # 把selected_gl_obj 按照 part_obj.Pos[2] 从小到大排序:
+                Handler.hull_design_tab.ThreeDFrame.selected_gl_objects.sort(key=lambda x: x.Pos[2])
+                last_part = Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[0]
+                for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[1:]:
+                    last_front = last_part.Pos[2] + last_part.Len * last_part.Scl[2] / 2
+                    this_back = part_obj.Pos[2] - part_obj.Len * part_obj.Scl[2] / 2
+                    print(last_front, this_back)
+                    if last_front != this_back:
+                        connected = False
+                        break
+                    last_part = part_obj
+                if connected:  # 如果相连，接下来要显示self.tab1_grid_horizontalPartSet
                     self.tab1_widget_horizontalPartSet.show()
                     self.tab1_current_widget = self.tab1_widget_horizontalPartSet
                     self.show_tab1_grid_horizontalPartSet()
-            elif ...:  # TODO: 还有集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
+            elif _len == len(set(y_list)) * len(set(z_list)):  # 集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
                 """
                 （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
                 所有等y零件的前后面相切，所有等z零件的上下面相切）
@@ -531,7 +540,21 @@ class RightTabWidget(QTabWidget):
                 """
                 connected = True
                 # 首先判断是否满足矩形点阵
+                zy_dict = {}  # 键值对为z: [part0, part1, ...]
+                for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects:
+                    if part_obj.Pos[2] not in zy_dict:
+                        zy_dict[part_obj.Pos[2]] = [part_obj]
+                    else:
+                        zy_dict[part_obj.Pos[2]].append(part_obj)
+                last_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[0]]])
+                for i in range(1, len(zy_dict)):
+                    this_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[i]]])
+                    if last_y_set != this_y_set:
+                        connected = False
+                        break
                 # 然后计算第一层零件前后是否相连
+                if connected:
+                    ...
                 # 接着计算第一竖排零件上下是否相连
                 if connected:
                     self.tab1_widget_verHorPartSet.show()
@@ -666,11 +689,17 @@ class RightTabWidget(QTabWidget):
         # 添加分割线
         self.tab1_main_layout.addWidget(QFrame(  # top下方添加横线
             self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        # 添加tab1的三种界面
         self.show_tab1_grid_singlePart()
+        # 添加控件
         self.tab1_main_layout.addWidget(self.tab1_widget_singlePart)
         self.tab1_main_layout.addWidget(self.tab1_widget_verticalPartSet)
         self.tab1_main_layout.addWidget(self.tab1_widget_horizontalPartSet)
         self.tab1_main_layout.addWidget(self.tab1_widget_verHorPartSet)
+        # 隐藏
+        self.tab1_widget_verticalPartSet.hide()
+        self.tab1_widget_horizontalPartSet.hide()
+        self.tab1_widget_verHorPartSet.hide()
         self.tab1_main_layout.addStretch(1)
         return tab
 

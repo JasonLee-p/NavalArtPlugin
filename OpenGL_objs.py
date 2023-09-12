@@ -482,7 +482,7 @@ class NAHull(ReadNA, SolidObject):
                 _rate = 600
                 color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
             else:  # 说明是黑夜模式
-                _rate = 1000
+                _rate = 600
                 color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
                 # 减去一定的值
                 difference = 0.08
