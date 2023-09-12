@@ -403,9 +403,20 @@ class RightTabWidget(QTabWidget):
         self.ICO = QIcon(QPixmap.fromImage(QImage.fromData(ICO_)))  # 把图片编码转换成QIcon
         self.tab1_main_layout = QVBoxLayout()
         self.tab2_main_layout = QVBoxLayout()
-        self.tab1_grid_singlePart = QGridLayout()
+        # tab1的三种界面
+        self.tab1_widget_singlePart = QWidget()  # 控件
+        self.tab1_widget_verticalPartSet = QWidget()
+        self.tab1_widget_horizontalPartSet = QWidget()
+        self.tab1_widget_verHorPartSet = QWidget()
+        self.tab1_grid_singlePart = QGridLayout()  # 布局
         self.tab1_grid_verticalPartSet = QGridLayout()
         self.tab1_grid_horizontalPartSet = QGridLayout()
+        self.tab1_grid_verHorPartSet = QGridLayout()
+        self.tab1_widget_singlePart.setLayout(self.tab1_grid_singlePart)  # 设置布局
+        self.tab1_widget_verticalPartSet.setLayout(self.tab1_grid_verticalPartSet)
+        self.tab1_widget_horizontalPartSet.setLayout(self.tab1_grid_horizontalPartSet)
+        self.tab1_widget_verHorPartSet.setLayout(self.tab1_grid_verHorPartSet)
+        self.tab1_current_widget = self.tab1_widget_singlePart
         self.tab1_content_singlePart = {
             "类型": MyLabel("未选择物体", QFont('微软雅黑', 10), side=Qt.AlignCenter),
             "坐标": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
@@ -426,6 +437,190 @@ class RightTabWidget(QTabWidget):
             "高偏移": {"value": [0], "QTextEdit": [QTextEdit()]}
         }
         self.init_style()
+
+    def update_tab1(self):
+        _len = len(Handler.hull_design_tab.ThreeDFrame.selected_gl_objects)
+        self.tab1_current_widget.hide()  # 隐藏当前的widget
+        self.tab1_current_widget = self.tab1_widget_singlePart  # 设置当前的widget
+        # 当被选中物体变化的时候，更新tab1的内容
+        if _len == 1:
+            self.tab1_widget_singlePart.show()
+            self.tab1_current_widget = self.tab1_widget_singlePart
+            self.unlock_grid1()
+            # 获取选中的物体
+            part_obj = Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[0]
+            # 更新类型
+            _type = "可调节船体" if part_obj.Id == "0" else "其他零件"
+            self.tab1_content_singlePart["类型"].setText(_type)
+            for i in range(3):
+                self.tab1_content_singlePart["坐标"]["QTextEdit"][i].setText(str(part_obj.Pos[i]))
+                self.tab1_content_singlePart["旋转"]["QTextEdit"][i].setText(str(part_obj.Rot[i]))
+                self.tab1_content_singlePart["缩放"]["QTextEdit"][i].setText(str(part_obj.Scl[i]))
+                self.tab1_content_singlePart["颜色"]["QTextEdit"][i].setText(str(part_obj.Col[i]))
+            self.tab1_content_singlePart["装甲"]["QTextEdit"][0].setText(str(part_obj.Amr))
+            if _type == "可调节船体":
+                self.unlock_grid1()
+                # 更新可调节零件模型信息
+                self.tab1_content_singlePart["原长度"]["QTextEdit"][0].setText(str(part_obj.Len))
+                self.tab1_content_singlePart["原高度"]["QTextEdit"][0].setText(str(part_obj.Hei))
+                self.tab1_content_singlePart["前宽度"]["QTextEdit"][0].setText(str(part_obj.FWid))
+                self.tab1_content_singlePart["后宽度"]["QTextEdit"][0].setText(str(part_obj.BWid))
+                self.tab1_content_singlePart["前扩散"]["QTextEdit"][0].setText(str(part_obj.FSpr))
+                self.tab1_content_singlePart["后扩散"]["QTextEdit"][0].setText(str(part_obj.BSpr))
+                self.tab1_content_singlePart["上弧度"]["QTextEdit"][0].setText(str(part_obj.UCur))
+                self.tab1_content_singlePart["下弧度"]["QTextEdit"][0].setText(str(part_obj.DCur))
+                self.tab1_content_singlePart["高缩放"]["QTextEdit"][0].setText(str(part_obj.HScl))
+                self.tab1_content_singlePart["高偏移"]["QTextEdit"][0].setText(str(part_obj.HOff))
+            else:
+                self.lock_grid1_adjustableHull()
+        elif _len > 1:
+            x_list = []
+            z_list = []
+            y_list = []
+            for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects:
+                if x_list.count(part_obj.Pos[0]) == 0:
+                    x_list.append(part_obj.Pos[0])
+                if y_list.count(part_obj.Pos[1]) == 0:
+                    y_list.append(part_obj.Pos[1])
+                if z_list.count(part_obj.Pos[2]) == 0:
+                    z_list.append(part_obj.Pos[2])
+            # 如果所有零件的x和z坐标都相同，那么就说明这是一组纵向排列的船体截块
+            if len(set(x_list)) == 1 and len(set(z_list)) == 1:
+
+                connected = True  # 判断是否上下相连
+                # 把selected_gl_obj 按照 part_obj.Pos[1] 从小到大排序:
+                up_y_set = [
+                    part.Pos[1] + part.Hei * part.Scl[1] / 2
+                    for part in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects
+                ]
+                up_y_set.sort()
+                last_up_y = up_y_set[0]
+                for i in range(1, _len):
+                    if up_y_set[i] - last_up_y > 0.1:
+                        connected = False
+                        break
+                    last_up_y = up_y_set[i]
+                if connected:  # 如果相连，接下来要显示self.tab1_grid_verticalPartSet
+                    self.tab1_widget_verticalPartSet.show()
+                    self.tab1_current_widget = self.tab1_widget_verticalPartSet
+                    self.show_tab1_grid_verticalPartSet()
+
+            # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
+            elif len(set(x_list)) == 1 and len(set(y_list)) == 1:
+                # TODO: 判断是否前后相连
+                connected = True  # 判断是否前后相连
+                # TODO: 如果相连，接下来要显示self.tab1_grid_horizontalPartSet
+                if connected:
+                    self.tab1_widget_horizontalPartSet.show()
+                    self.tab1_current_widget = self.tab1_widget_horizontalPartSet
+                    self.show_tab1_grid_horizontalPartSet()
+            elif ...:  # TODO: 还有集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
+                """
+                （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
+                所有等y零件的前后面相切，所有等z零件的上下面相切）
+                示例（左视简图）：
+                -----------------------------------------
+                | x |   x   |  x  |     x     |   x   |x|
+                -----------------------------------------
+                |   |       |     |           |       | |
+                | x |   x   |  x  |     x     |   x   |x|
+                |   |       |     |           |       | |
+                -----------------------------------------
+                | x |   x   |  x  |     x     |   x   |x|
+                -----------------------------------------
+                """
+                connected = True
+                # 首先判断是否满足矩形点阵
+                # 然后计算第一层零件前后是否相连
+                # 接着计算第一竖排零件上下是否相连
+                if connected:
+                    self.tab1_widget_verHorPartSet.show()
+                    self.tab1_current_widget = self.tab1_widget_verHorPartSet
+                    self.show_tab1_grid_verHorPartSet()
+        #     else:
+        #         self.tab1_widget_singlePart.show()
+        #         self.tab1_current_widget = self.tab1_widget_singlePart
+        #         return
+        # else:  # 未选中物体，_len = 0
+        #     self.tab1_widget_singlePart.show()
+        #     self.tab1_current_widget = self.tab1_widget_singlePart
+        #     return
+
+    def show_tab1_grid_singlePart(self):
+        # grid
+        self.tab1_grid_singlePart.setSpacing(7)
+        self.tab1_grid_singlePart.setContentsMargins(0, 0, 0, 0)
+        self.tab1_grid_singlePart.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 按照tab1_content0的内容，添加控件
+        # 只添加类型的结果，并且放大一个字号占据所有列
+        self.tab1_grid_singlePart.addWidget(self.tab1_content_singlePart["类型"], 0, 0, 1, 4)
+        # 添加其他的控件
+        text_font = QFont('微软雅黑', 9)
+        for i, key_ in enumerate(self.tab1_content_singlePart):
+            if key_ != "类型":
+                # 添加标签
+                label = MyLabel(key_, text_font, side=Qt.AlignTop | Qt.AlignVCenter)
+                label.setFixedSize(70, 25)
+                self.tab1_grid_singlePart.addWidget(label, i, 0)
+                # 添加输入框，并设置样式
+                for j, textEdit in enumerate(self.tab1_content_singlePart[key_]["QTextEdit"]):
+                    textEdit.setFont(text_font)
+                    textEdit.setFixedWidth(60)
+                    textEdit.setFixedHeight(25)
+                    textEdit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 不显示滚动条
+                    textEdit.wheelEvent = self.tab1_grid_qte_mouse_wheel  # 重写鼠标滚轮事件
+                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
+                    self.tab1_grid_singlePart.addWidget(textEdit, i, j + 1)
+
+    def show_tab1_grid_verticalPartSet(self):
+        self.tab1_grid_verticalPartSet.setSpacing(7)
+        self.tab1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是纵向排列的船体截块
+        title = MyLabel("竖直截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
+
+    def show_tab1_grid_horizontalPartSet(self):
+        self.tab1_grid_horizontalPartSet.setSpacing(7)
+        self.tab1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab1_grid_horizontalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是横向排列的船体截块
+        title = MyLabel("水平截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
+
+    def show_tab1_grid_verHorPartSet(self):
+        self.tab1_grid_verHorPartSet.setSpacing(7)
+        self.tab1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是集成块
+        title = MyLabel("集成块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
+
+    def tab1_grid_qte_mouse_wheel(self, event=None):
+        # 寻找当前鼠标所在的输入框
+        active_textEdit = None
+        for key in self.tab1_content_singlePart:
+            if key != "类型":
+                for qte in self.tab1_content_singlePart[key]["QTextEdit"]:
+                    if qte.hasFocus():
+                        active_textEdit = qte
+                        break
+        if active_textEdit is None:
+            return
+        # 获取输入框的值
+        value = float(active_textEdit.toPlainText())
+        # 获取鼠标滚轮的滚动值
+        delta = event.angleDelta().y()
+        # 根据滚动值，修改输入框的值
+        if delta > 0:
+            value += 0.05
+        else:
+            value -= 0.05
+        active_textEdit.setText(str(value))
 
     def init_style(self):
         self.setTabPosition(QTabWidget.East)
@@ -466,39 +661,16 @@ class RightTabWidget(QTabWidget):
         tab = QWidget()
         tab.setLayout(self.tab1_main_layout)
         # 标题
-        title = MyLabel("元素检视器", QFont('微软雅黑', 11), side=Qt.AlignCenter)
-        self.tab1_main_layout.addWidget(title)
+        title = MyLabel("元素检视器", QFont('微软雅黑', 11), side=Qt.AlignTop | Qt.AlignCenter)
+        self.tab1_main_layout.addWidget(title, alignment=Qt.AlignTop | Qt.AlignCenter)
         # 添加分割线
         self.tab1_main_layout.addWidget(QFrame(  # top下方添加横线
-            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken))
-        # grid
-        self.tab1_grid_singlePart.setSpacing(7)
-        self.tab1_grid_singlePart.setContentsMargins(0, 0, 0, 0)
-        self.tab1_grid_singlePart.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        self.tab1_main_layout.addLayout(self.tab1_grid_singlePart)
-        # 按照tab1_content0的内容，添加控件
-        # 只添加类型的结果，并且放大一个字号占据所有列
-        self.tab1_grid_singlePart.addWidget(self.tab1_content_singlePart["类型"], 0, 0, 1, 4)
-        # 添加其他的控件
-        text_font = QFont('微软雅黑', 9)
-        for i, key_ in enumerate(self.tab1_content_singlePart):
-            if key_ != "类型":
-                # 添加标签
-                label = MyLabel(key_, text_font, side=Qt.AlignLeft | Qt.AlignVCenter)
-                MyLabel.setFixedHeight(label, 25)
-                MyLabel.setFixedWidth(label, 70)
-                self.tab1_grid_singlePart.addWidget(label, i, 0)
-                # 添加输入框，并设置样式
-                for j, textEdit in enumerate(self.tab1_content_singlePart[key_]["QTextEdit"]):
-                    textEdit.setFont(text_font)
-                    textEdit.setFixedWidth(60)
-                    textEdit.setFixedHeight(25)
-                    textEdit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 不显示滚动条
-                    textEdit.wheelEvent = self.tab1_grid_qte_mouse_wheel  # 重写鼠标滚轮事件
-                    textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
-                                           f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
-                    self.tab1_grid_singlePart.addWidget(textEdit, i, j + 1)
-        # 底部弹簧
+            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
+        self.show_tab1_grid_singlePart()
+        self.tab1_main_layout.addWidget(self.tab1_widget_singlePart)
+        self.tab1_main_layout.addWidget(self.tab1_widget_verticalPartSet)
+        self.tab1_main_layout.addWidget(self.tab1_widget_horizontalPartSet)
+        self.tab1_main_layout.addWidget(self.tab1_widget_verHorPartSet)
         self.tab1_main_layout.addStretch(1)
         return tab
 
@@ -539,108 +711,6 @@ class RightTabWidget(QTabWidget):
                     textEdit.setReadOnly(False)
                     textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
                                            f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
-
-    def update_tab1(self):
-        _len = len(Handler.hull_design_tab.ThreeDFrame.selected_gl_objects)
-        if _len == 0:
-            self.lock_grid1()
-            return
-        # 当被选中物体变化的时候，更新tab1的内容
-        elif _len == 1:
-            # TODO: 显示self.tab1_grid_singlePart（如果曾经被隐藏，那么就显示）
-            self.unlock_grid1()
-            # 获取选中的物体
-            part_obj = Handler.hull_design_tab.ThreeDFrame.selected_gl_objects[0]
-            # 更新类型
-            _type = "可调节船体" if part_obj.Id == "0" else "其他零件"
-            self.tab1_content_singlePart["类型"].setText(_type)
-            for i in range(3):
-                self.tab1_content_singlePart["坐标"]["QTextEdit"][i].setText(str(part_obj.Pos[i]))
-                self.tab1_content_singlePart["旋转"]["QTextEdit"][i].setText(str(part_obj.Rot[i]))
-                self.tab1_content_singlePart["缩放"]["QTextEdit"][i].setText(str(part_obj.Scl[i]))
-                self.tab1_content_singlePart["颜色"]["QTextEdit"][i].setText(str(part_obj.Col[i]))
-            self.tab1_content_singlePart["装甲"]["QTextEdit"][0].setText(str(part_obj.Amr))
-            if _type == "可调节船体":
-                self.unlock_grid1()
-                # 更新可调节零件模型信息
-                self.tab1_content_singlePart["原长度"]["QTextEdit"][0].setText(str(part_obj.Len))
-                self.tab1_content_singlePart["原高度"]["QTextEdit"][0].setText(str(part_obj.Hei))
-                self.tab1_content_singlePart["前宽度"]["QTextEdit"][0].setText(str(part_obj.FWid))
-                self.tab1_content_singlePart["后宽度"]["QTextEdit"][0].setText(str(part_obj.BWid))
-                self.tab1_content_singlePart["前扩散"]["QTextEdit"][0].setText(str(part_obj.FSpr))
-                self.tab1_content_singlePart["后扩散"]["QTextEdit"][0].setText(str(part_obj.BSpr))
-                self.tab1_content_singlePart["上弧度"]["QTextEdit"][0].setText(str(part_obj.UCur))
-                self.tab1_content_singlePart["下弧度"]["QTextEdit"][0].setText(str(part_obj.DCur))
-                self.tab1_content_singlePart["高缩放"]["QTextEdit"][0].setText(str(part_obj.HScl))
-                self.tab1_content_singlePart["高偏移"]["QTextEdit"][0].setText(str(part_obj.HOff))
-            else:
-                self.lock_grid1_adjustableHull()
-        else:
-            # TODO: 隐藏self.tab1_grid_singlePart
-            x_list = []
-            z_list = []
-            y_list = []
-            for part_obj in Handler.hull_design_tab.ThreeDFrame.selected_gl_objects:
-                if x_list.count(part_obj.Pos[0]) == 0:
-                    x_list.append(part_obj.Pos[0])
-                if y_list.count(part_obj.Pos[1]) == 0:
-                    y_list.append(part_obj.Pos[1])
-                if z_list.count(part_obj.Pos[2]) == 0:
-                    z_list.append(part_obj.Pos[2])
-            # 如果所有零件的x和z坐标都相同，那么就说明这是一组纵向排列的船体截块
-            if len(set(x_list)) == 1 and len(set(z_list)) == 1:
-                # TODO: 判断是否上下相连
-                # TODO: 如果相连，接下来要显示self.tab1_grid_verticalPartSet
-                ...
-            # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
-            elif len(set(x_list)) == 1 and len(set(y_list)) == 1:
-                # TODO: 判断是否前后相连
-                # TODO: 如果相连，接下来要显示self.tab1_grid_horizontalPartSet
-                ...
-            elif ...:  # TODO: 还有集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
-                """
-                （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
-                所有等y零件的前后面相切，所有等z零件的上下面相切）
-                示例（左视简图）：
-                -----------------------------------------
-                | x |   x   |  x  |     x     |   x   |x|
-                -----------------------------------------
-                |   |       |     |           |       | |
-                | x |   x   |  x  |     x     |   x   |x|
-                |   |       |     |           |       | |
-                -----------------------------------------
-                | x |   x   |  x  |     x     |   x   |x|
-                -----------------------------------------
-                """
-                # 首先判断是否满足矩形点阵
-                # 然后计算第一层零件前后是否相连
-                # 接着计算第一竖排零件上下是否相连
-                ...
-            else:
-                self.lock_grid1()
-                return
-
-    def tab1_grid_qte_mouse_wheel(self, event=None):
-        # 寻找当前鼠标所在的输入框
-        active_textEdit = None
-        for key in self.tab1_content_singlePart:
-            if key != "类型":
-                for qte in self.tab1_content_singlePart[key]["QTextEdit"]:
-                    if qte.hasFocus():
-                        active_textEdit = qte
-                        break
-        if active_textEdit is None:
-            return
-        # 获取输入框的值
-        value = float(active_textEdit.toPlainText())
-        # 获取鼠标滚轮的滚动值
-        delta = event.angleDelta().y()
-        # 根据滚动值，修改输入框的值
-        if delta > 0:
-            value += 0.05
-        else:
-            value -= 0.05
-        active_textEdit.setText(str(value))
 
 
 class HullDesignTab(QWidget):

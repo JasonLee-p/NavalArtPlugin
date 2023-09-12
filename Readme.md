@@ -9,9 +9,8 @@ NavalArt是一款基于Unity的战舰设计沙盒类游戏，玩家可以在游�
 ### 1.2. 使用基本方法
 
 #### 1.2.1. 下载
-您可以在[这里](
-
-)下载最新版本的NavalArt船体编辑器
+- 下载最新的release版本，运行NavalArtShipEditor.exe即可。
+- 可以进入我们的官网[NavalArtHullEditor](http://naval_plugins.e.cn.vc/)下载最新的版本。
 
 #### 1.2.2. 使用前准备
 在使用插件对你的船体进行修改之前，请先把您想编辑的船体用一个或多个独特的颜色标记起来，
