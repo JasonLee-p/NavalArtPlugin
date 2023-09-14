@@ -1,3 +1,3 @@
-from . import QtGui
+from . import QtGui, dialogs
 
-__all__ = ['QtGui']
+__all__ = ['QtGui', 'dialogs']

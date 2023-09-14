@@ -15,9 +15,10 @@
 import math
 from abc import abstractmethod
 # 第三方库
+import numpy as np
 from PyQt5.QtGui import QVector3D
 # 自定义库
-from NA_design_reader import ReadNA
+from NA_design_reader import ReadNA, AdjustableHull
 from PTB_design_reader import ReadPTB
 
 
@@ -457,9 +458,37 @@ class AdHull(ReadPTB, SolidObject):
 
 class NAHull(ReadNA, SolidObject):
     def __init__(self, path=False, data=None):
+        """
+        注意，self.DrawMap不会在ReadNA和SolidObject中初始化，会在其他地方初始化。
+        在初始化后会调用get_ys_and_zs()和get_layers()方法，而不是在self.__init__()中调用
+        :param path:
+        :param data:
+        """
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
         ReadNA.__init__(self, path, data)
         SolidObject.__init__(self, None)
+        self.ys = []  # 所有y高度值，用于绘制xz截面
+        self.zs = []  # 所有z前后值，用于绘制xy截面
+        self.xzLayers = []  # 所有xz截面
+        self.xyLayers = []  # 所有xy截面
+
+    def get_ys_and_zs(self):
+        for color, part_set in self.DrawMap.items():
+            for part in part_set:
+                if type(part) != AdjustableHull:
+                    continue
+                for dot in part.plot_all_dots:
+                    _y = float(dot[1])
+                    if dot[1] not in self.ys:
+                        self.ys.append(dot[1])
+                    if dot[2] not in self.zs:
+                        self.zs.append(dot[2])
+        self.ys.sort()
+        self.zs.sort()
+
+    def get_layers(self):
+        for y in self.ys:
+            self.xzLayers.append(NaHullXZLayer(self, y))
 
     @staticmethod
     def toJson(data):
@@ -516,6 +545,90 @@ class NAHull(ReadNA, SolidObject):
                     pass
 
 
+class NaHullXZLayer(SolidObject):
+    def __init__(self, na_hull, y):
+        SolidObject.__init__(self, None)
+        self.na_hull = na_hull
+        self.y = y
+        self.PlotAvailable = True  # 当只含有一个零件时，不绘制
+        # 在na_hull中找到所有y值为y的零件和点
+        self.index = []  # 所有点在原来的Part.plot_all_dots中的索引，用来判断是否是含曲面零件的曲面中间点连线，是则不显示。
+        self.PartsDotsMap = self.get_partsDotsMap()  # 键值对：Part对象 和 该对象中y=self.y的点集合
+        self.Pos_list = self.get_pos_list()  # 所有面的点集合
+
+    def get_partsDotsMap(self):
+        result = {}
+        for color, part_set in self.na_hull.DrawMap.items():
+            for part in part_set:
+                if type(part) != AdjustableHull:
+                    continue
+                for i in range(len(part.plot_all_dots)):
+                    dot = list(part.plot_all_dots[i])
+                    # if -0.0005 < dot[1] - self.y < 0.0005:
+                    if dot[1] == self.y:
+                        if len(part.plot_all_dots) == 48:  # 为带曲面的零件
+                            self.index.append(i) if i not in self.index else None
+                        if part not in result:
+                            result[part] = [dot]
+                        if dot not in result[part]:
+                            result[part].append(dot)
+        if len(result) <= 2:  # 如果只有一两个零件，就不绘制
+            self.PlotAvailable = False
+            return {}
+        if len(self.index) == 4 and self.index[0] not in [0, 24]:  # 曲面的中间点
+            self.PlotAvailable = False
+            return {}
+        # 对result中的点集合进行排序：逆时针排序
+        for part, dots in result.items():
+            center = [part.Pos[0], self.y, part.Pos[2]]
+            dots.sort(key=lambda x: math.atan2(x[2] - center[2], x[0] - center[0]))
+        return result
+
+    def get_pos_list(self):
+        result = []
+        for dot_sets in self.PartsDotsMap.values():
+            center = np.array([0., 0., 0.])
+            for dot in dot_sets:
+                result.append(dot)
+                center += np.array(dot)
+            center /= len(dot_sets)
+            result.append(center)
+        return result
+
+    def draw(self, gl, material="半透明", theme_color=None):
+        if not self.PlotAvailable:
+            return
+        # 绘制面
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        for part, dots in self.PartsDotsMap.items():
+            gl.glNormal3f(0, 1, 0)
+            gl.glBegin(gl.GL_POLYGON)
+            for dot in dots[::-1]:
+                gl.glVertex3f(*dot)
+            gl.glEnd()
+            gl.glNormal3f(0, -1, 0)
+            gl.glBegin(gl.GL_POLYGON)
+            for dot in dots:
+                gl.glVertex3f(dot[0], dot[1], dot[2])
+            gl.glEnd()
+        # # 绘制边框
+        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color["选择框"][0])
+        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color["选择框"][1])
+        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color["选择框"][2])
+        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color["选择框"][3])
+        # for part, dots in self.PartsDotsMap.items():
+        #     gl.glLineWidth(0.05)
+        #     color = theme_color["选择框"][0]
+        #     gl.glColor4f(*color)
+        #     gl.glBegin(gl.GL_LINE_LOOP)
+        #     for dot in dots[::-1]:
+        #         gl.glVertex3f(*dot)
+        #     gl.glEnd()
+
+
 class Camera:
     """
     摄像机类，用于处理视角变换
@@ -547,7 +660,7 @@ class Camera:
         """
         dx = dx * 2 * self.sensitivity["平移"]
         dy = dy * 2 * self.sensitivity["平移"]
-        rate_ = self.distance / 650
+        rate_ = self.distance / 1500
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
         self.tar += up * dy * rate_ - left * dx * rate_
@@ -567,7 +680,7 @@ class Camera:
         """
         dx = dx * 2 * self.sensitivity["旋转"]
         dy = dy * 2 * self.sensitivity["旋转"]
-        _rate = self.distance / 400
+        _rate = self.distance / 1000
         left = QVector3D.crossProduct(self.angle, self.up).normalized()
         up = QVector3D.crossProduct(left, self.angle).normalized()
         self.pos += up * dy * _rate - left * dx * _rate
@@ -577,12 +690,6 @@ class Camera:
             return
         if self.angle.y() < -0.99 and dy < 0:
             return
-
-    def get_world_to_camera_matrix(self):
-        """
-        获取世界坐标系到摄像机坐标系的变换矩阵
-        """
-        return self.look_at(self.pos, self.tar, self.up)
 
     def __str__(self):
         return str(

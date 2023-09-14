@@ -275,7 +275,8 @@ class MainWindow(QWidget):
     def init_state_widget(self):
         self.state_widget.setLayout(self.state_layout)
         self.state_layout.addWidget(self.statu_label)
-        self.statu_label.setText("None")
+        self.statu_label.setFixedHeight(20)
+        self.statu_label.setText("初始化编辑器完成")
 
     def init_down_splitter(self):
         self.down_splitter.setHandleWidth(1)  # 设置分割条的宽度

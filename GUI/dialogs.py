@@ -1,67 +1,8 @@
-"""
-
-"""
-import json
-import os
-import time
-
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QFileDialog, QVBoxLayout, QMessageBox
-
-from GUI.QtGui import BasicDialog, set_button_style, FG_COLOR0
-from GUI.QtGui import MyLabel, MyLineEdit, MyComboBox, MySlider, MyMessageBox
+from PyQt5.QtWidgets import QGridLayout, QCheckBox, QFileDialog
+# 本地库
 from PTB_design_reader import ReadPTB
+from GUI.QtGui import *
 from path_utils import find_ptb_path, find_na_root_path
-
-
-class ConfigFile:
-    def __init__(self):
-        """
-        配置文件类，用于处理配置文件的读写
-        配置文件用json格式存储，包含以下内容：
-        1. 用户配置
-        2. 船体节点数据
-        """
-        # 寻找naval_art目录的上级目录
-        _path = os.path.join(find_na_root_path(), 'plugin_config.json')
-        try:
-            with open(_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            self.Config = data['Config']
-            self.UsingTheme = self.Config['Theme']
-            self.Sensitivity = self.Config['Sensitivity']
-            self.Projects = data['Projects']
-            self.ProjectsFolder = data['ProjectsFolder']
-        except FileNotFoundError:
-            self.UsingTheme = "Day"
-            self.Sensitivity = {
-                '缩放': 0.5,
-                '旋转': 0.5,
-                '平移': 0.5,
-            }
-            self.Config = {
-                'Theme': self.UsingTheme,
-                'Language': 'Chinese',
-                'AutoSave': True,
-                'AutoSaveInterval': 5,
-                'Sensitivity': self.Sensitivity,
-            }
-            self.Projects = {}
-            self.ProjectsFolder = ''
-
-    def save_config(self):
-        # 将配置写入配置文件
-        if self.Projects != {}:
-            self.ProjectsFolder = os.path.dirname(list(self.Projects.values())[-1])
-        # 寻找上级目录
-        _path = os.path.join(find_na_root_path(), 'plugin_config.json')
-        with open(_path, 'w', encoding='utf-8') as f:
-            json.dump({
-                'Config': self.Config,
-                'Projects': self.Projects,
-                'ProjectsFolder': self.ProjectsFolder,
-            }, f, ensure_ascii=False, indent=2)
 
 
 class NewProjectDialog(BasicDialog):
@@ -409,164 +350,224 @@ class NewProjectDialog(BasicDialog):
         ...
 
 
-class ProjectFile:
-    PreDesign = '预设计'
-    Designing = '设计中'
+class ThemeDialog(BasicDialog):
+    def __init__(self, config, show_state_func, parent, title="设置主题", size=QSize(300, 200)):
+        self.config = config
+        self.show_state_func = show_state_func
+        self.center_layout = QGridLayout()
+        self.cb0 = QPushButton("")
+        self.cb1 = QPushButton("")
+        self.cb2 = QPushButton("")
+        self.button_group = CircleSelectButtonGroup(
+            [self.cb0, self.cb1, self.cb2],
+            parent=self,
+            half_size=7
+        )
+        self.lb0 = MyLabel("白天", font=QFont("微软雅黑", 10))
+        self.lb1 = MyLabel("夜晚", font=QFont("微软雅黑", 10))
+        self.lb2 = MyLabel("自定义", font=QFont("微软雅黑", 10))
+        self.center_layout.addWidget(self.cb0, 0, 0)
+        self.center_layout.addWidget(self.cb1, 1, 0)
+        self.center_layout.addWidget(self.cb2, 2, 0)
+        self.center_layout.addWidget(self.lb0, 0, 1)
+        self.center_layout.addWidget(self.lb1, 1, 1)
+        self.center_layout.addWidget(self.lb2, 2, 1)
+        super().__init__(parent, title, size, self.center_layout)
+        self.set_widget()
 
-    ADD = 'add'
-    DELETE = 'delete'
-    CLEAR = 'clear'
-    OVERWRITE = 'overwrite'
+    def set_widget(self):
+        self.center_layout.setSpacing(8)
+        self.center_layout.setContentsMargins(30, 20, 30, 0)
 
-    EMPTY = '空白'
-    NA = 'NA'
-    PRESET = '预设'
-    PTB = 'PTB'
-    CUSTOM = '自定义'
-    LOAD = '从文件加载'
+    def ensure(self):
+        super().ensure()
+        if self.button_group.selected_bt_index == 0:
+            self.config.Config["Theme"] = "Day"
+        elif self.button_group.selected_bt_index == 1:
+            self.config.Config["Theme"] = "Night"
+        elif self.button_group.selected_bt_index == 2:
+            # 提示自定义功能未开放
+            MyMessageBox().information(self, "提示", "自定义功能未开放", MyMessageBox.Ok)
+            return
+        # 提示保存成功，建议重启程序
+        self.show_state_func("主题保存成功，建议重启程序", "success")
+        self.config.save_config()  # 保存配置
 
-    _available_modes = [EMPTY, NA, PRESET, PTB, CUSTOM, LOAD]
 
-    def __init__(
-            self, name, path, original_na_file_path,
-            na_parts_data=None, operations=None, mode="空白", code='', save_time=''
-    ):
-        """
-        工程文件类，用于处理工程文件的读写
-        工程文件用json格式存储，包含以下内容：
-        1. 工程名称
-        2. 创建工程的设备安全码（验证工程是否是本机创建，防止盗取工程）
-        3. 工程创建时间
-        4. 用户在软件内对工程的配置
-        5. 船体节点数据
-        :param name: 工程名称
-        :param path: 工程路径，包含文件名
-        :param original_na_file_path: 原NA文件路径
-        :param na_parts_data: 船体节点数据
-        :param mode: 工程创建模式
-        """
-        self._succeed_init = False
-        # 工程文件的属性
-        if mode not in ProjectFile._available_modes:
-            raise ValueError(f"mode must be in {ProjectFile._available_modes}")
-        if mode == ProjectFile.LOAD:
-            # 检查安全码
-            if not self.check_data(code, save_time, na_parts_data, operations):
-                QMessageBox(QMessageBox.Warning, '警告', '工程文件已被修改！').exec_()
-                return
-        self.Name = name
-        self.Path = path
-        self.OriginalFilePath = original_na_file_path
-        self.Code = code  # 工程安全码，用于验证工程文件是否被私自修改
-        self.CreateTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
-                          f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
-        self.SaveTime = save_time
-        self.State = ProjectFile.PreDesign
-        self.Camera = {"tar": [0, 0, 0], "pos": [125, 25, 50], "fovy": 0}
-        self.Config = {'State': self.State, 'Camera': self.Camera}
-        self.NAPartsData = na_parts_data
-        self.Operations = operations if operations else {}
-        self.json_data = {
-            'Name': self.Name,
-            'Code': self.Code,
-            'CreateTime': self.CreateTime,
-            'SaveTime': self.SaveTime,
-            'OriginalFilePath': self.OriginalFilePath,
-            'Config': self.Config,
-            'NAPartsData': self.NAPartsData,
-            'Operations': self.Operations,
-        }
-        self.create_mode = mode
-        self._succeed_init = True
+class SensitiveDialog(BasicDialog):
+    def __init__(self, config, camera, parent, title="设置灵敏度", size=QSize(300, 200)):
+        self.config = config
+        self.camera = camera
+        self.center_layout = QGridLayout()
+        self.lb0 = MyLabel("缩放灵敏度", font=QFont("微软雅黑", 10))
+        self.lb1 = MyLabel("旋转灵敏度", font=QFont("微软雅黑", 10))
+        self.lb2 = MyLabel("平移灵敏度", font=QFont("微软雅黑", 10))
+        # 滑动条
+        self.sld0 = QSlider(Qt.Horizontal)
+        self.sld1 = QSlider(Qt.Horizontal)
+        self.sld2 = QSlider(Qt.Horizontal)
+        self.sld0.setMinimum(0)
+        self.sld0.setMaximum(100)
+        self.sld1.setMinimum(0)
+        self.sld1.setMaximum(100)
+        self.sld2.setMinimum(0)
+        self.sld2.setMaximum(100)
+        self.sld0.setValue(int(100 * self.config.Sensitivity["缩放"]))
+        self.sld1.setValue(int(100 * self.config.Sensitivity["旋转"]))
+        self.sld2.setValue(int(100 * self.config.Sensitivity["平移"]))
+        self.center_layout.addWidget(self.lb0, 0, 0)
+        self.center_layout.addWidget(self.lb1, 1, 0)
+        self.center_layout.addWidget(self.lb2, 2, 0)
+        self.center_layout.addWidget(self.sld0, 0, 1)
+        self.center_layout.addWidget(self.sld1, 1, 1)
+        self.center_layout.addWidget(self.sld2, 2, 1)
+        self.result = [self.config.Sensitivity["缩放"], self.config.Sensitivity["旋转"], self.config.Sensitivity["平移"]]
+        for i in range(3):
+            self.result[i] = self.result[i] * 100
+        # 绑定事件
+        self.sld0.valueChanged.connect(self.value_changed0)
+        self.sld1.valueChanged.connect(self.value_changed1)
+        self.sld2.valueChanged.connect(self.value_changed2)
+        super().__init__(parent, title, size, self.center_layout)
+        self.set_widget()
+
+    def value_changed0(self):
+        self.result[0] = self.sld0.value()
+
+    def value_changed1(self):
+        self.result[1] = self.sld1.value()
+
+    def value_changed2(self):
+        self.result[2] = self.sld2.value()
+
+    def set_widget(self):
+        self.center_layout.setSpacing(8)
+        self.center_layout.setContentsMargins(30, 20, 30, 0)
+
+    def ensure(self):
+        super().ensure()
+        self.config.Sensitivity["缩放"] = self.result[0] * 0.01
+        self.config.Sensitivity["旋转"] = self.result[1] * 0.01
+        self.config.Sensitivity["平移"] = self.result[2] * 0.01
+        self.config.save_config()
+        for c in self.camera.all_cameras:
+            c.Sensitivity = self.config.Sensitivity
+
+
+class ColorDialog(BasicDialog):
+    def __init__(self, parent, na_hull):
+        self.title = "选择：该设计中 船体独有的颜色"
+        self.na_hull = na_hull
+        self.color_parts_map = self.na_hull.ColorPartsMap
+        self.color_num = len(self.color_parts_map)
+        self.color_partNum_map = {}
+        for color, parts in self.color_parts_map.items():
+            self.color_partNum_map[color] = len(parts)
+        # 把颜色按照数量排序
+        self.color_partNum_map = dict(sorted(self.color_partNum_map.items(), key=lambda x: x[1], reverse=True))
+        self.color_choose_map = {}
+        # 生成颜色选择按钮（显示出该颜色，并且在色块上显示出该颜色对应的部件数量，下方是勾选框，用于选择是否显示该颜色）
+        self.center_grid_layout = QGridLayout()
+        # 颜色行数
+        lines = -1
+        for color, num in self.color_partNum_map.items():
+            index_ = list(self.color_partNum_map.keys()).index(color)
+            lines += 1 if index_ % 15 == 0 else 0
+            bg_ = QColor(color)
+            fg_ = getFG_fromBG(bg_)
+            # 色块
+            color_block = QLabel(str(num))
+            color_block.setFixedSize(60, 65)
+            color_block.setAlignment(Qt.AlignCenter)
+            color_block.setStyleSheet(f"background-color: {bg_.name()};color: {fg_.name()};"
+                                      f"border-radius: 7px;"
+                                      # 上边距
+                                      f"margin-top: 20px;"
+                                      f"font: 11pt '微软雅黑';")
+            # 16进制色名
+            color_name = QLabel(color)
+            color_name.setAlignment(Qt.AlignCenter)
+            color_name.setStyleSheet(f"color: {FG_COLOR0};"
+                                     f"font: 7pt '微软雅黑';")
+            # RGB色名
+            rgb_widget = QWidget()
+            rgb_layout = QVBoxLayout()
+            rgb_widget.setLayout(rgb_layout)
+            red = QLabel(f"R {front_completion(str(bg_.red()), 3, '0')}")
+            green = QLabel(f"G {front_completion(str(bg_.green()), 3, '0')}")
+            blue = QLabel(f"B {front_completion(str(bg_.blue()), 3, '0')}")
+            red.setAlignment(Qt.AlignCenter)
+            green.setAlignment(Qt.AlignCenter)
+            blue.setAlignment(Qt.AlignCenter)
+            red.setStyleSheet(f"color: red;font: 7pt '微软雅黑';")
+            green.setStyleSheet(f"color: green;font: 7pt '微软雅黑';")
+            blue.setStyleSheet(f"color: blue;font: 7pt '微软雅黑';")
+            rgb_layout.addWidget(red)
+            rgb_layout.addWidget(green)
+            rgb_layout.addWidget(blue)
+            rgb_layout.setSpacing(0)
+            # 选择框
+            choose_box = QCheckBox()
+            choose_box.setFixedSize(60, 16)
+            # 居中
+            choose_box.setStyleSheet("QCheckBox::indicator {width: 60px;height: 16px;}")
+            self.color_choose_map[color] = choose_box
+            # 添加到布局
+            i_vertical = lines * 4
+            i_horizontal = index_ % 15
+            self.center_grid_layout.addWidget(color_block, i_vertical, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(color_name, i_vertical + 1, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(rgb_widget, i_vertical + 2, i_horizontal, alignment=Qt.AlignCenter)
+            self.center_grid_layout.addWidget(choose_box, i_vertical + 3, i_horizontal, alignment=Qt.AlignCenter)
+
+            # 把其他部件的左键也绑定choose_box修改事件
+            color_block.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+            color_name.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+            rgb_widget.mousePressEvent = lambda event, cb=choose_box: self.color_block_pressed(event, cb)
+        # 添加全选按钮
+        self.all_choose_box = QCheckBox("全选")
+        self.all_choose_box.setStyleSheet(f"color: {FG_COLOR0};"
+                                          f"font: 11pt '微软雅黑';")
+        self.all_choose_box.setFixedSize(80, 80)
+        self.all_choose_box.stateChanged.connect(self.all_choose_box_state_changed)
+        self.center_grid_layout.addWidget(
+            self.all_choose_box, lines * 4 + 4, 0, 1, min(15, self.color_num), alignment=Qt.AlignCenter)
+        # 设置布局
+        if 3 < self.color_num <= 15:
+            size = QSize(100 + self.color_num * 85, 380)
+        elif self.color_num > 15:
+            size = QSize(100 + 15 * 85, 380 + lines * 170)
+        else:
+            size = QSize(360, 380)
+        super().__init__(parent, self.title, size, self.center_grid_layout)
+        self.set_widget()
 
     @staticmethod
-    def load_project(path) -> 'ProjectFile':  # 从文件加载工程
-        # 判断是否为json
-        if not path.endswith('.json'):
-            # 提示错误
-            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
-            return None
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        try:
-            project_file = ProjectFile(
-                data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], data['Operations'], mode=ProjectFile.LOAD,
-                code=data['Code'], save_time=data['SaveTime'])
-        except KeyError:
-            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
-            return None
-        if project_file._succeed_init:
-            return project_file
+    def color_block_pressed(event, choose_box):
+        if event.button() == Qt.LeftButton:
+            choose_box.setChecked(not choose_box.isChecked())
+
+    def all_choose_box_state_changed(self):
+        if self.all_choose_box.isChecked():
+            for color, choose_box in self.color_choose_map.items():
+                choose_box.setChecked(True)
         else:
-            return None
+            for color, choose_box in self.color_choose_map.items():
+                choose_box.setChecked(False)
 
-    def update_na_parts_data(self, na_parts_data, mode):
-        if mode == ProjectFile.ADD:
-            for part in na_parts_data:
-                if part not in self.NAPartsData:
-                    self.NAPartsData[part] = na_parts_data[part]
-        elif mode == ProjectFile.DELETE:
-            for part in na_parts_data:
-                if part in self.NAPartsData:
-                    del self.NAPartsData[part]
-        elif mode == ProjectFile.CLEAR:
-            self.NAPartsData = {}
-        elif mode == ProjectFile.OVERWRITE:
-            self.NAPartsData = na_parts_data
+    def set_widget(self):
+        # 上下间距
+        self.center_grid_layout.setSpacing(5)
+        self.center_grid_layout.setContentsMargins(50, 30, 50, 0)
+        # 居中
 
-    @staticmethod
-    def check_data(code, save_time, na_parts_data, operations):
-        from hashlib import sha1
-        if code != str(sha1((save_time + str(na_parts_data) + str(operations)).encode('utf-8')).hexdigest()):
-            return False
+    def ensure(self):
+        draw_map = {}
+        for color, choose_box in self.color_choose_map.items():
+            if choose_box.isChecked():
+                draw_map[color] = self.color_parts_map[color]
+        self.na_hull.DrawMap = draw_map
+        if draw_map:
+            super().ensure()
         else:
-            return True
-
-    def get_check_code(self):  # 获取工程安全码
-        from hashlib import sha1
-        return str(sha1((self.SaveTime + str(self.NAPartsData) + str(self.Operations)).encode('utf-8')).hexdigest())
-
-    def save(self):
-        # 将工程数据写入工程文件
-        self.SaveTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
-                        f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
-        self.Code = self.get_check_code()
-        self.json_data = {
-            'Name': self.Name,
-            'Code': self.Code,
-            'CreateTime': self.CreateTime,
-            'SaveTime': self.SaveTime,
-            'OriginalFilePath': self.OriginalFilePath,
-            'Config': self.Config,
-            'NAPartsData': self.NAPartsData,
-            'Operations': self.Operations,
-        }
-        with open(self.Path, 'w', encoding='utf-8') as f:
-            json.dump(self.json_data, f, ensure_ascii=False, indent=2)
-
-    def save_as_na(self, changed_na_file, output_file_path):  # 导出为NA船体
-        # 以xml形式，na文件格式保存
-        """
-        文件格式：
-        <root>
-          <ship author="22222222222" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
-            <part id="0">
-              <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
-              <position x="0" y="0" z="114.75" />
-              <rotation x="0" y="0" z="0" />
-              <scale x="1" y="1" z="1" />
-              <color hex="975740" />
-              <armor value="5" />
-            </part>
-            <part id="190">
-              <position x="0" y="-8.526513E-14" z="117.0312" />
-              <rotation x="90" y="0" z="0" />
-              <scale x="0.03333336" y="0.03333367" z="0.1666679" />
-              <color hex="975740" />
-              <armor value="5" />
-            </part>
-          </root>
-        :param changed_na_file:
-        :param output_file_path:
-        :return:
-        """
+            MyMessageBox().information(self, "提示", "未选择任何颜色", MyMessageBox.Ok)

@@ -200,8 +200,8 @@ class AdjustableHull(Part):
 
     def __init__(
             self, Id, pos, rot, scale, color, armor,
-            length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve, heightScale,
-            heightOffset):
+            length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve,
+            heightScale, heightOffset):
         """
         :param Id: 字符串，零件ID
         :param pos: 元组，三个值分别为x,y,z轴的位置
@@ -268,7 +268,7 @@ class AdjustableHull(Part):
         elif self.back_mid_y < self.back_down_y:
             self.back_mid_y = self.back_down_y
         # ==============================================================================计算绘图所需的数据
-        self.all_dots = []
+        self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
         self.vertex_coordinates = self.get_initial_vertex_coordinates()
         self.plot_faces = self.get_plot_faces()
 
@@ -296,7 +296,7 @@ class AdjustableHull(Part):
                 [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
                 [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
             ]
-            self.all_dots = [
+            self.plot_all_dots = [
                 dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
                 dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
             # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
@@ -358,7 +358,7 @@ class AdjustableHull(Part):
             for i in range(23):
                 result["GL_QUADS"].append([front_set[i], back_set[i], back_set[i + 1], front_set[i + 1]])
             result["GL_QUADS"].append([front_set[-1], back_set[-1], back_set[0], front_set[0]])
-            self.all_dots = front_set + back_set
+            self.plot_all_dots = front_set + back_set
         return result
 
     def get_initial_Curve_face_dots(self):
