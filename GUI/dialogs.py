@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QGridLayout, QCheckBox, QFileDialog
+from PyQt5.QtWidgets import QGridLayout, QCheckBox, QFileDialog, QProgressBar, QApplication
 # 本地库
 from PTB_design_reader import ReadPTB
 from GUI.QtGui import *
@@ -571,3 +571,34 @@ class ColorDialog(BasicDialog):
             super().ensure()
         else:
             MyMessageBox().information(self, "提示", "未选择任何颜色", MyMessageBox.Ok)
+
+
+class ProgressDialog(BasicDialog):
+    def __init__(self):
+        self.center_layout = QGridLayout()
+        self.progress_bar = QProgressBar()
+        self.center_layout.addWidget(self.progress_bar, 0, 0, alignment=Qt.AlignCenter)
+        super().__init__(None, "...正在读取...", QSize(200, 100), self.center_layout)
+        self.set_widget()
+
+    def set_widget(self):
+        self.progress_bar.setAlignment(Qt.AlignCenter)
+        self.progress_bar.setFixedSize(300, 20)
+        self.progress_bar.setStyleSheet(f"QProgressBar {{border: 1px solid {FG_COLOR0};"
+                                        f"border-radius: 10px;"
+                                        f"background-color: {BG_COLOR0};"
+                                        f"text-align: center;}}")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+
+    def set_progress(self, value):
+        if value == 100:
+            # 读取完成，关闭
+            self.close()
+        self.progress_bar.setValue(value)
+        self.progress_bar.setFormat(f"{value}%")
+        self.progress_bar.update()
+        QApplication.processEvents()
+
+    def ensure(self):
+        pass

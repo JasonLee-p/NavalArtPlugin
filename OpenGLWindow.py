@@ -1,7 +1,7 @@
 import numpy as np
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QOpenGLWidget, QApplication, QToolButton
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat
+from PyQt5.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat, QKeyEvent
 from PyQt5.QtGui import QOpenGLVersionProfile
 
 from OpenGL.GL import *
@@ -31,6 +31,27 @@ FRAGMENT_SHADER = FragmentShader.FS
 #     FRAGMENT_SHADER = f.read()
 
 
+def show_state(txt, msg_type='process', label=None):
+    """
+    显示状态栏信息
+    :param txt:
+    :param msg_type:
+    :param label:
+    :return:
+    """
+    color_map = {
+        'warning': 'orange',
+        'success': f"{FG_COLOR0}",
+        'process': 'gray',
+        'error': f"{FG_COLOR1}",
+    }
+    if msg_type in color_map:
+        label.setStyleSheet(f'color: {color_map[msg_type]};')
+    else:
+        label.setStyleSheet(f'color: {FG_COLOR0};')
+    label.setText(txt)
+
+
 class OpenGLWin(QOpenGLWidget):
     # 操作模式
     Selectable = 1
@@ -41,7 +62,7 @@ class OpenGLWin(QOpenGLWidget):
     ShowYX = 33
     ShowLeft = 44
 
-    def __init__(self, camera_sensitivity, using_various_mode=False):
+    def __init__(self, camera_sensitivity, using_various_mode=False, show_state_label=None):
         self.operation_mode = OpenGLWin.Selectable
         self.show_3d_obj_mode = OpenGLWin.ShowAll
         self.using_various_mode = using_various_mode  # 是否使用全部四种显示模式
@@ -91,6 +112,7 @@ class OpenGLWin(QOpenGLWidget):
         self.selected_gl_objects = {
             self.ShowAll: [], self.ShowZX: [], self.ShowYX: [], self.ShowLeft: []
         }
+        self.show_state_label = show_state_label
         # ========================================================================================子控件
         self.mod1_button = QToolButton(self)
         self.mod2_button = QToolButton(self)
@@ -233,6 +255,8 @@ class OpenGLWin(QOpenGLWidget):
             self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SPECULAR, self.theme_color["被选中"][2])
             self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SHININESS, self.theme_color["被选中"][3])
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
+                if type(obj) != AdjustableHull:
+                    continue  # TODO: 未来要加入Part类的绘制方法，而不是只能绘制AdjustableHull
                 for draw_method, faces_dots in obj.plot_faces.items():
                     # draw_method是字符串，需要转换为OpenGL的常量
                     for face in faces_dots:
@@ -249,21 +273,29 @@ class OpenGLWin(QOpenGLWidget):
                         self.gl.glEnd()
         elif self.show_3d_obj_mode == OpenGLWin.ShowZX:
             # 材料设置
-            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_AMBIENT, self.theme_color["半透明被选中"][0])
-            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_DIFFUSE, self.theme_color["半透明被选中"][1])
-            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SPECULAR, self.theme_color["半透明被选中"][2])
-            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SHININESS, self.theme_color["半透明被选中"][3])
+            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_AMBIENT, self.theme_color["被选中"][0])
+            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_DIFFUSE, self.theme_color["被选中"][1])
+            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SPECULAR, self.theme_color["被选中"][2])
+            self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_SHININESS, self.theme_color["被选中"][3])
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                 for part, dots in obj.PartsDotsMap.items():
-                    self.gl.glNormal3f(0, 1, 0)
-                    self.gl.glBegin(self.gl.GL_POLYGON)
+                    # self.gl.glNormal3f(0, 1, 0)
+                    # self.gl.glBegin(self.gl.GL_POLYGON)
+                    # for dot in dots[::-1]:
+                    #     self.gl.glVertex3f(*dot)
+                    # self.gl.glEnd()
+                    # self.gl.glNormal3f(0, -1, 0)
+                    # self.gl.glBegin(self.gl.GL_POLYGON)
+                    # for dot in dots:
+                    #     self.gl.glVertex3f(dot[0], dot[1], dot[2])
+                    # self.gl.glEnd()
+
+                    self.gl.glLineWidth(1.3)
+                    color = self.theme_color["选择框"][0]
+                    self.gl.glColor4f(*color)
+                    self.gl.glBegin(self.gl.GL_LINE_LOOP)
                     for dot in dots[::-1]:
                         self.gl.glVertex3f(*dot)
-                    self.gl.glEnd()
-                    self.gl.glNormal3f(0, -1, 0)
-                    self.gl.glBegin(self.gl.GL_POLYGON)
-                    for dot in dots:
-                        self.gl.glVertex3f(dot[0], dot[1], dot[2])
                     self.gl.glEnd()
 
     def draw_select_box(self):
@@ -434,11 +466,74 @@ class OpenGLWin(QOpenGLWidget):
 
     # ----------------------------------------------------------------------------------------------事件
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # 数字1234切换显示模式
+        if event.key() == Qt.Key_1:
+            self.set_show_3d_obj_mode(OpenGLWin.ShowAll)
+        elif event.key() == Qt.Key_2:
+            self.set_show_3d_obj_mode(OpenGLWin.ShowZX)
+        elif event.key() == Qt.Key_3:
+            self.set_show_3d_obj_mode(OpenGLWin.ShowYX)
+        elif event.key() == Qt.Key_4:
+            self.set_show_3d_obj_mode(OpenGLWin.ShowLeft)
+        # a键摄像机目标回（0, 0, 0）
+        if event.key() == Qt.Key_A:
+            self.camera.change_target(QVector3D(0, 0, 0))
+            self.update()
+        # ====================================================================================Alt键
+        if QApplication.keyboardModifiers() == Qt.AltModifier:
+            # 如果当前有且仅有一个被选中的AdjustableHull，就寻找其上方的AdjustableHull
+            if self.show_3d_obj_mode != OpenGLWin.ShowAll:
+                return
+            if event.key() not in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right):
+                return
+            # 获取当前被选中的AdjustableHull
+            for selected_obj in self.selected_gl_objects[self.show_3d_obj_mode]:
+                _min = None
+                for color, part_set in self.all_3d_obj["钢铁"][0].DrawMap.items():
+                    for obj in part_set:
+                        if type(obj) != AdjustableHull or obj == selected_obj:
+                            continue
+                        if obj.Pos[0] != selected_obj.Pos[0]:
+                            continue
+                        if event.key() == Qt.Key_Up and (  # ======================================Alt上键
+                                obj.Pos[2] == selected_obj.Pos[2]):
+                            if obj.Pos[1] > selected_obj.Pos[1]:
+                                if _min is None or obj.Pos[1] < _min.Pos[1]:
+                                    show_state("选区上移", "success", self.show_state_label)
+                                    _min = obj
+                        elif event.key() == Qt.Key_Down and (  # ==================================Alt下键
+                                obj.Pos[2] == selected_obj.Pos[2]):
+                            if obj.Pos[1] < selected_obj.Pos[1]:
+                                if _min is None or obj.Pos[1] > _min.Pos[1]:
+                                    show_state("选区下移", "success", self.show_state_label)
+                                    _min = obj
+                        # 如果摄像机方向朝向x负方向，左键就往前（z正方向）找，右键就往后（z负方向）找
+                        elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
+                                event.key() == Qt.Key_Right and self.camera.angle.x() > 0):
+                            if obj.Pos[2] > selected_obj.Pos[2] and obj.Pos[1] == selected_obj.Pos[1]:
+                                if _min is None or obj.Pos[2] < _min.Pos[2]:
+                                    show_state("选区前移", "success", self.show_state_label)
+                                    _min = obj
+                        elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
+                                event.key() == Qt.Key_Left and self.camera.angle.x() > 0):
+                            if obj.Pos[2] < selected_obj.Pos[2] and obj.Pos[1] == selected_obj.Pos[1]:
+                                if _min is None or obj.Pos[2] > _min.Pos[2]:
+                                    show_state("选区后移", "success", self.show_state_label)
+                                    _min = obj
+                if _min is not None:  # =====================================================如果找到了
+                    if _min not in self.selected_gl_objects[self.show_3d_obj_mode]:
+                        index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
+                        self.selected_gl_objects[self.show_3d_obj_mode][index] = _min
+                    else:
+                        self.selected_gl_objects[self.show_3d_obj_mode].remove(selected_obj)
+        self.update()
+
     def wheelEvent(self, event: QWheelEvent) -> None:
         if event.angleDelta().y() > 0:
-            self.camera.zoom(-0.12)
+            self.camera.zoom(-0.11)
         else:
-            self.camera.zoom(0.12)
+            self.camera.zoom(0.11)
         self.update()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -481,7 +576,8 @@ class OpenGLWin(QOpenGLWidget):
                         self.selected_gl_objects[self.show_3d_obj_mode].extend(self.add_selected_objects_of_selectBox())
                     elif self.select_end is None and self.select_start:
                         if self.add_selected_objects_when_click() is not None:
-                            self.selected_gl_objects[self.show_3d_obj_mode].append(self.add_selected_objects_when_click())
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(
+                                self.add_selected_objects_when_click())
                     self.select_start = None
                     self.select_end = None
                 elif QApplication.keyboardModifiers() == Qt.ShiftModifier:  # 如果shift按下：

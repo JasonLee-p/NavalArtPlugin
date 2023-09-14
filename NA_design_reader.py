@@ -516,17 +516,22 @@ class MainWeapon(Part):
 
 
 class ReadNA:
-    def __init__(self, filepath=False, data=None):
+    def __init__(self, filepath=False, data=None, progress_dialog=None):
         """
 
         :param filepath:
         :param data: 字典，键是颜色的十六进制表示，值是零件的列表，但是尚未实例化，是字典形式的数据
         """
+        self.progress_dialog = progress_dialog  # 此时进度已经到了20%
         self.Parts = []
         if filepath is False:
             # 实例化data中的零件
             self.ColorPartsMap = {}
+            color_num = len(data.keys())
+            single_step = 20/color_num
             for color, parts in data.items():
+                index = list(data.keys()).index(color)
+                self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
                 for part in parts:
                     if part["Typ"] == "Part":
                         obj = Part(
@@ -591,7 +596,11 @@ class ReadNA:
             self.Weapons = MainWeapon.All
             self.AdjustableHulls = AdjustableHull.All
             self.ColorPartsMap = {}
-            for part in self.root.findall('ship/part'):
+            part_num = len(self._all_parts)
+            single_step = 20/part_num
+            for part in self._all_parts:
+                index = self._all_parts.index(part)
+                self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
                 _id = str(part.attrib['id'])
                 _pos = part.find('position').attrib
                 _rot = part.find('rotation').attrib
@@ -633,3 +642,4 @@ class ReadNA:
                     self.ColorPartsMap[_color] = []
                 self.ColorPartsMap[_color].append(obj)
                 self.Parts.append(obj)
+

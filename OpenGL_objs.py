@@ -457,15 +457,16 @@ class AdHull(ReadPTB, SolidObject):
 
 
 class NAHull(ReadNA, SolidObject):
-    def __init__(self, path=False, data=None):
+    def __init__(self, path=False, data=None, progress_dialog=None):
         """
         注意，self.DrawMap不会在ReadNA和SolidObject中初始化，会在其他地方初始化。
         在初始化后会调用get_ys_and_zs()和get_layers()方法，而不是在self.__init__()中调用
         :param path:
         :param data:
         """
+        self.progress_dialog = progress_dialog  # 此时进度已经到20%
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        ReadNA.__init__(self, path, data)
+        ReadNA.__init__(self, path, data, progress_dialog)
         SolidObject.__init__(self, None)
         self.ys = []  # 所有y高度值，用于绘制xz截面
         self.zs = []  # 所有z前后值，用于绘制xy截面
@@ -647,6 +648,11 @@ class Camera:
         # 灵敏度
         self.sensitivity = sensitivity
         Camera.all_cameras.append(self)
+
+    def change_target(self, tar):
+        self.pos = tar + (self.pos - self.tar).normalized() * self.distance
+        self.tar = tar
+        self.angle = self.calculate_angle()
 
     def calculate_angle(self):
         return QVector3D(self.tar - self.pos).normalized()

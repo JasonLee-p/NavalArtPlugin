@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QTextEdit, Q
 from GUI.QtGui import *
 
 
-class Mod1SinglePart(QWidget):
+class Mod1SinglePartView(QWidget):
     def __init__(self):
         """
         全视图模式，单零件元素检视器

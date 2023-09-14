@@ -5,6 +5,7 @@
 import os.path
 import sys
 import webbrowser
+from threading import Thread
 # 第三方库
 from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
@@ -14,13 +15,13 @@ from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QTextEdit, Q
 from NA_design_reader import Part
 from path_utils import find_ptb_path
 from GUI.QtGui import *
-from GUI.dialogs import NewProjectDialog, ColorDialog, ThemeDialog, SensitiveDialog
+from GUI.dialogs import NewProjectDialog, ColorDialog, ThemeDialog, SensitiveDialog, ProgressDialog
 from OpenGLWindow import OpenGLWin, OpenGLWin2
 from PTB_design_reader import AdvancedHull
 from OpenGL_objs import *
 from project_file import ConfigFile
 from project_file import ProjectFile as PF
-from right_element_view import Mod1SinglePart
+from right_element_view import Mod1SinglePartView
 
 
 def is_admin():
@@ -31,11 +32,12 @@ def is_admin():
         return False
 
 
-def show_state(txt, msg_type='process'):
+def show_state(txt, msg_type='process', label=None):
     """
     显示状态栏信息
     :param txt:
     :param msg_type:
+    :param label:
     :return:
     """
     color_map = {
@@ -44,7 +46,10 @@ def show_state(txt, msg_type='process'):
         'process': 'gray',
         'error': f"{FG_COLOR1}",
     }
-    label_ = Handler.window.statu_label
+    if label is None:
+        label_ = Handler.window.statu_label
+    else:
+        label_ = label
     if msg_type in color_map:
         label_.setStyleSheet(f'color: {color_map[msg_type]};')
     else:
@@ -92,8 +97,8 @@ class CurrentProject(PF):
         Part.ShipsAllParts = []
 
     @staticmethod
-    def load_project(path) -> 'CurrentProject':
-        prj = PF.load_project(path)
+    def load_project(path, pDialog) -> 'CurrentProject':
+        prj = PF.load_project(path, pDialog)
         if prj is None:
             return None
         # 重置NavalArt的Part的ShipsAllParts
@@ -110,8 +115,8 @@ class CurrentProject(PF):
         global CurrentPrj
         path = list(Config.Projects.values())[-1]  # 获取最后一个项目的路径
         show_state(f"正在读取{path}...", 'process')  # 显示状态
-
-        obj = CurrentProject.load_project(path)  # 读取项目文件
+        pDialog = ProgressDialog()
+        obj = CurrentProject.load_project(path, pDialog)  # 读取项目文件
         if obj is None:
             return  # 如果读取失败，直接返回
         try:
@@ -120,13 +125,20 @@ class CurrentProject(PF):
             Handler.CurrentProjectData["Object"] = obj
             Handler.CurrentProjectData["OriginalFilePath"] = Handler.CurrentProjectData["Object"].OriginalFilePath
             Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
+            pDialog.set_progress(20)
             # 读取成功，开始绘制
-            na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData)  # 通过读取的船体设计文件，新建NaHull对象
+            # 通过读取的船体设计文件，新建NaHull对象
+            na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, progress_dialog=pDialog)
+            pDialog.set_progress(40)
             na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
             na_hull.get_ys_and_zs()  # 给na_hull.ys和na_hull.zs赋值
+            pDialog.set_progress(50)
             na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
+            pDialog.set_progress(60)
             Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+            pDialog.set_progress(70)
             CurrentPrj = Handler.CurrentProjectData["Object"]
+            pDialog.set_progress(100)
             show_state(f"{path}读取成功", 'success')  # 显示状态
         except FileNotFoundError:
             show_state(f"未找到配置中的{path}", "error")  # 显示状态
@@ -147,7 +159,7 @@ class GLWin(OpenGLWin):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
         if event.button() == Qt.LeftButton:
-            Handler.right_widget.update_tab1()
+            Handler.right_widget.update_tab()
         elif event.button() == Qt.RightButton and Handler.right_widget.ActiveTab == "船体设计":
             if Handler.hull_design_tab.ThreeDFrame.rotate_start == Handler.hull_design_tab.ThreeDFrame.lastPos:
                 Handler.hull_design_tab.menu.exec_(QCursor.pos())
@@ -268,7 +280,8 @@ class MainHandler:
         except IndexError:
             return
         # 修改Handler.CurrentProjectData
-        obj = CurrentProject.load_project(file_path)
+        pDialog = ProgressDialog()
+        obj = CurrentProject.load_project(file_path, pDialog)
         if obj is None:
             return
         Handler.CurrentProjectData["Object"] = obj
@@ -283,12 +296,19 @@ class MainHandler:
         Handler.hull_design_tab.yx_layer_obj.clear()
         Handler.hull_design_tab.left_view_obj.clear()
         # 读取成功，开始绘制
-        na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData)  # 通过读取的船体设计文件，新建NaHull对象
+        pDialog.set_progress(20)
+        # 通过读取的船体设计文件，新建NaHull对象
+        na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, progress_dialog=pDialog)
+        pDialog.set_progress(40)
         na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
         na_hull.get_ys_and_zs()  # 给na_hull.ys和na_hull.zs赋值
+        pDialog.set_progress(50)
         na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
+        pDialog.set_progress(60)
         Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+        pDialog.set_progress(70)
         CurrentPrj = Handler.CurrentProjectData["Object"]
+        pDialog.set_progress(100)
         show_state(f"{file_path}读取成功", 'success')  # 显示状态
         # 更新配置文件（把该条目改到字典的最后一项）
         del Config.Projects[Handler.CurrentProjectData["Name"]]
@@ -418,7 +438,7 @@ class RightTabWidget(QTabWidget):
         self.tab1_main_layout = QVBoxLayout()
         self.tab2_main_layout = QVBoxLayout()
         # ============================================================================tab1_mod1的三种界面
-        self.tab1_mod1_widget_singlePart = Mod1SinglePart()
+        self.tab1_mod1_widget_singlePart = Mod1SinglePartView()
         self.tab1_mod1_widget_verticalPartSet = QWidget()
         self.tab1_mod1_widget_horizontalPartSet = QWidget()
         self.tab1_mod1_widget_verHorPartSet = QWidget()
@@ -426,12 +446,29 @@ class RightTabWidget(QTabWidget):
         self.tab1_mod1_grid_verticalPartSet = QGridLayout()
         self.tab1_mod1_grid_horizontalPartSet = QGridLayout()
         self.tab1_mod1_grid_verHorPartSet = QGridLayout()
-        self.tab1_current_widget = self.tab1_mod1_widget_singlePart
         # ===========================================================================tab1_mod2的两种界面
         self.tab1_mod2_widget_singleLayer = QWidget()
         self.tab1_mod2_widget_multiLayer = QWidget()
         self.tab1_mod2_grid_singleLayer = QGridLayout()
         self.tab1_mod2_grid_multiLayer = QGridLayout()
+        # ============================================================================tab2_mod1的三种界面
+        self.tab2_mod1_widget_singlePart = QWidget()
+        self.tab2_mod1_widget_verticalPartSet = QWidget()
+        self.tab2_mod1_widget_horizontalPartSet = QWidget()
+        self.tab2_mod1_widget_verHorPartSet = QWidget()
+
+        self.tab2_mod1_grid_verticalPartSet = QGridLayout()
+        self.tab2_mod1_grid_verticalPartSet = QGridLayout()
+        self.tab2_mod1_grid_horizontalPartSet = QGridLayout()
+        self.tab2_mod1_grid_verHorPartSet = QGridLayout()
+        # ===========================================================================tab2_mod2的两种界面
+        self.tab2_mod2_widget_singleLayer = QWidget()
+        self.tab2_mod2_widget_multiLayer = QWidget()
+        self.tab2_mod2_grid_singleLayer = QGridLayout()
+        self.tab2_mod2_grid_multiLayer = QGridLayout()
+        # =============================================================================当前显示的widget
+        self.tab1_current_widget = self.tab1_mod1_widget_singlePart
+        self.tab2_current_widget = self.tab2_mod1_widget_singlePart
         # GUI绑定和样式
         self.init_style()
         self.bind_widget()
@@ -440,23 +477,30 @@ class RightTabWidget(QTabWidget):
         # if self.ActiveTab == "船体设计":
         #     self.show_mod = Handler.hull_design_tab.ThreeDFrame.show_3d_obj_mode
 
-    def update_tab1(self):
+    def update_tab(self):
         ThreeDFrame = Handler.hull_design_tab.ThreeDFrame
         _len = len(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode])
-        self.tab1_current_widget.hide()  # 隐藏当前的widget
+        # 隐藏当前的widget
+        self.tab1_current_widget.hide()
+        self.tab2_current_widget.hide()
 
-        # 当被选中物体变化的时候，更新tab1的内容
+        # 当被选中物体变化的时候，更新tab的内容
         if _len == 1:  # ================================================================== 只有一个物体
             # 获取选中的物体
             selected_obj = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
             if type(selected_obj) in (Part, AdjustableHull):
-                # 更新类型
+                # 更新显示的widget
                 self.tab1_mod1_widget_singlePart.show()
+                self.tab2_mod1_widget_singlePart.show()
                 self.tab1_current_widget = self.tab1_mod1_widget_singlePart
+                self.tab2_current_widget = self.tab2_mod1_widget_singlePart
                 self.tab1_mod1_widget_singlePart.update_context(selected_obj)
+                # self.tab2_mod1_widget_singlePart.update_context(selected_obj)
             elif type(selected_obj) == NaHullXZLayer:
                 self.tab1_mod2_widget_singleLayer.show()  # TODO: 显示tab1_mod2_grid_singleLayer
+                self.tab2_mod2_widget_singleLayer.show()  # TODO: 显示tab2_mod2_grid_singleLayer
                 self.tab1_current_widget = self.tab1_mod2_widget_singleLayer
+                self.tab2_current_widget = self.tab2_mod2_widget_singleLayer
             else:
                 ...
                 # TODO: 其他类型的物体
@@ -491,9 +535,13 @@ class RightTabWidget(QTabWidget):
                             break
                         last_part = selected_obj
                     if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_verticalPartSet
-                        self.tab1_mod1_widget_verticalPartSet.show() if self.ActiveTab == "船体设计" else None
+                        if self.ActiveTab == "船体设计":
+                            self.tab1_mod1_widget_verticalPartSet.show()
+                            self.tab2_mod1_widget_verticalPartSet.show()
                         self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
+                        self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
                         self.show_tab1_mod1_grid_verticalPartSet()
+                        self.show_tab2_mod1_grid_verticalPartSet()
 
                 # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
                 elif len(set(y_list)) == 1:
@@ -509,9 +557,13 @@ class RightTabWidget(QTabWidget):
                             break
                         last_part = selected_obj
                     if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_horizontalPartSet
-                        self.tab1_mod1_widget_horizontalPartSet.show() if self.ActiveTab == "船体设计" else None
+                        if self.ActiveTab == "船体设计":
+                            self.tab1_mod1_widget_horizontalPartSet.show()
+                            self.tab2_mod1_widget_horizontalPartSet.show()
                         self.tab1_current_widget = self.tab1_mod1_widget_horizontalPartSet
+                        self.tab2_current_widget = self.tab2_mod1_widget_horizontalPartSet
                         self.show_tab1_mod1_grid_horizontalPartSet()
+                        self.show_tab2_mod1_grid_horizontalPartSet()
                 elif _len == len(set(y_list)) * len(set(z_list)):  # 集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
                     """
                     （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
@@ -546,12 +598,18 @@ class RightTabWidget(QTabWidget):
                         ...
                     # 接着计算第一竖排零件上下是否相连
                     if connected:
-                        self.tab1_mod1_widget_verHorPartSet.show() if self.ActiveTab == "船体设计" else None
+                        if self.ActiveTab == "船体设计":
+                            self.tab1_mod1_widget_verHorPartSet.show()
+                            self.tab2_mod1_widget_verHorPartSet.show()
                         self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
+                        self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
                         self.show_tab1_mod1_grid_verHorPartSet()
+                        self.show_tab2_mod1_grid_verHorPartSet()
             elif _type == NaHullXZLayer:
                 self.tab1_mod2_widget_multiLayer.show()
+                self.tab2_mod2_widget_multiLayer.show()
                 self.tab1_current_widget = self.tab1_mod2_widget_multiLayer  # TODO: 显示tab1_mod2_grid_multiLayer
+                self.tab2_current_widget = self.tab2_mod2_widget_multiLayer  # TODO: 显示tab2_mod2_grid_multiLayer
             else:
                 ...
                 # TODO: 其他类型的物体
@@ -565,6 +623,15 @@ class RightTabWidget(QTabWidget):
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
 
+    def show_tab2_mod1_grid_verticalPartSet(self):
+        self.tab2_mod1_grid_verticalPartSet.setSpacing(7)
+        self.tab2_mod1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab2_mod1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是纵向排列的船体截块
+        title = MyLabel("竖直截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab2_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
+
     def show_tab1_mod1_grid_horizontalPartSet(self):
         self.tab1_mod1_grid_horizontalPartSet.setSpacing(7)
         self.tab1_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
@@ -574,6 +641,15 @@ class RightTabWidget(QTabWidget):
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
 
+    def show_tab2_mod1_grid_horizontalPartSet(self):
+        self.tab2_mod1_grid_horizontalPartSet.setSpacing(7)
+        self.tab2_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab2_mod1_grid_horizontalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是横向排列的船体截块
+        title = MyLabel("水平截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab2_mod1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
+
     def show_tab1_mod1_grid_verHorPartSet(self):
         self.tab1_mod1_grid_verHorPartSet.setSpacing(7)
         self.tab1_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
@@ -582,6 +658,15 @@ class RightTabWidget(QTabWidget):
         title = MyLabel("集成块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
+
+    def show_tab2_mod1_grid_verHorPartSet(self):
+        self.tab2_mod1_grid_verHorPartSet.setSpacing(7)
+        self.tab2_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
+        self.tab2_mod1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 添加title，说明当前显示的是集成块
+        title = MyLabel("集成块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title.setFixedSize(70, 25)
+        self.tab2_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
 
     def tab1_grid_qte_mouse_wheel(self, event=None):
         # 寻找当前鼠标所在的输入框
@@ -641,6 +726,7 @@ class RightTabWidget(QTabWidget):
         self.setTabToolTip(1, "属性编辑器")
 
     def bind_widget(self):
+        # ===================================================================================tab1
         # tab1_mod1
         self.tab1_mod1_widget_verticalPartSet.setLayout(self.tab1_mod1_grid_verticalPartSet)
         self.tab1_mod1_widget_horizontalPartSet.setLayout(self.tab1_mod1_grid_horizontalPartSet)
@@ -661,7 +747,30 @@ class RightTabWidget(QTabWidget):
         self.tab1_mod1_widget_verHorPartSet.hide()
         self.tab1_mod2_widget_singleLayer.hide()  # mod2
         self.tab1_mod2_widget_multiLayer.hide()
+        # ===================================================================================tab2
+        # tab2_mod1
+        self.tab2_mod1_widget_verticalPartSet.setLayout(self.tab2_mod1_grid_verticalPartSet)
+        self.tab2_mod1_widget_horizontalPartSet.setLayout(self.tab2_mod1_grid_horizontalPartSet)
+        self.tab2_mod1_widget_verHorPartSet.setLayout(self.tab2_mod1_grid_verHorPartSet)
+        # tab2_mod2
+        self.tab2_mod2_widget_singleLayer.setLayout(self.tab2_mod2_grid_singleLayer)
+        self.tab2_mod2_widget_multiLayer.setLayout(self.tab2_mod2_grid_multiLayer)
+        # 添加控件
+        self.tab2_main_layout.addWidget(self.tab2_mod1_widget_singlePart)  # mod1
+        self.tab2_main_layout.addWidget(self.tab2_mod1_widget_verticalPartSet)
+        self.tab2_main_layout.addWidget(self.tab2_mod1_widget_horizontalPartSet)
+        self.tab2_main_layout.addWidget(self.tab2_mod1_widget_verHorPartSet)
+        self.tab2_main_layout.addWidget(self.tab2_mod2_widget_singleLayer)  # mod2
+        self.tab2_main_layout.addWidget(self.tab2_mod2_widget_multiLayer)
+        # 隐藏
+        self.tab2_mod1_widget_verticalPartSet.hide()  # mod1
+        self.tab2_mod1_widget_horizontalPartSet.hide()
+        self.tab2_mod1_widget_verHorPartSet.hide()
+        self.tab2_mod2_widget_singleLayer.hide()  # mod2
+        self.tab2_mod2_widget_multiLayer.hide()
+        # 底部添加伸缩
         self.tab1_main_layout.addStretch(1)
+        self.tab2_main_layout.addStretch(1)
 
     def init_tab1(self):
         tab = QWidget()
@@ -680,6 +789,9 @@ class RightTabWidget(QTabWidget):
         # 标题
         title = MyLabel("属性编辑器", QFont('微软雅黑', 11), side=Qt.AlignCenter)
         self.tab2_main_layout.addWidget(title)
+        # 添加分割线
+        self.tab2_main_layout.addWidget(QFrame(  # top下方添加横线
+            self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignTop)
         return tab
 
 
@@ -970,6 +1082,7 @@ class HullDesignTab(QWidget):
         for gl_plot_obj in self.all_3d_obj["钢铁"]:  # 找到NA船壳，把所有零件添加到ThreeDFrame的ShipsAllParts
             if type(gl_plot_obj) == NAHull:
                 self.ThreeDFrame.ShipsAllParts = gl_plot_obj.Parts
+        self.ThreeDFrame.update()
 
 
 class ArmorDesignTab(QWidget):
@@ -1282,6 +1395,8 @@ if __name__ == '__main__':
     QApp = QApplication(sys.argv)
     QtWindow = MainWin(Config)
     Handler = MainHandler(QtWindow)
+    # 其他初始化
+    Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
     if Config.Projects != {}:
         CurrentProject.init_project_from_config()
     else:
