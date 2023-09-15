@@ -7,7 +7,7 @@ from abc import abstractmethod
 # 第三方库
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar, QGridLayout
 from PyQt5.QtWidgets import QTabWidget, QMenu, QAction, QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -35,6 +35,7 @@ elif Theme == 'Night':
 # 常量
 WHITE = 'white'
 GOLD = 'gold'
+GRAY = '#808080'
 FONT0 = 'Times New Roman'
 FONT1 = '微软雅黑'
 Font0 = QFont(FONT0, 12)  # 设置字体
@@ -467,12 +468,12 @@ class CircleSelectButtonGroup:
     """
 
     def __init__(self, button_list, parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3):
-        self.button_list = button_list
+        self.group = button_list
         self.parent = parent
         self.half_size = half_size
         self.color = color
         self.check_color = check_color
-        for button in self.button_list:
+        for button in self.group:
             button.setFixedSize(half_size * 2, half_size * 2)
             button.setStyleSheet(
                 f"border-radius: {half_size}px; background-color: {color}; border: 1px solid {FG_COLOR0};")
@@ -480,12 +481,12 @@ class CircleSelectButtonGroup:
             button.setCheckable(True)
             button.setChecked(False)
             button.clicked.connect(self.change_color)
-        self.button_list[0].setChecked(True)
+        self.group[0].setChecked(True)
         self.selected_bt_index = 0
 
     def change_color(self):
-        self.selected_bt_index = self.button_list.index(self.parent.sender())
-        for i, button in enumerate(self.button_list):
+        self.selected_bt_index = self.group.index(self.parent.sender())
+        for i, button in enumerate(self.group):
             if i == self.selected_bt_index:
                 button.setChecked(True)
                 button.setStyleSheet(
@@ -604,3 +605,32 @@ class BasicDialog(QDialog):
         if Qt.LeftButton and self.m_flag:
             self.move(QMouseEvent.globalPos() - self.m_Position)
             QMouseEvent.accept()
+
+
+class ShortCutWidget(QWidget):
+    def __init__(self):
+        _font = QFont('微软雅黑', 8)
+        _color = GRAY
+        self.shortcut_labels = [
+            MyLabel("全视图模式 1", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("横剖面模式 2", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("纵剖面模式 3", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("左视图模式 4", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区上移 ↑", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区下移 ↓", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区左移 ←", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区右移 →", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+        ]
+        super().__init__()
+        self.layout = QGridLayout()
+        self.layout.setContentsMargins(15, 5, 15, 5)
+        self.layout.setHorizontalSpacing(20)
+        self.setLayout(self.layout)
+        total_row = len(self.shortcut_labels) // 4
+        self.layout.addWidget(  # 居中显示
+            MyLabel("快捷键：", QFont('微软雅黑', 9), color=GRAY, side=Qt.AlignTop | Qt.AlignHCenter), 0, 0, 1, total_row
+        )
+        for i in range(len(self.shortcut_labels)):
+            _l = i % 4 + 1
+            _r = i // 4
+            self.layout.addWidget(self.shortcut_labels[i], _l, _r)

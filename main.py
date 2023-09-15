@@ -57,6 +57,20 @@ def show_state(txt, msg_type='process', label=None):
     label_.setText(txt)
 
 
+def generate_project_obj(_prj_path, _original_na_path, _na_hull):
+    global Handler, CurrentPrj
+    # 生成工程文件对象
+    Handler.CurrentProjectData["Path"] = _prj_path  # 设置当前项目路径
+    Handler.CurrentProjectData["Name"] = _prj_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
+    Handler.CurrentProjectData["OriginalFilePath"] = _original_na_path
+    Handler.CurrentProjectData["PartsData"] = NAHull.toJson(_na_hull.DrawMap)
+    Handler.CurrentProjectData["Object"] = CurrentProject(
+        Handler.CurrentProjectData["Name"], _prj_path,
+        _original_na_path, Handler.CurrentProjectData["PartsData"],
+        operations={}, mode=PF.NA, code='', save_time=''
+    )
+
+
 class Operation:
     # 定义可用的操作
     Select = 1
@@ -130,12 +144,11 @@ class CurrentProject(PF):
             # 通过读取的船体设计文件，新建NaHull对象
             na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, progress_dialog=pDialog)
             pDialog.set_progress(40)
-            na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
             na_hull.get_ys_and_zs()  # 给na_hull.ys和na_hull.zs赋值
             pDialog.set_progress(50)
             na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
             pDialog.set_progress(60)
-            Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+            Handler.hull_design_tab.init_NaHull_and_partRelationMap(na_hull)  # 显示船体设计
             pDialog.set_progress(70)
             CurrentPrj = Handler.CurrentProjectData["Object"]
             pDialog.set_progress(100)
@@ -300,12 +313,11 @@ class MainHandler:
         # 通过读取的船体设计文件，新建NaHull对象
         na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, progress_dialog=pDialog)
         pDialog.set_progress(40)
-        na_hull.DrawMap = na_hull.ColorPartsMap  # 设置绘制图层
         na_hull.get_ys_and_zs()  # 给na_hull.ys和na_hull.zs赋值
         pDialog.set_progress(50)
         na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
         pDialog.set_progress(60)
-        Handler.hull_design_tab.show_iron_obj(na_hull)  # 显示船体设计
+        Handler.hull_design_tab.init_NaHull_and_partRelationMap(na_hull)  # 显示船体设计
         pDialog.set_progress(70)
         CurrentPrj = Handler.CurrentProjectData["Object"]
         pDialog.set_progress(100)
@@ -329,19 +341,11 @@ class MainHandler:
                 # 新建NAHull对象
                 _na_hull = NAHull(path=_original_na_path)
                 # 检测颜色种类，弹出对话框，选择颜色
-                color_dialog = ColorDialog(self, _na_hull)
+                color_dialog = ColorDialog(self.window, _na_hull)
                 color_dialog.exec_()
-                self.hull_design_tab.show_iron_obj(_na_hull)
+                self.hull_design_tab.init_NaHull_and_partRelationMap(_na_hull)
                 # 生成工程文件对象
-                Handler.CurrentProjectData["Path"] = _prj_path  # 设置当前项目路径
-                Handler.CurrentProjectData["Name"] = _prj_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
-                Handler.CurrentProjectData["OriginalFilePath"] = _original_na_path
-                Handler.CurrentProjectData["PartsData"] = NAHull.toJson(_na_hull.DrawMap)
-                Handler.CurrentProjectData["Object"] = CurrentProject(
-                    Handler.CurrentProjectData["Name"], _prj_path,
-                    _original_na_path, Handler.CurrentProjectData["PartsData"],
-                    operations={}, mode=PF.NA, code='', save_time=''
-                )
+                generate_project_obj(_prj_path, _original_na_path, _na_hull)
                 CurrentPrj = Handler.CurrentProjectData["Object"]
                 # 保存工程文件
                 Handler.CurrentProjectData["Object"].save()
@@ -349,6 +353,7 @@ class MainHandler:
                 show_state(f"{time} {_prj_path}已保存", 'success')
                 # 更新配置文件
                 Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
+                Config.save_config()  # 保存配置文件
 
     def export_file(self, event):
         ...
@@ -768,9 +773,12 @@ class RightTabWidget(QTabWidget):
         self.tab2_mod1_widget_verHorPartSet.hide()
         self.tab2_mod2_widget_singleLayer.hide()  # mod2
         self.tab2_mod2_widget_multiLayer.hide()
-        # 底部添加伸缩
+        # 添加伸缩
         self.tab1_main_layout.addStretch(1)
         self.tab2_main_layout.addStretch(1)
+        # 添加浅灰色快捷键提示
+        short_cut_widget = ShortCutWidget()
+        self.tab1_main_layout.addWidget(short_cut_widget, alignment=Qt.AlignLeft)
 
     def init_tab1(self):
         tab = QWidget()
@@ -1004,19 +1012,11 @@ class HullDesignTab(QWidget):
             time = Handler.CurrentProjectData["Object"].SaveTime
             show_state(f"{time} {_prj_path}已保存", 'success')
         # 检测颜色种类，弹出对话框，选择颜色
-        color_dialog = ColorDialog(self, _na_hull)
+        color_dialog = ColorDialog(Handler.window, _na_hull)
         color_dialog.exec_()
-        self.show_iron_obj(_na_hull)
+        self.init_NaHull_and_partRelationMap(_na_hull)
         # 生成工程文件对象
-        Handler.CurrentProjectData["Path"] = _prj_path  # 设置当前项目路径
-        Handler.CurrentProjectData["Name"] = _prj_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
-        Handler.CurrentProjectData["OriginalFilePath"] = _prj_path
-        Handler.CurrentProjectData["PartsData"] = NAHull.toJson(_na_hull.DrawMap)
-        Handler.CurrentProjectData["Object"] = CurrentProject(
-            Handler.CurrentProjectData["Name"], _prj_path,
-            _original_na_p, Handler.CurrentProjectData["PartsData"],
-            operations={}, mode=PF.NA, code='', save_time=''
-        )
+        generate_project_obj(_prj_path, _original_na_p, _na_hull)
         # 保存工程文件
         Handler.CurrentProjectData["Object"].save()
         time = Handler.CurrentProjectData["Object"].SaveTime
@@ -1059,7 +1059,7 @@ class HullDesignTab(QWidget):
         #     for mt, objs in self.all_3d_obj.items():
         #         objs.clear()
         #     show_state(f"正在读取{self.PTBDesignPath}...", 'process')
-        #     self.show_iron_obj(adhull)
+        #     self.init_NaHull_and_partRelationMap(adhull)
         #     show_state(f"{self.PTBDesignPath}读取成功", 'success')
         # else:
         #     _txt = "该设计不含进阶船体外壳，请重新选择哦"
@@ -1067,11 +1067,18 @@ class HullDesignTab(QWidget):
         #     self.convertAdhull_button_pressed()
         #     return
 
-    def show_iron_obj(self, obj):
-        self.all_3d_obj["钢铁"].append(obj)
-        self.zx_layer_obj.extend(obj.xzLayers)
+    def init_NaHull_and_partRelationMap(self, na_hull):
+        """
+        当用户完成了颜色选择后，初始化船体需要绘制的对象DrawMap，同时初始化零件关系图
+        :param na_hull:
+        :return:
+        """
+        self.all_3d_obj["钢铁"].append(na_hull)
+        self.zx_layer_obj.extend(na_hull.xzLayers)
         # 更新ThreeDFrame的paintGL
         self.update_3d_obj()
+        # 此时用户显然已经选取了颜色，要根据绘图的DrawMap对需要绘制的零件关系图进行初始化
+        na_hull.partRelationMap.init(na_hull.DrawMap)
 
     def update_3d_obj(self):
         # self.ThreeDFrame.environment_obj = self.environment_obj
@@ -1355,7 +1362,7 @@ class ReadNAHullTab(QWidget):
         show_state(f"正在读取{self.NADesignPath}...", 'process')
         show_state(f"{self.NADesignPath}读取成功", 'success')
         # 检测颜色种类，弹出对话框，选择颜色
-        color_dialog = ColorDialog(self, na_hull)
+        color_dialog = ColorDialog(Handler.window, na_hull)
         color_dialog.exec_()
         self.show_na_hull(na_hull)
 

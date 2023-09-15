@@ -366,6 +366,7 @@ class ThemeDialog(BasicDialog):
         self.lb0 = MyLabel("白天", font=QFont("微软雅黑", 10))
         self.lb1 = MyLabel("夜晚", font=QFont("微软雅黑", 10))
         self.lb2 = MyLabel("自定义", font=QFont("微软雅黑", 10))
+        # 布局
         self.center_layout.addWidget(self.cb0, 0, 0)
         self.center_layout.addWidget(self.cb1, 1, 0)
         self.center_layout.addWidget(self.cb2, 2, 0)
@@ -378,6 +379,18 @@ class ThemeDialog(BasicDialog):
     def set_widget(self):
         self.center_layout.setSpacing(8)
         self.center_layout.setContentsMargins(30, 20, 30, 0)
+        # 读取config中的主题设置
+        if self.config.Config["Theme"] == "Day":
+            self.cb0.click()
+        elif self.config.Config["Theme"] == "Night":
+            self.cb1.click()
+        elif self.config.Config["Theme"] == "Custom":
+            self.cb2.click()
+        # 将单击label事件触发单击button事件
+        self.lb0.mousePressEvent = lambda x: self.cb0.click()
+        self.lb1.mousePressEvent = lambda x: self.cb1.click()
+        self.lb2.mousePressEvent = lambda x: self.cb2.click()
+
 
     def ensure(self):
         super().ensure()

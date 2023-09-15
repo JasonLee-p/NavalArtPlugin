@@ -11,6 +11,7 @@ from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
 from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
 from NA_design_reader import AdjustableHull, Part
+from NA_design_reader import PartRelationMap as PRM
 from OpenGL_objs import *
 from GUI.QtGui import *
 from utils import FragmentShader
@@ -470,63 +471,63 @@ class OpenGLWin(QOpenGLWidget):
         # 数字1234切换显示模式
         if event.key() == Qt.Key_1:
             self.set_show_3d_obj_mode(OpenGLWin.ShowAll)
+            show_state("已切换至全视图(1)", "success", self.show_state_label)
         elif event.key() == Qt.Key_2:
             self.set_show_3d_obj_mode(OpenGLWin.ShowZX)
+            show_state("已切换至横剖面(2)", "success", self.show_state_label)
         elif event.key() == Qt.Key_3:
             self.set_show_3d_obj_mode(OpenGLWin.ShowYX)
+            show_state("已切换至纵剖面(3)", "success", self.show_state_label)
         elif event.key() == Qt.Key_4:
             self.set_show_3d_obj_mode(OpenGLWin.ShowLeft)
+            show_state("已切换至左视图(4)", "success", self.show_state_label)
         # a键摄像机目标回（0, 0, 0）
         if event.key() == Qt.Key_A:
             self.camera.change_target(QVector3D(0, 0, 0))
+            show_state("摄像机目标回到原点(a)", "success", self.show_state_label)
             self.update()
         # ====================================================================================Alt键
         if QApplication.keyboardModifiers() == Qt.AltModifier:
-            # 如果当前有且仅有一个被选中的AdjustableHull，就寻找其上方的AdjustableHull
             if self.show_3d_obj_mode != OpenGLWin.ShowAll:
                 return
             if event.key() not in (Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right):
                 return
             # 获取当前被选中的AdjustableHull
             for selected_obj in self.selected_gl_objects[self.show_3d_obj_mode]:
-                _min = None
-                for color, part_set in self.all_3d_obj["钢铁"][0].DrawMap.items():
-                    for obj in part_set:
-                        if type(obj) != AdjustableHull or obj == selected_obj:
-                            continue
-                        if obj.Pos[0] != selected_obj.Pos[0]:
-                            continue
-                        if event.key() == Qt.Key_Up and (  # ======================================Alt上键
-                                obj.Pos[2] == selected_obj.Pos[2]):
-                            if obj.Pos[1] > selected_obj.Pos[1]:
-                                if _min is None or obj.Pos[1] < _min.Pos[1]:
-                                    show_state("选区上移", "success", self.show_state_label)
-                                    _min = obj
-                        elif event.key() == Qt.Key_Down and (  # ==================================Alt下键
-                                obj.Pos[2] == selected_obj.Pos[2]):
-                            if obj.Pos[1] < selected_obj.Pos[1]:
-                                if _min is None or obj.Pos[1] > _min.Pos[1]:
-                                    show_state("选区下移", "success", self.show_state_label)
-                                    _min = obj
-                        # 如果摄像机方向朝向x负方向，左键就往前（z正方向）找，右键就往后（z负方向）找
-                        elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
-                                event.key() == Qt.Key_Right and self.camera.angle.x() > 0):
-                            if obj.Pos[2] > selected_obj.Pos[2] and obj.Pos[1] == selected_obj.Pos[1]:
-                                if _min is None or obj.Pos[2] < _min.Pos[2]:
-                                    show_state("选区前移", "success", self.show_state_label)
-                                    _min = obj
-                        elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
-                                event.key() == Qt.Key_Left and self.camera.angle.x() > 0):
-                            if obj.Pos[2] < selected_obj.Pos[2] and obj.Pos[1] == selected_obj.Pos[1]:
-                                if _min is None or obj.Pos[2] > _min.Pos[2]:
-                                    show_state("选区后移", "success", self.show_state_label)
-                                    _min = obj
-                if _min is not None:  # =====================================================如果找到了
-                    if _min not in self.selected_gl_objects[self.show_3d_obj_mode]:
-                        index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
-                        self.selected_gl_objects[self.show_3d_obj_mode][index] = _min
-                    else:
-                        self.selected_gl_objects[self.show_3d_obj_mode].remove(selected_obj)
+                selected_obj_relations = selected_obj.allParts_relationMap.basicMap[selected_obj]
+                next_obj = None
+                move_direction = None
+                if event.key() == Qt.Key_Up:  # ==============================================Alt上键
+                    up_objs = selected_obj_relations[PRM.UP]
+                    if len(up_objs) != 0:
+                        next_obj = list(up_objs.keys())[0]
+                        move_direction = "上"
+                elif event.key() == Qt.Key_Down:  # ==========================================Alt下键
+                    down_objs = selected_obj_relations[PRM.DOWN]
+                    if len(down_objs) != 0:
+                        next_obj = list(down_objs.keys())[0]
+                        move_direction = "下"
+                elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
+                      event.key() == Qt.Key_Right and self.camera.angle.x() > 0):  # =========Alt左键
+                    front_objs = selected_obj_relations[PRM.FRONT]
+                    if len(front_objs) != 0:
+                        next_obj = list(front_objs.keys())[0]
+                        move_direction = "前"
+                elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
+                      event.key() == Qt.Key_Left and self.camera.angle.x() > 0):  # =========Alt右键
+                    back_objs = selected_obj_relations[PRM.BACK]
+                    if len(back_objs) != 0:
+                        next_obj = list(back_objs.keys())[0]
+                        move_direction = "后"
+                if next_obj is not None:
+                    index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
+                    self.selected_gl_objects[self.show_3d_obj_mode][index] = next_obj
+                    show_state(f"选区{move_direction}移({event.key()})", "success", self.show_state_label)
+                elif len(self.selected_gl_objects[self.show_3d_obj_mode]) > 1:
+                    # 删除当前选中的AdjustableHull
+                    index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
+                    self.selected_gl_objects[self.show_3d_obj_mode].pop(index)
+                    show_state(f"选区{move_direction}移({event.key()})", "success", self.show_state_label)
         self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:

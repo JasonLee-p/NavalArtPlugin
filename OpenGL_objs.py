@@ -459,6 +459,7 @@ class AdHull(ReadPTB, SolidObject):
 class NAHull(ReadNA, SolidObject):
     def __init__(self, path=False, data=None, progress_dialog=None):
         """
+        NAHull一定要在用户选完颜色之后调用，因为需要根据颜色来初始化DrawMap。
         注意，self.DrawMap不会在ReadNA和SolidObject中初始化，会在其他地方初始化。
         在初始化后会调用get_ys_and_zs()和get_layers()方法，而不是在self.__init__()中调用
         :param path:
@@ -466,8 +467,9 @@ class NAHull(ReadNA, SolidObject):
         """
         self.progress_dialog = progress_dialog  # 此时进度已经到20%
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        ReadNA.__init__(self, path, data, progress_dialog)
+        ReadNA.__init__(self, path, data, progress_dialog)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
+        self.DrawMap = self.ColorPartsMap.copy()
         self.ys = []  # 所有y高度值，用于绘制xz截面
         self.zs = []  # 所有z前后值，用于绘制xy截面
         self.xzLayers = []  # 所有xz截面
@@ -613,7 +615,7 @@ class NaHullXZLayer(SolidObject):
             gl.glNormal3f(0, -1, 0)
             gl.glBegin(gl.GL_POLYGON)
             for dot in dots:
-                gl.glVertex3f(dot[0], dot[1], dot[2])
+                gl.glVertex3f(*dot)
             gl.glEnd()
         # # 绘制边框
         # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color["选择框"][0])

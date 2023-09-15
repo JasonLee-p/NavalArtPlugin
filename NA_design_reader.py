@@ -1,3 +1,4 @@
+import time
 import xml.etree.ElementTree as ET
 import numpy as np
 from quaternion import quaternion
@@ -6,21 +7,21 @@ from quaternion import quaternion
 文件格式：
 <root>
   <ship author="XXXXXXXXX" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
-    <part id="0">
+    <newPart id="0">
       <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
       <position x="0" y="0" z="114.75" />
       <rotation x="0" y="0" z="0" />
       <scale x="1" y="1" z="1" />
       <color hex="975740" />
       <armor value="5" />
-    </part>
-    <part id="190">
+    </newPart>
+    <newPart id="190">
       <position x="0" y="-8.526513E-14" z="117.0312" />
       <rotation x="90" y="0" z="0" />
       <scale x="0.03333336" y="0.03333367" z="0.1666679" />
       <color hex="975740" />
       <armor value="5" />
-    </part>
+    </newPart>
   </root>
 """
 
@@ -158,7 +159,9 @@ def rotate_quaternion(dot_dict, rot):
 class Part:
     ShipsAllParts = []
 
-    def __init__(self, Id, pos, rot, scale, color, armor):
+    def __init__(self, read_na, Id, pos, rot, scale, color, armor):
+        self.read_na_obj = read_na
+        self.allParts_relationMap = read_na.partRelationMap
         self.Id = Id
         self.Pos = pos
         self.Rot = rot
@@ -199,7 +202,7 @@ class AdjustableHull(Part):
     All = []
 
     def __init__(
-            self, Id, pos, rot, scale, color, armor,
+            self, read_na, Id, pos, rot, scale, color, armor,
             length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve,
             heightScale, heightOffset):
         """
@@ -220,7 +223,7 @@ class AdjustableHull(Part):
         :param heightScale: 浮点型，前端高度缩放
         :param heightOffset: 浮点型，前端高度偏移
         """
-        Part.__init__(self, Id, pos, rot, scale, color, armor)
+        Part.__init__(self, read_na, Id, pos, rot, scale, color, armor)
         self.Len = length
         self.Hei = height
         self.FWid = frontWidth
@@ -494,8 +497,8 @@ class AdjustableHull(Part):
 class MainWeapon(Part):
     All = []
 
-    def __init__(self, Id, pos, rot, scale, color, armor, manual_control, elevator):
-        super().__init__(Id, pos, rot, scale, color, armor)
+    def __init__(self, read_na, Id, pos, rot, scale, color, armor, manual_control, elevator):
+        super().__init__(read_na, Id, pos, rot, scale, color, armor)
         self.ManualControl = manual_control
         self.ElevatorH = elevator
         MainWeapon.All.append(self)
@@ -524,17 +527,19 @@ class ReadNA:
         """
         self.progress_dialog = progress_dialog  # 此时进度已经到了20%
         self.Parts = []
+        self.partRelationMap = PartRelationMap(self)  # 零件关系图，包含零件的上下左右前后关系
         if filepath is False:
-            # 实例化data中的零件
+            # ===================================================================== 实例化data中的零件
             self.ColorPartsMap = {}
             color_num = len(data.keys())
-            single_step = 20/color_num
+            single_step = 20 / color_num
             for color, parts in data.items():
                 index = list(data.keys()).index(color)
                 self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
                 for part in parts:
                     if part["Typ"] == "Part":
                         obj = Part(
+                            self,
                             part["Id"],
                             tuple(part["Pos"]), tuple(part["Rot"]), tuple(part["Scl"]),
                             str(part["Col"]), int(part["Amr"])
@@ -549,6 +554,7 @@ class ReadNA:
                         except:
                             elevator = part["ElevatorH"] = None
                         obj = MainWeapon(
+                            read_na=self,
                             Id=part["Id"],
                             pos=tuple(part["Pos"]),
                             rot=tuple(part["Rot"]),
@@ -560,6 +566,7 @@ class ReadNA:
                         )
                     elif part["Typ"] == "AdjustableHull":
                         obj = AdjustableHull(
+                            self,
                             part["Id"],
                             tuple(part["Pos"]), tuple(part["Rot"]), tuple(part["Scl"]),
                             str(part["Col"]), int(part["Amr"]),
@@ -577,7 +584,11 @@ class ReadNA:
                         self.ColorPartsMap[_color] = []
                     self.ColorPartsMap[_color].append(obj)
                     self.Parts.append(obj)
-        else:  # 读取文件
+                    # 初始化零件关系图
+                    self.partRelationMap.add_part(obj)
+            self.partRelationMap.sort()
+            self.partRelationMap.init(drawMap=None, init=False)  # 上方已经初始化了drawMap。
+        else:  # =========================================================================== 读取na文件
             self.filename = filepath.split('\\')[-1]
             self.filepath = filepath
             try:
@@ -592,14 +603,14 @@ class ReadNA:
                 self.TracerCol = self.root.find('ship').attrib['tracerCol']
             except KeyError:
                 self.TracerCol = None
-            self._all_parts = self.root.findall('ship/part')
+            self._xml_all_parts = self.root.findall('ship/newPart')
             self.Weapons = MainWeapon.All
             self.AdjustableHulls = AdjustableHull.All
             self.ColorPartsMap = {}
-            part_num = len(self._all_parts)
-            single_step = 20/part_num
-            for part in self._all_parts:
-                index = self._all_parts.index(part)
+            part_num = len(self._xml_all_parts)
+            single_step = 20 / part_num
+            for part in self._xml_all_parts:
+                index = self._xml_all_parts.index(part)
                 self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
                 _id = str(part.attrib['id'])
                 _pos = part.find('position').attrib
@@ -614,7 +625,7 @@ class ReadNA:
                 if _id == '0':
                     _data = part.find('data').attrib
                     obj = AdjustableHull(
-                        _id, _pos, _rot, _scl, _col, _amr,
+                        self, _id, _pos, _rot, _scl, _col, _amr,
                         float(_data['length']), float(_data['height']),
                         float(_data['frontWidth']), float(_data['backWidth']),
                         float(_data['frontSpread']), float(_data['backSpread']),
@@ -631,15 +642,203 @@ class ReadNA:
                         elevatorH = part.find('turret').attrib['evevator']
                     except KeyError:
                         elevatorH = part.find('turret').attrib['evevator'] = None
-                    obj = MainWeapon(_id, _pos, _rot, _scl, _col, _amr,
+                    obj = MainWeapon(self, _id, _pos, _rot, _scl, _col, _amr,
                                      manual_control, elevatorH)
                 # 最后添加到普通零件
                 else:
-                    obj = Part(_id, _pos, _rot, _scl, _col, _amr)
+                    obj = Part(self, _id, _pos, _rot, _scl, _col, _amr)
                 # 添加颜色
                 _color = f"#{part.find('color').attrib['hex']}"
                 if _color not in self.ColorPartsMap.keys():
                     self.ColorPartsMap[_color] = []
                 self.ColorPartsMap[_color].append(obj)
                 self.Parts.append(obj)
+                # 注意，这里没有对partRelationMap进行初始化，因为这里只是读取零件，还没有选颜色，所以要等到用户选颜色之后才能初始化
+        # 至此已经初始化的公有属性：
+        # self.filename *
+        # self.filepath *
+        # self.ShipName
+        # self.Author
+        # self.HornType
+        # self.HornPitch
+        # self.TracerCol
+        # self.Parts  # 所有零件的列表
+        # self.Weapons  # 所有武器的列表
+        # self.AdjustableHulls  # 所有可调节船体的列表
+        # self.ColorPartsMap  # 用于绘制的颜色-零件映射表
+        # self.progress_dialog  # 进度条
+        # self.partRelationMap  # 零件关系图，包含零件的上下左右前后关系
 
+
+class PartRelationMap:
+    FRONT = "front"
+    BACK = "back"
+    UP = "up"
+    DOWN = "down"
+    LEFT = "left"
+    RIGHT = "right"
+    SAME = "same"
+
+    FRONT_BACK = "front_back"
+    UP_DOWN = "up_down"
+    LEFT_RIGHT = "left_right"
+
+    def __init__(self, read_na):
+        """
+        建立有向图，6种关系，上下左右前后，权重等于距离（按照从小到大的顺序，越近索引越小，越远索引越大）
+        :param read_na:
+        """
+        self.Parts = read_na.Parts
+        self.xzLayerMap = {  # y: [Part0, Part1, ...]
+        }  # 每一水平截面层的零件，根据basicMap的前后左右关系，将零件分为同一层，优化basicMap添加零件的速度
+        self.xyLayerMap = {  # z: [Part0, Part1, ...]
+        }  # 每一前后截面层的零件，根据basicMap的上下左右关系，将零件分为同一层，优化basicMap添加零件的速度
+        self.yzLayerMap = {  # x: [Part0, Part1, ...]
+        }  # 每一左右截面层的零件，根据basicMap的上下前后关系，将零件分为同一层，优化basicMap添加零件的速度
+        self.basicMap = {  # 以零件为基础的关系图，包含零件的上下左右前后和距离关系
+            # 零件对象： {方向0：{对象0：距离0, 对象1：距离1, ...}, 方向1：{对象0：距离0, 对象1：距离1, ...}, ...}
+            # Part: {PartRelationMap.FRONT: {FrontPart0: FrontValue0, ...},
+            #        PartRelationMap.BACK: {BackPart0: BackValue0, ...},
+            #        PartRelationMap.UP: {UpPart0: UpValue0, ...},
+            #        PartRelationMap.DOWN: {DownPart0: DownValue0, ...},
+            #        PartRelationMap.LEFT: {LeftPart0: LeftValue0, ...},
+            #        PartRelationMap.RIGHT: {RightPart0: RightValue0, ...}}
+            #        PartRelationMap.SAME: {SamePart0: 0, ...}}
+        }  # 注意！生成完之后，会在OpenGL_objs.NaHull.getDrawMap()进行添加零件和排序，因为那个时候DrawMap才生成出来
+        self.relationMap = {  # 以关系为基础的关系图，不包含距离关系，只包含映射关系
+            # 方向0：{零件A：零件B, 零件C：零件D, ...}
+            PartRelationMap.FRONT: {},
+            PartRelationMap.UP: {},
+            PartRelationMap.LEFT: {},
+            PartRelationMap.SAME: {}
+        }
+
+    def opposite_direction(self, direction):
+        """
+        获取相反的方向
+        :param direction:
+        :return:
+        """
+        if direction == self.FRONT:
+            return self.BACK
+        elif direction == self.BACK:
+            return self.FRONT
+        elif direction == self.UP:
+            return self.DOWN
+        elif direction == self.DOWN:
+            return self.UP
+        elif direction == self.LEFT:
+            return self.RIGHT
+        elif direction == self.RIGHT:
+            return self.LEFT
+        elif direction == self.SAME:
+            return self.SAME
+
+    def _add_relation(self, part, other_part, part_relation, other_part_relation, raw_direction):
+        """
+        添加零件的关系
+        :param part: 添加的零件
+        :param other_part: 与之关系的零件
+        :param part_relation: 新增零件的关系映射
+        :param other_part_relation: 与之关系的零件的关系映射
+        :param raw_direction: 毛方向，前后，上下，左右
+        """
+        if raw_direction == self.SAME:
+            other_part_relation[self.SAME][part] = 0
+            for relation in (self.FRONT, self.BACK, self.UP, self.DOWN, self.LEFT, self.RIGHT):
+                part_relation[relation][other_part] = other_part_relation[relation][other_part]
+            part_relation[self.SAME][other_part] = 0
+            return
+        elif raw_direction == self.FRONT_BACK:
+            pos_index = 2
+            other_add2_new_directions = (self.FRONT, self.BACK)
+        elif raw_direction == self.UP_DOWN:
+            pos_index = 1
+            other_add2_new_directions = (self.UP, self.DOWN)
+        elif raw_direction == self.LEFT_RIGHT:
+            pos_index = 0
+            other_add2_new_directions = (self.LEFT, self.RIGHT)
+        else:
+            raise ValueError(f"非法的方向：{raw_direction}")
+        value = abs(other_part.Pos[pos_index] - part.Pos[pos_index])
+        if other_part.Pos[pos_index] > part.Pos[pos_index]:  # other在part的前面
+            part_relation[other_add2_new_directions[0]][other_part] = value
+            other_part_relation[other_add2_new_directions[1]][part] = value
+            self.relationMap[other_add2_new_directions[0]][part] = other_part
+        elif other_part.Pos[pos_index] < part.Pos[pos_index]:  # other在part的后面
+            part_relation[other_add2_new_directions[1]][other_part] = value
+            other_part_relation[other_add2_new_directions[0]][part] = value
+            self.relationMap[other_add2_new_directions[0]][other_part] = part
+        # 将other_part的相应的方向的零件也添加到new_part的该方向零件中
+        for raw_direction in other_add2_new_directions:
+            for other_part_direction, _other_part_direction_value in other_part_relation[raw_direction].items():
+                value2 = abs(other_part_direction.Pos[pos_index] - part.Pos[pos_index])
+                if other_part_direction.Pos[pos_index] > part.Pos[pos_index]:
+                    part_relation[other_add2_new_directions[0]][other_part_direction] = value2
+                elif other_part_direction.Pos[pos_index] < part.Pos[pos_index]:
+                    part_relation[other_add2_new_directions[1]][other_part_direction] = value2
+
+    def add_part(self, newPart):
+        """
+        添加零件
+        :param newPart:
+        :return:
+        """
+        # 初始化零件的上下左右前后零件
+        newPart_relation = {self.FRONT: {}, self.BACK: {},
+                            self.UP: {}, self.DOWN: {},
+                            self.LEFT: {}, self.RIGHT: {},
+                            self.SAME: {}}
+        # 先检查是否有有位置关系的other_part，如果有，就添加到new_part的上下左右前后零件中
+        # 然后新零件new_part根据other_part的关系扩充自己的关系
+        if len(self.basicMap) == 0:  # 如果basicMap为空，就直接添加
+            self.basicMap[newPart] = newPart_relation
+            return
+        # if newPart.Pos[0] not in self.xzLayerMap.keys():  # 如果xzLayerMap中没有该层，就添加
+        for otherPart, others_direction_relation in self.basicMap.items():
+            if otherPart.Pos[0] == newPart.Pos[0] and otherPart.Pos[1] == newPart.Pos[1]:  # xy相同，前后关系
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.FRONT_BACK)
+            elif otherPart.Pos[1] == newPart.Pos[1] and otherPart.Pos[2] == newPart.Pos[2]:  # yz相同，左右关系
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.LEFT_RIGHT)
+            elif otherPart.Pos[0] == newPart.Pos[0] and otherPart.Pos[2] == newPart.Pos[2]:  # xz相同，上下关系
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.UP_DOWN)
+            elif otherPart.Pos == newPart.Pos:  # 同一位置
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.SAME)
+        # 将new_part的关系添加到basicMap中
+        self.basicMap[newPart] = newPart_relation
+
+    def del_part(self, part):
+        """
+        删除零件
+        :param part:
+        :return:
+        """
+        # 遍历自身的相关零件，将自身从其关系中删除
+        for direction, other_parts in self.basicMap[part].items():
+            for other_part in other_parts.keys():
+                del self.basicMap[other_part][self.opposite_direction(direction)][part]
+        # 删除自身
+        del self.basicMap[part]
+
+    def init(self, drawMap, init=True):
+        """
+        :param drawMap: NaHull的绘图字典，键值对为：{颜色：[零件1，零件2，...]}
+        :param init: 如果为False，这个函数则仅用于drawMap的初始化后调用，指示代码位置方便Debug
+        :return:
+        """
+        if not init:
+            return
+        st = time.time()
+        for _color, parts in drawMap.items():
+            for part in parts:
+                self.add_part(part)
+        print(f"零件关系图零件添加完成，耗时：{time.time() - st}秒")
+        st = time.time()
+        self.sort()
+        print(f"零件关系图零件排序完成，耗时：{time.time() - st}秒")
+
+    def sort(self):
+        for part, part_relation in self.basicMap.items():
+            # 按照value（relation的值）对relation字典从小到大排序：
+            for direction, others_direction_relation in part_relation.items():
+                part_relation[direction] = dict(sorted(others_direction_relation.items(), key=lambda item: item[1]))
