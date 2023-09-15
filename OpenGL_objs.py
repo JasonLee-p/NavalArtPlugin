@@ -16,12 +16,10 @@ import math
 from abc import abstractmethod
 # 第三方库
 import numpy as np
-from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QVector3D
 # 自定义库
 from NA_design_reader import ReadNA, AdjustableHull
 from PTB_design_reader import ReadPTB
-from GUI.QtGui import ProgressBarWindow
 
 
 def get_normal(dot1, dot2, dot3, center=None):

@@ -6,7 +6,6 @@ from typing import Union
 
 import numpy as np
 from quaternion import quaternion
-from GUI.QtGui import ProgressBarWindow
 
 """
 文件格式：

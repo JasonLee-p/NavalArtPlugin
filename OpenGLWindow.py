@@ -12,7 +12,7 @@ from OpenGL.GLUT import *
 from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
 from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
-from NA_design_reader import AdjustableHull, Part
+from NA_design_reader import Part
 from NA_design_reader import PartRelationMap as PRM
 from OpenGL_objs import *
 from GUI.QtGui import *

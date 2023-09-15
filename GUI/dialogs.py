@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QGridLayout, QCheckBox, QFileDialog, QProgressBar, QApplication
+from PyQt5.QtWidgets import QCheckBox, QFileDialog
 # 本地库
 from PTB_design_reader import ReadPTB
 from GUI.QtGui import *
