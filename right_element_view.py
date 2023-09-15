@@ -1,8 +1,7 @@
 """
 右侧元素检视器的内容
 """
-from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
-from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QTextEdit, QShortcut
+from PyQt5.QtWidgets import QTextEdit
 from GUI.QtGui import *
 
 

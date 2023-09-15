@@ -1,4 +1,6 @@
-import numpy as np
+"""
+OpenGL窗口
+"""
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QOpenGLWidget, QApplication, QToolButton
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat, QKeyEvent
@@ -63,7 +65,8 @@ class OpenGLWin(QOpenGLWidget):
     ShowYX = 33
     ShowLeft = 44
 
-    def __init__(self, camera_sensitivity, using_various_mode=False, show_state_label=None):
+    def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
+        self.show_statu_func = show_statu_func
         self.operation_mode = OpenGLWin.Selectable
         self.show_3d_obj_mode = OpenGLWin.ShowAll
         self.using_various_mode = using_various_mode  # 是否使用全部四种显示模式
@@ -113,7 +116,6 @@ class OpenGLWin(QOpenGLWidget):
         self.selected_gl_objects = {
             self.ShowAll: [], self.ShowZX: [], self.ShowYX: [], self.ShowLeft: []
         }
-        self.show_state_label = show_state_label
         # ========================================================================================子控件
         self.mod1_button = QToolButton(self)
         self.mod2_button = QToolButton(self)
@@ -226,24 +228,28 @@ class OpenGLWin(QOpenGLWidget):
             self.mod2_button.setChecked(False)
             self.mod3_button.setChecked(False)
             self.mod4_button.setChecked(False)
+            self.show_statu_func("切换至全视图模式 (1)", "success")
             self.show_3d_obj_mode = OpenGLWin.ShowAll
         elif mode == OpenGLWin.ShowZX:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(True)
             self.mod3_button.setChecked(False)
             self.mod4_button.setChecked(False)
+            self.show_statu_func("切换至横剖面模式 (2)", "success")
             self.show_3d_obj_mode = OpenGLWin.ShowZX
         elif mode == OpenGLWin.ShowYX:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(False)
             self.mod3_button.setChecked(True)
             self.mod4_button.setChecked(False)
+            self.show_statu_func("切换至纵剖面模式 (3)", "success")
             self.show_3d_obj_mode = OpenGLWin.ShowYX
         elif mode == OpenGLWin.ShowLeft:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(False)
             self.mod3_button.setChecked(False)
             self.mod4_button.setChecked(True)
+            self.show_statu_func("切换至左视图模式 (4)", "success")
             self.show_3d_obj_mode = OpenGLWin.ShowLeft
         self.update()
 
@@ -471,20 +477,16 @@ class OpenGLWin(QOpenGLWidget):
         # 数字1234切换显示模式
         if event.key() == Qt.Key_1:
             self.set_show_3d_obj_mode(OpenGLWin.ShowAll)
-            show_state("已切换至全视图(1)", "success", self.show_state_label)
         elif event.key() == Qt.Key_2:
             self.set_show_3d_obj_mode(OpenGLWin.ShowZX)
-            show_state("已切换至横剖面(2)", "success", self.show_state_label)
         elif event.key() == Qt.Key_3:
             self.set_show_3d_obj_mode(OpenGLWin.ShowYX)
-            show_state("已切换至纵剖面(3)", "success", self.show_state_label)
         elif event.key() == Qt.Key_4:
             self.set_show_3d_obj_mode(OpenGLWin.ShowLeft)
-            show_state("已切换至左视图(4)", "success", self.show_state_label)
         # a键摄像机目标回（0, 0, 0）
         if event.key() == Qt.Key_A:
             self.camera.change_target(QVector3D(0, 0, 0))
-            show_state("摄像机目标回到原点(a)", "success", self.show_state_label)
+            self.show_statu_func("摄像机目标回到原点(a)", "success")
             self.update()
         # ====================================================================================Alt键
         if QApplication.keyboardModifiers() == Qt.AltModifier:
@@ -522,12 +524,12 @@ class OpenGLWin(QOpenGLWidget):
                 if next_obj is not None:
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
                     self.selected_gl_objects[self.show_3d_obj_mode][index] = next_obj
-                    show_state(f"选区{move_direction}移({event.key()})", "success", self.show_state_label)
+                    self.show_statu_func(f"选区{move_direction}移(Alt+{event.key()})", "success")
                 elif len(self.selected_gl_objects[self.show_3d_obj_mode]) > 1:
                     # 删除当前选中的AdjustableHull
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
                     self.selected_gl_objects[self.show_3d_obj_mode].pop(index)
-                    show_state(f"选区{move_direction}移({event.key()})", "success", self.show_state_label)
+                    self.show_statu_func(f"删除选区(Alt+{event.key()})", "success")
         self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
@@ -677,7 +679,6 @@ class OpenGLWin2(QOpenGLWidget):
 
     def __init__(self, camera_sensitivity):
         super().__init__()
-
         # 配置OpenGL格式
         _format = QSurfaceFormat()
         _format.setVersion(4, 3)  # 指定OpenGL版本为3.3

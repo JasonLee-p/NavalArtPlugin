@@ -16,10 +16,12 @@ import math
 from abc import abstractmethod
 # 第三方库
 import numpy as np
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QVector3D
 # 自定义库
 from NA_design_reader import ReadNA, AdjustableHull
 from PTB_design_reader import ReadPTB
+from GUI.QtGui import ProgressBarWindow
 
 
 def get_normal(dot1, dot2, dot3, center=None):
@@ -457,7 +459,7 @@ class AdHull(ReadPTB, SolidObject):
 
 
 class NAHull(ReadNA, SolidObject):
-    def __init__(self, path=False, data=None, progress_dialog=None):
+    def __init__(self, path=False, data=None, show_statu_func=None):
         """
         NAHull一定要在用户选完颜色之后调用，因为需要根据颜色来初始化DrawMap。
         注意，self.DrawMap不会在ReadNA和SolidObject中初始化，会在其他地方初始化。
@@ -465,33 +467,28 @@ class NAHull(ReadNA, SolidObject):
         :param path:
         :param data:
         """
-        self.progress_dialog = progress_dialog  # 此时进度已经到20%
+        # 判断show_statu_func是函数还是qsignal，
+        try:
+            self.show_statu_func = show_statu_func.emit
+        except AttributeError:
+            self.show_statu_func = show_statu_func
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        ReadNA.__init__(self, path, data, progress_dialog)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
+        ReadNA.__init__(self, path, data, self.show_statu_func)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
         self.DrawMap = self.ColorPartsMap.copy()
-        self.ys = []  # 所有y高度值，用于绘制xz截面
-        self.zs = []  # 所有z前后值，用于绘制xy截面
         self.xzLayers = []  # 所有xz截面
         self.xyLayers = []  # 所有xy截面
 
-    def get_ys_and_zs(self):
-        for color, part_set in self.DrawMap.items():
-            for part in part_set:
-                if type(part) != AdjustableHull:
-                    continue
-                for dot in part.plot_all_dots:
-                    _y = float(dot[1])
-                    if dot[1] not in self.ys:
-                        self.ys.append(dot[1])
-                    if dot[2] not in self.zs:
-                        self.zs.append(dot[2])
-        self.ys.sort()
-        self.zs.sort()
-
     def get_layers(self):
-        for y in self.ys:
-            self.xzLayers.append(NaHullXZLayer(self, y))
+        total_y_num = len(self.partRelationMap.xzDotsLayerMap)
+        i = 0
+        for y, parts in self.partRelationMap.xzDotsLayerMap.items():
+            i += 1
+            if len(parts) < 3:
+                continue
+            if i % 4567 == 0:
+                self.show_statu_func(f"正在生成xz截面第{i}/{total_y_num}层", "process")
+            self.xzLayers.append(NaHullXZLayer(self, y, parts))
 
     @staticmethod
     def toJson(data):
@@ -503,56 +500,67 @@ class NAHull(ReadNA, SolidObject):
                 result[color].append(part.to_dict())
         return result
 
-    def draw(self, gl, material="钢铁", theme_color=None):
+    @staticmethod
+    def draw_color(gl, theme_color, material, color, part_set):
+        # 16进制颜色转换为RGBA
+        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+        else:  # 说明是黑夜模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+            # 减去一定的值
+            difference = 0.08
+            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, 1)
+            # 如果小于0，就等于0
+            color_ = (color_[0] if color_[0] > 0 else 0,
+                      color_[1] if color_[1] > 0 else 0,
+                      color_[2] if color_[2] > 0 else 0,
+                      1)
+        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, 1
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
+        gl.glColor4f(*color_)
+        for part in part_set:
+            try:
+                for draw_method, faces_dots in part.plot_faces.items():
+                    # draw_method是字符串，需要转换为OpenGL的常量
+                    for face in faces_dots:
+                        gl.glBegin(eval(f"gl.{draw_method}"))
+                        if len(face) == 3 or len(face) == 4:
+                            normal = get_normal(face[0], face[1], face[2])
+                        elif len(face) > 12:
+                            normal = get_normal(face[0], face[6], face[12])
+                        else:
+                            continue
+                        gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                        for dot in face:
+                            gl.glVertex3f(dot[0], dot[1], dot[2])
+                        gl.glEnd()
+            except AttributeError as e:
+                pass
 
+    def draw(self, gl, material="钢铁", theme_color=None):
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         # 绘制面
         for color, part_set in self.DrawMap.items():
-            # 16进制颜色转换为RGBA
-            if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
-                _rate = 600
-                color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
-            else:  # 说明是黑夜模式
-                _rate = 600
-                color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
-                # 减去一定的值
-                difference = 0.08
-                color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, 1)
-                # 如果小于0，就等于0
-                color_ = (color_[0] if color_[0] > 0 else 0,
-                          color_[1] if color_[1] > 0 else 0,
-                          color_[2] if color_[2] > 0 else 0,
-                          1)
-            light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, 1
-            gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
-            gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
-            gl.glColor4f(*color_)
-            for part in part_set:
-                try:
-                    for draw_method, faces_dots in part.plot_faces.items():
-                        # draw_method是字符串，需要转换为OpenGL的常量
-                        for face in faces_dots:
-                            gl.glBegin(eval(f"gl.{draw_method}"))
-                            if len(face) == 3 or len(face) == 4:
-                                normal = get_normal(face[0], face[1], face[2])
-                            elif len(face) > 12:
-                                normal = get_normal(face[0], face[6], face[12])
-                            else:
-                                continue
-                            gl.glNormal3f(normal.x(), normal.y(), normal.z())
-                            for dot in face:
-                                gl.glVertex3f(dot[0], dot[1], dot[2])
-                            gl.glEnd()
-                except AttributeError as e:
-                    pass
+            # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
+            # t.start()
+            self.draw_color(gl, theme_color, material, color, part_set)
 
 
 class NaHullXZLayer(SolidObject):
-    def __init__(self, na_hull, y):
+    def __init__(self, na_hull, y, y_parts):
+        """
+        :param na_hull: 暂时没用
+        :param y:
+        :param y_parts:
+        """
         SolidObject.__init__(self, None)
         self.na_hull = na_hull
         self.y = y
+        self.y_parts = y_parts
         self.PlotAvailable = True  # 当只含有一个零件时，不绘制
         # 在na_hull中找到所有y值为y的零件和点
         self.index = []  # 所有点在原来的Part.plot_all_dots中的索引，用来判断是否是含曲面零件的曲面中间点连线，是则不显示。
@@ -561,20 +569,19 @@ class NaHullXZLayer(SolidObject):
 
     def get_partsDotsMap(self):
         result = {}
-        for color, part_set in self.na_hull.DrawMap.items():
-            for part in part_set:
-                if type(part) != AdjustableHull:
-                    continue
-                for i in range(len(part.plot_all_dots)):
-                    dot = list(part.plot_all_dots[i])
-                    # if -0.0005 < dot[1] - self.y < 0.0005:
-                    if dot[1] == self.y:
-                        if len(part.plot_all_dots) == 48:  # 为带曲面的零件
-                            self.index.append(i) if i not in self.index else None
-                        if part not in result:
-                            result[part] = [dot]
-                        if dot not in result[part]:
-                            result[part].append(dot)
+        for part in self.y_parts:
+            if type(part) != AdjustableHull:
+                continue
+            for i in range(len(part.plot_all_dots)):
+                dot = list(part.plot_all_dots[i])
+                # if -0.0005 < dot[1] - self.y < 0.0005:
+                if dot[1] == self.y:
+                    if len(part.plot_all_dots) == 48:  # 为带曲面的零件
+                        self.index.append(i) if i not in self.index else None
+                    if part not in result:
+                        result[part] = [dot]
+                    if dot not in result[part]:
+                        result[part].append(dot)
         if len(result) <= 2:  # 如果只有一两个零件，就不绘制
             self.PlotAvailable = False
             return {}

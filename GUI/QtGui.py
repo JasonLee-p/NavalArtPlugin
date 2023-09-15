@@ -5,9 +5,10 @@ import json
 import os
 from abc import abstractmethod
 # 第三方库
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar, QGridLayout
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar, QGridLayout, \
+    QProgressBar, QMainWindow
 from PyQt5.QtWidgets import QTabWidget, QMenu, QAction, QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -168,7 +169,6 @@ class MainWindow(QWidget):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         super().__init__(parent=None)
-        # 隐藏窗口
         self.hide()
         # 设置窗口属性
         self.setWindowTitle('NavalArt Plugin')
@@ -176,6 +176,7 @@ class MainWindow(QWidget):
         self.set_bg_color(BG_COLOR1)
         self.setWindowFlags(Qt.FramelessWindowHint)  # 隐藏标题栏
         self.setMinimumSize(0.7 * WinWid, 0.7 * WinHei)
+        self.setMaximumSize(WinWid, WinHei)
         # 添加布局器
         self.MainLayout = QVBoxLayout()  # 主布局器
         self.MainLayout.setContentsMargins(0, 0, 0, 0)
@@ -348,28 +349,22 @@ class MyMainTabWidget(QTabWidget):
 class MyMessageBox(QMessageBox):
     def __init__(self):
         super().__init__()
-        # 设置背景色
         self.setStyleSheet(
             f"QMessageBox{{background-color:{BG_COLOR1};"
             f"color:{FG_COLOR0};"
-            f"font-size:12px;"
-            f"border:1px solid {FG_COLOR0};}}"
-            f"QMessageBox QPushButton{{background-color:{BG_COLOR1};"
+            "border:1px solid gray;}}"
+            f"QMessageBox QPushButton{{background-color:{BG_COLOR0};"
             f"color:{FG_COLOR0};"
-            f"font-size:12px;"
-            f"border:1px solid {FG_COLOR0};}}"
+            "border:1px solid gray;}}"
             f"QMessageBox QPushButton:hover{{background-color:{BG_COLOR3};"
             f"color:{FG_COLOR0};"
-            f"font-size:12px;"
-            f"border:1px solid {FG_COLOR0};}}"
+            "border:1px solid gray;}}"
+            f"QMessageBox QPushButton:pressed{{background-color:{BG_COLOR2};"
+            f"color:{FG_COLOR0};"
+            "border:1px solid gray;}}"
         )
         # 设置按钮
         self.setStandardButtons(QMessageBox.Yes)
-        self.button(QMessageBox.Yes).setStyleSheet(
-            f"background-color:{BG_COLOR1};"  # 按钮背景颜色
-            f"color:{FG_COLOR0};"  # 按钮字体颜色
-            f"border:1px solid {FG_COLOR0};"  # 按钮边框
-        )
         self.button(QMessageBox.Yes).setCursor(Qt.PointingHandCursor)
 
 
@@ -634,3 +629,35 @@ class ShortCutWidget(QWidget):
             _l = i % 4 + 1
             _r = i // 4
             self.layout.addWidget(self.shortcut_labels[i], _l, _r)
+
+
+class ProgressBarWindow(QMainWindow):
+    def __init__(self, title):
+        super().__init__()
+        self.title = title
+        self.central_widget = QWidget()
+        self.progress_bar = QProgressBar()
+        self.progress_timer = QTimer(self)
+        self.initUI()
+        self.showProgress()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(100, 100, 400, 100)
+        self.setCentralWidget(self.central_widget)
+        self.progress_bar.setAlignment(Qt.AlignCenter)
+        layout = QVBoxLayout()
+        layout.addWidget(self.progress_bar)
+        self.central_widget.setLayout(layout)
+
+    def showProgress(self):
+        self.progress_bar.setValue(0)
+        self.progress_timer.timeout.connect(self.updateProgress)  # 连接信号与槽
+        self.progress_timer.start(100)  # 更新进度条的时间间隔（毫秒）
+
+    def updateProgress(self, value):
+        self.progress_bar.setValue(value)
+
+        if value == 100:
+            self.progress_timer.stop()
+            self.close()  # 当进度到达100%时关闭窗口

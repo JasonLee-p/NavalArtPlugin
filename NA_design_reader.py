@@ -1,7 +1,12 @@
-import time
+"""
+读取NA设计文件的模块
+"""
 import xml.etree.ElementTree as ET
+from typing import Union
+
 import numpy as np
 from quaternion import quaternion
+from GUI.QtGui import ProgressBarWindow
 
 """
 文件格式：
@@ -24,6 +29,10 @@ from quaternion import quaternion
     </newPart>
   </root>
 """
+
+
+def show_statu():
+    return
 
 
 def rotate_axis(rotated_axis, axis, angle):
@@ -519,24 +528,27 @@ class MainWeapon(Part):
 
 
 class ReadNA:
-    def __init__(self, filepath=False, data=None, progress_dialog=None):
+    def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None):
         """
 
         :param filepath:
         :param data: 字典，键是颜色的十六进制表示，值是零件的列表，但是尚未实例化，是字典形式的数据
+        :param show_statu_func:
         """
-        self.progress_dialog = progress_dialog  # 此时进度已经到了20%
+        self.show_statu_func = show_statu_func
         self.Parts = []
-        self.partRelationMap = PartRelationMap(self)  # 零件关系图，包含零件的上下左右前后关系
+        self.partRelationMap = PartRelationMap(self, self.show_statu_func)  # 零件关系图，包含零件的上下左右前后关系
         if filepath is False:
             # ===================================================================== 实例化data中的零件
             self.ColorPartsMap = {}
-            color_num = len(data.keys())
-            single_step = 20 / color_num
+            total_parts_num = sum([len(parts) for parts in data.values()])
+            i = 0
             for color, parts in data.items():
-                index = list(data.keys()).index(color)
-                self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
                 for part in parts:
+                    if i % 123 == 0:
+                        process = round(i / total_parts_num * 100, 2)
+                        self.show_statu_func(f"正在实例化第{i}个零件，进度：{process} %", "process")
+                    i += 1
                     if part["Typ"] == "Part":
                         obj = Part(
                             self,
@@ -603,15 +615,16 @@ class ReadNA:
                 self.TracerCol = self.root.find('ship').attrib['tracerCol']
             except KeyError:
                 self.TracerCol = None
-            self._xml_all_parts = self.root.findall('ship/newPart')
+            self._xml_all_parts = self.root.findall('ship/part')
+            # print(self._xml_all_parts)
             self.Weapons = MainWeapon.All
             self.AdjustableHulls = AdjustableHull.All
             self.ColorPartsMap = {}
             part_num = len(self._xml_all_parts)
-            single_step = 20 / part_num
-            for part in self._xml_all_parts:
-                index = self._xml_all_parts.index(part)
-                self.progress_dialog.set_progress(20 + single_step * index) if self.progress_dialog else None
+            for i, part in enumerate(self._xml_all_parts):
+                if i % 123 == 0:
+                    process = round(i / part_num * 100, 2)
+                    self.show_statu_func(f"正在读取第{i}个零件，进度：{process} %", "process")
                 _id = str(part.attrib['id'])
                 _pos = part.find('position').attrib
                 _rot = part.find('rotation').attrib
@@ -652,8 +665,11 @@ class ReadNA:
                 if _color not in self.ColorPartsMap.keys():
                     self.ColorPartsMap[_color] = []
                 self.ColorPartsMap[_color].append(obj)
+                # print("正在读取文件：", self.filename)
+                # print(self.ColorPartsMap)
                 self.Parts.append(obj)
                 # 注意，这里没有对partRelationMap进行初始化，因为这里只是读取零件，还没有选颜色，所以要等到用户选颜色之后才能初始化
+        self.show_statu_func("零件读取完成!", "success")
         # 至此已经初始化的公有属性：
         # self.filename *
         # self.filepath *
@@ -666,7 +682,7 @@ class ReadNA:
         # self.Weapons  # 所有武器的列表
         # self.AdjustableHulls  # 所有可调节船体的列表
         # self.ColorPartsMap  # 用于绘制的颜色-零件映射表
-        # self.progress_dialog  # 进度条
+        # self.show_statu_func  # 进度条
         # self.partRelationMap  # 零件关系图，包含零件的上下左右前后关系
 
 
@@ -683,18 +699,29 @@ class PartRelationMap:
     UP_DOWN = "up_down"
     LEFT_RIGHT = "left_right"
 
-    def __init__(self, read_na):
+    def __init__(self, read_na, show_statu_func):
         """
         建立有向图，6种关系，上下左右前后，权重等于距离（按照从小到大的顺序，越近索引越小，越远索引越大）
         :param read_na:
+        :param show_statu_func:
         """
+        self.show_statu_func = show_statu_func
         self.Parts = read_na.Parts
-        self.xzLayerMap = {  # y: [Part0, Part1, ...]
+        """点平面集"""
+        self.xzDotsLayerMap = {  # y: [Part0, Part1, ...]
+        }  # 每一水平截面层的点，根据basicMap的前后左右关系，将点分为同一层
+        self.xyDotsLayerMap = {  # z: [Part0, Part1, ...]
+        }  # 每一前后截面层的点，根据basicMap的上下左右关系，将点分为同一层
+        self.yzDotsLayerMap = {  # x: [Part0, Part1, ...]
+        }  # 每一左右截面层的点，根据basicMap的上下前后关系，将点分为同一层
+        """零件平面集"""
+        self.xzPartsLayerMap = {  # y: [Part0, Part1, ...]
         }  # 每一水平截面层的零件，根据basicMap的前后左右关系，将零件分为同一层，优化basicMap添加零件的速度
-        self.xyLayerMap = {  # z: [Part0, Part1, ...]
+        self.xyPartsLayerMap = {  # z: [Part0, Part1, ...]
         }  # 每一前后截面层的零件，根据basicMap的上下左右关系，将零件分为同一层，优化basicMap添加零件的速度
-        self.yzLayerMap = {  # x: [Part0, Part1, ...]
+        self.yzPartsLayerMap = {  # x: [Part0, Part1, ...]
         }  # 每一左右截面层的零件，根据basicMap的上下前后关系，将零件分为同一层，优化basicMap添加零件的速度
+        """零件关系图"""
         self.basicMap = {  # 以零件为基础的关系图，包含零件的上下左右前后和距离关系
             # 零件对象： {方向0：{对象0：距离0, 对象1：距离1, ...}, 方向1：{对象0：距离0, 对象1：距离1, ...}, ...}
             # Part: {PartRelationMap.FRONT: {FrontPart0: FrontValue0, ...},
@@ -784,23 +811,65 @@ class PartRelationMap:
         :param newPart:
         :return:
         """
+        # 点集
+        if type(newPart) == AdjustableHull:
+            for dot in newPart.plot_all_dots:
+                _x = float(dot[0])
+                _y = float(dot[1])
+                _z = float(dot[2])
+                if _x not in self.yzDotsLayerMap.keys():
+                    self.yzDotsLayerMap[_x] = [newPart]
+                else:
+                    self.yzDotsLayerMap[_x].append(newPart)
+                if _y not in self.xzDotsLayerMap.keys():
+                    self.xzDotsLayerMap[_y] = [newPart]
+                else:
+                    self.xzDotsLayerMap[_y].append(newPart)
+                if _z not in self.xyDotsLayerMap.keys():
+                    self.xyDotsLayerMap[_z] = [newPart]
         # 初始化零件的上下左右前后零件
         newPart_relation = {self.FRONT: {}, self.BACK: {},
                             self.UP: {}, self.DOWN: {},
                             self.LEFT: {}, self.RIGHT: {},
                             self.SAME: {}}
+        # 零件集
+        x_exist = []
+        y_exist = []
+        z_exist = []
+        if newPart.Pos[0] not in self.yzPartsLayerMap.keys():
+            self.yzPartsLayerMap[newPart.Pos[0]] = [newPart]
+        else:
+            x_exist = self.yzPartsLayerMap[newPart.Pos[0]]
+            self.yzPartsLayerMap[newPart.Pos[0]].append(newPart)
+        if newPart.Pos[1] not in self.xzPartsLayerMap.keys():
+            self.xzPartsLayerMap[newPart.Pos[1]] = [newPart]
+        else:
+            y_exist = self.xzPartsLayerMap[newPart.Pos[1]]
+            self.xzPartsLayerMap[newPart.Pos[1]].append(newPart)
+        if newPart.Pos[2] not in self.xyPartsLayerMap.keys():
+            self.xyPartsLayerMap[newPart.Pos[2]] = [newPart]
+        else:
+            z_exist = self.xyPartsLayerMap[newPart.Pos[2]]
+            self.xyPartsLayerMap[newPart.Pos[2]].append(newPart)
+
         # 先检查是否有有位置关系的other_part，如果有，就添加到new_part的上下左右前后零件中
         # 然后新零件new_part根据other_part的关系扩充自己的关系
         if len(self.basicMap) == 0:  # 如果basicMap为空，就直接添加
             self.basicMap[newPart] = newPart_relation
             return
-        # if newPart.Pos[0] not in self.xzLayerMap.keys():  # 如果xzLayerMap中没有该层，就添加
+        # if newPart.Pos[0] not in self.xzPartsLayerMap.keys():  # 如果xzLayerMap中没有该层，就添加
+        xy_exist = set(x_exist) & set(y_exist)
+        xz_exist = set(x_exist) & set(z_exist)
+        yz_exist = set(y_exist) & set(z_exist)
         for otherPart, others_direction_relation in self.basicMap.items():
-            if otherPart.Pos[0] == newPart.Pos[0] and otherPart.Pos[1] == newPart.Pos[1]:  # xy相同，前后关系
+            # xy相同，前后关系
+            if otherPart in xy_exist:
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.FRONT_BACK)
-            elif otherPart.Pos[1] == newPart.Pos[1] and otherPart.Pos[2] == newPart.Pos[2]:  # yz相同，左右关系
+            # yz相同，左右关系
+            elif otherPart in yz_exist:
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.LEFT_RIGHT)
-            elif otherPart.Pos[0] == newPart.Pos[0] and otherPart.Pos[2] == newPart.Pos[2]:  # xz相同，上下关系
+            # xz相同，上下关系
+            elif otherPart in xz_exist:
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.UP_DOWN)
             elif otherPart.Pos == newPart.Pos:  # 同一位置
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.SAME)
@@ -823,22 +892,43 @@ class PartRelationMap:
     def init(self, drawMap, init=True):
         """
         :param drawMap: NaHull的绘图字典，键值对为：{颜色：[零件1，零件2，...]}
-        :param init: 如果为False，这个函数则仅用于drawMap的初始化后调用，指示代码位置方便Debug
+        :param init: 如果为False，这个函数则仅用于drawMap的初始化后调用，用来指示代码位置方便Debug
         :return:
         """
         if not init:
             return
-        st = time.time()
+        # st = time.time()
+        total_parts_num = sum([len(parts) for parts in drawMap.values()])
+        i = 1
         for _color, parts in drawMap.items():
             for part in parts:
+                if i % 123 == 0:
+                    process = round(i / total_parts_num * 100, 2)
+                    self.show_statu_func(f"正在初始化第{i}个零件，进度：{process} %", "process")
+                    # print(f"正在初始化零件关系图第{i}个零件，进度：{i / total_parts_num * 100}%")
+                i += 1
                 self.add_part(part)
-        print(f"零件关系图零件添加完成，耗时：{time.time() - st}秒")
-        st = time.time()
+        self.show_statu_func("零件关系图初始化完成!", "success")
+        # print(f"零件关系图零件添加完成，耗时：{time.time() - st}秒")
+        # st = time.time()
         self.sort()
-        print(f"零件关系图零件排序完成，耗时：{time.time() - st}秒")
+        # print(f"零件关系图零件排序完成，耗时：{time.time() - st}秒")
 
     def sort(self):
+        self.show_statu_func("正在加载LayerMaps", "process")
+        self.xzDotsLayerMap = dict(sorted(self.xzDotsLayerMap.items(), key=lambda item: item[0]))
+        self.xyDotsLayerMap = dict(sorted(self.xyDotsLayerMap.items(), key=lambda item: item[0]))
+        self.yzDotsLayerMap = dict(sorted(self.yzDotsLayerMap.items(), key=lambda item: item[0]))
+        self.xzPartsLayerMap = dict(sorted(self.xzPartsLayerMap.items(), key=lambda item: item[0]))
+        self.xyPartsLayerMap = dict(sorted(self.xyPartsLayerMap.items(), key=lambda item: item[0]))
+        self.yzPartsLayerMap = dict(sorted(self.yzPartsLayerMap.items(), key=lambda item: item[0]))
+        total_parts_num = sum([len(parts) for parts in self.basicMap.values()])
+        i = 1
         for part, part_relation in self.basicMap.items():
             # 按照value（relation的值）对relation字典从小到大排序：
             for direction, others_direction_relation in part_relation.items():
+                if i % 4567 == 0:
+                    process = round(i / total_parts_num * 100, 2)
+                    self.show_statu_func(f"正在排序第{i}个零件，进度：{process} %", "process")
+                i += 1
                 part_relation[direction] = dict(sorted(others_direction_relation.items(), key=lambda item: item[1]))

@@ -14,7 +14,7 @@ class NewProjectDialog(BasicDialog):
         elif self.select_circle1.isChecked():
             self.generate_mode = 'NA'
             self.ProjectName = self.input_name.text()
-            self.ProjectPath = self.input_path.text() + '/' + self.ProjectName
+            self.ProjectPath = self.input_path.text() + '/' + self.ProjectName + '.json'
         elif self.select_circle2.isChecked():
             self.generate_mode = '预设'
         elif self.select_circle3.isChecked():
@@ -332,7 +332,7 @@ class NewProjectDialog(BasicDialog):
             except IndexError and KeyError and AttributeError:
                 _txt = "该文件不是有效的船体设计文件，请重新选择哦"
                 # 白色背景的提示框
-                MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
                 return
             if design_reader.result["adHull"]:  # 如果存在进阶船壳
                 # 显示后两层路径
@@ -340,7 +340,7 @@ class NewProjectDialog(BasicDialog):
                 return self.PTBDesignPath
             else:
                 _txt = "该设计不含进阶船体外壳，请重新选择哦"
-                MyMessageBox.information(self, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox.information(None, "提示", _txt, MyMessageBox.Ok)
                 self.check_ptb_path()
                 return
         except IndexError:
@@ -400,7 +400,7 @@ class ThemeDialog(BasicDialog):
             self.config.Config["Theme"] = "Night"
         elif self.button_group.selected_bt_index == 2:
             # 提示自定义功能未开放
-            MyMessageBox().information(self, "提示", "自定义功能未开放", MyMessageBox.Ok)
+            MyMessageBox().information(None, "提示", "自定义功能未开放", MyMessageBox.Ok)
             return
         # 提示保存成功，建议重启程序
         self.show_state_func("主题保存成功，建议重启程序", "success")
@@ -583,35 +583,4 @@ class ColorDialog(BasicDialog):
         if draw_map:
             super().ensure()
         else:
-            MyMessageBox().information(self, "提示", "未选择任何颜色", MyMessageBox.Ok)
-
-
-class ProgressDialog(BasicDialog):
-    def __init__(self):
-        self.center_layout = QGridLayout()
-        self.progress_bar = QProgressBar()
-        self.center_layout.addWidget(self.progress_bar, 0, 0, alignment=Qt.AlignCenter)
-        super().__init__(None, "...正在读取...", QSize(200, 100), self.center_layout)
-        self.set_widget()
-
-    def set_widget(self):
-        self.progress_bar.setAlignment(Qt.AlignCenter)
-        self.progress_bar.setFixedSize(300, 20)
-        self.progress_bar.setStyleSheet(f"QProgressBar {{border: 1px solid {FG_COLOR0};"
-                                        f"border-radius: 10px;"
-                                        f"background-color: {BG_COLOR0};"
-                                        f"text-align: center;}}")
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-
-    def set_progress(self, value):
-        if value == 100:
-            # 读取完成，关闭
-            self.close()
-        self.progress_bar.setValue(value)
-        self.progress_bar.setFormat(f"{value}%")
-        self.progress_bar.update()
-        QApplication.processEvents()
-
-    def ensure(self):
-        pass
+            MyMessageBox().information(None, "提示", "未选择任何颜色", MyMessageBox.Ok)

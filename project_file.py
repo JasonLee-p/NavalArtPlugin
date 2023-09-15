@@ -79,7 +79,6 @@ class ProjectFile:
     def __init__(
             self, name, path, original_na_file_path,
             na_parts_data=None, operations=None, mode="空白", code='', save_time='',
-            progress_dialog=None
     ):
         """
         工程文件类，用于处理工程文件的读写
@@ -95,8 +94,6 @@ class ProjectFile:
         :param na_parts_data: 船体节点数据
         :param mode: 工程创建模式
         """
-        self.progress_dialog = progress_dialog
-        self.progress_dialog.set_progress(5) if self.progress_dialog else None
         self._succeed_init = False
         # 工程文件的属性
         if mode not in ProjectFile._available_modes:
@@ -106,7 +103,6 @@ class ProjectFile:
             if not self.check_data(code, save_time, na_parts_data, operations):
                 QMessageBox(QMessageBox.Warning, '警告', '工程文件已被修改！').exec_()
                 return
-            self.progress_dialog.set_progress(10) if self.progress_dialog else None
         self.Name = name
         self.Path = path
         self.OriginalFilePath = original_na_file_path
@@ -131,23 +127,26 @@ class ProjectFile:
         }
         self.create_mode = mode
         self._succeed_init = True
-        self.progress_dialog.set_progress(15) if self.progress_dialog else None
 
     @staticmethod
-    def load_project(path, progress_dialog) -> 'ProjectFile':  # 从文件加载工程
+    def load_project(path) -> 'ProjectFile':  # 从文件加载工程
         # 判断是否为json
         if not path.endswith('.json'):
             # 提示错误
-            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
+            # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
             return None
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            # QMessageBox(QMessageBox.Warning, '警告', '工程文件不存在！').exec_()
+            return None
         try:
             project_file = ProjectFile(
                 data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], data['Operations'], mode=ProjectFile.LOAD,
-                code=data['Code'], save_time=data['SaveTime'], progress_dialog=progress_dialog)
+                code=data['Code'], save_time=data['SaveTime'])
         except KeyError:
-            QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
+            # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
             return None
         if project_file._succeed_init:
             return project_file
