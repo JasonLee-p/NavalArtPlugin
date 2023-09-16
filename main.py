@@ -6,29 +6,36 @@ import os.path
 import sys
 import webbrowser
 # 第三方库
-from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
-from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut
+from typing import Union
 
-# 本地库
-from NA_design_reader import Part
-from path_utils import find_ptb_path
-from GUI.QtGui import *
-from GUI.dialogs import NewProjectDialog, ColorDialog, ThemeDialog, SensitiveDialog
-from OpenGLWindow import OpenGLWin, OpenGLWin2
-from PTB_design_reader import AdvancedHull
-from OpenGL_objs import *
-from project_file import ConfigFile
-from project_file import ProjectFile as PF
-from right_element_view import Mod1SinglePartView
+try:
+    from ctypes import util
+    from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
+    from PyQt5.QtCore import QThread, pyqtSignal
+    from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
+    from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut
+    # 本地库
+    from NA_design_reader import Part
+    from path_utils import find_ptb_path
+    from GUI.QtGui import *
+    from GUI.dialogs import NewProjectDialog, ColorDialog, ThemeDialog, SensitiveDialog
+    from OpenGLWindow import OpenGLWin, DesignTabGLWinMenu
+    from PTB_design_reader import AdvancedHull
+    from OpenGL_objs import *
+    from project_file import ConfigFile
+    from project_file import ProjectFile as PF
+    from right_element_view import Mod1SinglePartView
+except Exception as e:
+    print(e)
+    input("无法正确导入库！请按回车键退出")
+    sys.exit(0)
 
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception as e:
-        print(e)
+    except Exception as _e:
+        print(_e)
         return False
 
 
@@ -71,35 +78,6 @@ def generate_project_obj(_prj_path, _original_na_path, _na_hull):
     )
 
 
-# def init_project_from_config():
-#     global CurrentPrj
-#     path = list(Config.Projects.values())[-1]  # 获取最后一个项目的路径
-#     show_state(f"正在读取{path}...", 'process')  # 显示状态
-#     obj = CurrentProject.load_project(path)  # 读取项目文件
-#     if obj is None:
-#         return  # 如果读取失败，直接返回
-#     try:
-#         Handler.CurrentProjectData["Path"] = path  # 设置当前项目路径
-#         Handler.CurrentProjectData["Name"] = list(Config.Projects.keys())[-1]  # 设置当前项目名称
-#         Handler.CurrentProjectData["Object"] = obj
-#         Handler.CurrentProjectData["OriginalFilePath"] = Handler.CurrentProjectData["Object"].OriginalFilePath
-#         Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
-#         # 读取成功，开始绘制
-#         # 通过读取的船体设计文件，新建NaHull对象
-#         na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=show_state)
-#         Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False)  # 显示船体设计
-#         na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
-#         Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False, init_zx_layer=True)  # 显示船体设计
-#         CurrentPrj = Handler.CurrentProjectData["Object"]
-#         show_state(f"{path}读取成功", 'success')  # 显示状态
-#     except FileNotFoundError:
-#         show_state(f"未找到配置中的{path}", "error")  # 显示状态
-#         # 删除配置中的该项目
-#         del Config.Projects[Handler.CurrentProjectData["Name"]]
-#         Config.save_config()  # 保存配置文件
-#     Handler.LoadingProject = False
-
-
 def save_current_prj():
     try:  # 保存
         Handler.CurrentProjectData["Object"].save()
@@ -109,26 +87,19 @@ def save_current_prj():
         pass
 
 
-def clear_current_prj_on_GLWidget():
-    for mt, objs in Handler.hull_design_tab.all_3d_obj.items():
-        objs.clear()
-    Handler.hull_design_tab.zx_layer_obj.clear()
-    Handler.hull_design_tab.yx_layer_obj.clear()
-    Handler.hull_design_tab.left_view_obj.clear()
-
-
+# noinspection PyUnresolvedReferences
 def open_project():
     """
     开启ProjectOpeningThread线程，读取工程
     :return:
     """
-    global Handler
     if Handler.LoadingProject:
         MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
         return
     Handler.LoadingProject = True
     Handler.window.open_project_thread = ProjectOpeningThread()
     Handler.window.open_project_thread.update_state.connect(show_state)
+    # noinspection PyUnresolvedReferences
     Handler.window.open_project_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
     Handler.window.open_project_thread.start()
 
@@ -140,13 +111,9 @@ class ProjectOpeningThread(QThread):
     def __init__(self):
         super().__init__()
 
+    # noinspection PyUnresolvedReferences
     def run(self):
         global Handler
-        # if Handler.LoadingProject:
-        #     self.update_state.emit("正在读取工程，请稍后再试！", 'warning')
-        #     self.finished.emit()
-        #     return
-
         # 选择路径
         if Config.ProjectsFolder == '':
             desktop_path = os.path.join(os.path.expanduser("~"), 'Desktop')
@@ -171,7 +138,6 @@ class ProjectOpeningThread(QThread):
         if obj is None:
             self.finished.emit()
             return
-
         Handler.CurrentProjectData["Object"] = obj
         Handler.CurrentProjectData["Path"] = file_path  # 设置当前项目路径
         Handler.CurrentProjectData["Name"] = file_path.split('/')[-1].split('.')[0]  # 设置当前项目名称
@@ -180,14 +146,13 @@ class ProjectOpeningThread(QThread):
 
         # 清空原来的所有对象，保存原来的工程文件对象
         save_current_prj()
-        clear_current_prj_on_GLWidget()
+        Handler.hull_design_tab.clear_all_plot_obj()
 
         # 读取成功，开始绘制
         # 通过读取的船体设计文件，新建NaHull对象
         na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=self.update_state)
-        Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False)  # 显示船体设计
-        na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
-        Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False, init_zx_layer=True)  # 显示船体设计
+        Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)  # 显示船体设计
+        # 显示船体设计
         global CurrentPrj
         CurrentPrj = Handler.CurrentProjectData["Object"]
         self.update_state.emit(f"{file_path}读取成功", 'success')  # 发射更新状态信息信号
@@ -196,12 +161,75 @@ class ProjectOpeningThread(QThread):
         del Config.Projects[Handler.CurrentProjectData["Name"]]
         Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
         Config.save_config()  # 保存配置文件
-        Handler.LoadingProject = False
         self.finished.emit()
         Handler.LoadingProject = False
 
 
-class InitConfigProjectLoadingThread(QThread):
+def new_project():
+    # 弹出对话框，获取工程名称和路径，以及其他相关信息
+    Handler.new_project_dialog = NewProjectDialog(parent=Handler.window)
+    Handler.new_project_dialog.exec_()
+    # 如果确定新建工程
+    if Handler.new_project_dialog.create_new_project:
+        if Handler.new_project_dialog.generate_mode == 'NA':
+            if Handler.LoadingProject:
+                MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+                return
+            # 获取对话框返回的数据
+            _original_na_path = Handler.new_project_dialog.OriginalNAPath
+            _prj_path = Handler.new_project_dialog.ProjectPath  # name已经包含在path里了
+            show_state(f"正在读取{_original_na_path}...", 'process')  # 发射更新状态信息信号
+            # 保存上一个工程文件，清空当前所有被绘制的对象
+            save_current_prj()
+            Handler.hull_design_tab.clear_all_plot_obj()
+            # 通过读取的船体设计文件，新建NaHull对象
+            _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
+            # 检测颜色种类，弹出对话框，选择颜色
+            color_dialog = ColorDialog(Handler.window, Handler.hull_design_tab.current_na_hull)
+            color_dialog.exec_()
+            # 读取颜色成功，开始初始化partRelationMap和Layers
+            Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull)
+            # 开启ProjectLoadingNewThread线程，读取工程
+            Handler.LoadingProject = True
+            Handler.window.new_project_thread = ProjectLoadingNewThread()
+            # noinspection PyUnresolvedReferences
+            Handler.window.new_project_thread.update_state.connect(show_state)
+            # noinspection PyUnresolvedReferences
+            Handler.window.new_project_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+            Handler.window.new_project_thread.start()
+
+
+class ProjectLoadingNewThread(QThread):
+    finished = pyqtSignal()
+    update_state = pyqtSignal(str, str)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        _original_na_path = Handler.new_project_dialog.OriginalNAPath
+        _prj_path = Handler.new_project_dialog.ProjectPath
+        # 更新Handler.CurrentProjectData
+        generate_project_obj(_prj_path, _original_na_path, Handler.hull_design_tab.current_na_hull)
+        # 在这里继续执行后续操作，如下所示
+        self.update_state.emit(f"{_original_na_path}读取成功", 'success')  # 发射更新状态信息信号
+        # 更新配置文件
+        Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
+        Config.save_config()  # 保存配置文件
+        self.finished.emit()
+        Handler.LoadingProject = False
+        # self.update_state.emit(f"{_original_na_path}读取成功", 'success')  # 发射更新状态信息信号
+        # # 生成工程文件对象
+        # generate_project_obj(_prj_path, _original_na_path, _na_hull)
+        # save_current_prj()  # 保存工程文件
+        # # 更新配置文件
+        # Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
+        # Config.save_config()  # 保存配置文件
+        # self.finished.emit()
+        # Handler.LoadingProject = False
+
+
+class ProjectLoadingConfigThread(QThread):
     finished = pyqtSignal()
     update_state = pyqtSignal(str, str)
 
@@ -228,9 +256,7 @@ class InitConfigProjectLoadingThread(QThread):
 
             # 读取成功，开始绘制
             na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=self.update_state)
-            Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False)  # 显示船体设计
-            na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
-            Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull, False, init_zx_layer=True)  # 显示船体设计
+            Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)
             global CurrentPrj
             CurrentPrj = Handler.CurrentProjectData["Object"]
             self.update_state.emit(f"{path}读取成功", 'success')  # 发射更新状态信息信号
@@ -240,7 +266,6 @@ class InitConfigProjectLoadingThread(QThread):
             # 删除配置中的该项目
             del Config.Projects[Handler.CurrentProjectData["Name"]]
             Config.save_config()  # 保存配置文件
-        Handler.LoadingProject = False
         self.finished.emit()
         Handler.LoadingProject = False
 
@@ -285,7 +310,7 @@ class CurrentProject(PF):
         Part.ShipsAllParts = []
 
     @staticmethod
-    def load_project(path) -> 'CurrentProject':
+    def load_project(path) -> Union[None, 'CurrentProject', 'PF']:
         prj = PF.load_project(path)
         if prj is None:
             # 删除Config中的该条目
@@ -334,12 +359,13 @@ class MainHandler:
         self.LoadingProject = False
         self.OperationHistory = Operation.history  # 用于记录操作的列表
         self.OperationIndex = Operation.index
+        self.new_project_dialog: Union[NewProjectDialog, None] = None
         # -------------------------------------------------------------------------------------GUI设置
         self.window = window
         self.MenuMap = {
             " 设计": {
                 "打开工程": open_project,
-                "新建工程": self.new_project,
+                "新建工程": new_project,
                 "导出为": self.export_file,
                 "保存工程": self.save_project,
                 "另存为": self.save_as_file,
@@ -426,33 +452,37 @@ class MainHandler:
         if self.LoadingProject:
             MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
             return
+        self.LoadingProject = True
+        self.new_project_thread = ProjectLoadingNewThread()
+        self.new_project_thread.update_state.connect(show_state)
+        self.new_project_thread.finished.connect(lambda: setattr(self, "LoadingProject", False))
+        self.new_project_thread.start()
         # 弹出对话框，获取工程名称和路径，以及其他相关信息
-        new_project_dialog = NewProjectDialog(parent=self.window)
-        new_project_dialog.exec_()
-        # 如果确定新建工程
-        if new_project_dialog.create_new_project:
-            if new_project_dialog.generate_mode == 'NA':
-                # 获取对话框返回的数据
-                _original_na_path = new_project_dialog.OriginalNAPath
-                _prj_path = new_project_dialog.ProjectPath  # name已经包含在path里了
-
-                save_current_prj()  # 保存原来的工程文件对象
-                clear_current_prj_on_GLWidget()  # 清空原来的所有对象
-                # 新建NAHull对象
-                _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
-                # 检测颜色种类，弹出对话框，选择颜色
-                color_dialog = ColorDialog(self.window, _na_hull)
-                color_dialog.exec_()
-                self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, True)
-                _na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
-                self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, False, init_zx_layer=True)
-                # 生成工程文件对象
-                generate_project_obj(_prj_path, _original_na_path, _na_hull)
-                CurrentPrj = Handler.CurrentProjectData["Object"]
-                save_current_prj()  # 保存工程文件
-                # 更新配置文件
-                Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
-                Config.save_config()  # 保存配置文件
+        # new_project_dialog = NewProjectDialog(parent=self.window)
+        # new_project_dialog.exec_()
+        # # 如果确定新建工程
+        # if new_project_dialog.create_new_project:
+        #     if new_project_dialog.generate_mode == 'NA':
+        #         # 获取对话框返回的数据
+        #         _original_na_path = new_project_dialog.OriginalNAPath
+        #         _prj_path = new_project_dialog.ProjectPath  # name已经包含在path里了
+        #         save_current_prj()  # 保存原来的工程文件对象
+        #         clear_current_prj_on_GLWidget()  # 清空原来的所有对象
+        #         # 新建NAHull对象
+        #         _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
+        #         # 检测颜色种类，弹出对话框，选择颜色
+        #         color_dialog = ColorDialog(self.window, _na_hull)
+        #         color_dialog.exec_()
+        #         self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, True)
+        #         _na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
+        #         self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, False, init_zx_layer=True)
+        #         # 生成工程文件对象
+        #         generate_project_obj(_prj_path, _original_na_path, _na_hull)
+        #         CurrentPrj = Handler.CurrentProjectData["Object"]
+        #         save_current_prj()  # 保存工程文件
+        #         # 更新配置文件
+        #         Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
+        #         Config.save_config()  # 保存配置文件
 
     def export_file(self, event):
         ...
@@ -517,7 +547,8 @@ class MainHandler:
 
     def close(self) -> bool:
         # 重写关闭事件
-        reply = MyMessageBox().question(None, "关闭编辑器", "是否保存当前工程？", MyMessageBox.Yes | MyMessageBox.No | MyMessageBox.Cancel)
+        reply = MyMessageBox().question(None, "关闭编辑器", "是否保存当前工程？",
+                                        MyMessageBox.Yes | MyMessageBox.No | MyMessageBox.Cancel)
         if reply == QMessageBox.Yes:
             Config.save_config()  # 保存配置文件
             show_state("正在保存工程...", 'process')
@@ -615,105 +646,110 @@ class RightTabWidget(QTabWidget):
                 # TODO: 其他类型的物体
         elif _len > 1:  # =================================================================== 多个物体
             _type = type(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0])
-            if _type in (Part, AdjustableHull):
-                x_list = []
-                z_list = []
-                y_list = []
-                for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode]:
-                    if selected_obj is None:
-                        return
-                    if x_list.count(selected_obj.Pos[0]) == 0:
-                        x_list.append(selected_obj.Pos[0])
-                    if y_list.count(selected_obj.Pos[1]) == 0:
-                        y_list.append(selected_obj.Pos[1])
-                    if z_list.count(selected_obj.Pos[2]) == 0:
-                        z_list.append(selected_obj.Pos[2])
-                if len(set(x_list)) != 1:  # 排除零件的x坐标不相同的情况
-                    return
-                # 如果所有零件的z坐标都相同，那么就说明这是一组纵向排列的船体截块
-                if len(set(z_list)) == 1:
-                    connected = True  # 判断是否上下相连
-                    # 把selected_gl_obj 按照 part_obj.Pos[1] 从小到大排序:
-                    ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode].sort(key=lambda x: x.Pos[1])
-                    last_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
-                    for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][1:]:
-                        last_up = last_part.Pos[1] + last_part.Hei * last_part.Scl[1] / 2
-                        this_down = selected_obj.Pos[1] - selected_obj.Hei * selected_obj.Scl[1] / 2
-                        if last_up < this_down:
-                            connected = False
-                            break
-                        last_part = selected_obj
-                    if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_verticalPartSet
-                        if self.ActiveTab == "船体设计":
-                            self.tab1_mod1_widget_verticalPartSet.show()
-                            self.tab2_mod1_widget_verticalPartSet.show()
-                        self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
-                        self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
-                        self.show_tab1_mod1_grid_verticalPartSet()
-                        self.show_tab2_mod1_grid_verticalPartSet()
+            if _type in (Part, AdjustableHull):  # 判断零件之间的关系
+                # 随机取一个零件
+                root_node_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
+                # 获取关系图
+                relation_map = root_node_part.allParts_relationMap
 
-                # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
-                elif len(set(y_list)) == 1:
-                    connected = True  # 判断是否前后相连
-                    # 把selected_gl_obj 按照 part_obj.Pos[2] 从小到大排序:
-                    ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode].sort(key=lambda x: x.Pos[2])
-                    last_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
-                    for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][1:]:
-                        last_front = last_part.Pos[2] + last_part.Len * last_part.Scl[2] / 2
-                        this_back = selected_obj.Pos[2] - selected_obj.Len * selected_obj.Scl[2] / 2
-                        if last_front != this_back:
-                            connected = False
-                            break
-                        last_part = selected_obj
-                    if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_horizontalPartSet
-                        if self.ActiveTab == "船体设计":
-                            self.tab1_mod1_widget_horizontalPartSet.show()
-                            self.tab2_mod1_widget_horizontalPartSet.show()
-                        self.tab1_current_widget = self.tab1_mod1_widget_horizontalPartSet
-                        self.tab2_current_widget = self.tab2_mod1_widget_horizontalPartSet
-                        self.show_tab1_mod1_grid_horizontalPartSet()
-                        self.show_tab2_mod1_grid_horizontalPartSet()
-                elif _len == len(set(y_list)) * len(set(z_list)):  # 集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
-                    """
-                    （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
-                    所有等y零件的前后面相切，所有等z零件的上下面相切）
-                    示例（左视简图）：
-                    -----------------------------------------
-                    | x |   x   |  x  |     x     |   x   |x|
-                    -----------------------------------------
-                    |   |       |     |           |       | |
-                    | x |   x   |  x  |     x     |   x   |x|
-                    |   |       |     |           |       | |
-                    -----------------------------------------
-                    | x |   x   |  x  |     x     |   x   |x|
-                    -----------------------------------------
-                    """
-                    connected = True
-                    # 首先判断是否满足矩形点阵
-                    zy_dict = {}  # 键值对为z: [part0, part1, ...]
-                    for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode]:
-                        if selected_obj.Pos[2] not in zy_dict:
-                            zy_dict[selected_obj.Pos[2]] = [selected_obj]
-                        else:
-                            zy_dict[selected_obj.Pos[2]].append(selected_obj)
-                    last_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[0]]])
-                    for i in range(1, len(zy_dict)):
-                        this_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[i]]])
-                        if last_y_set != this_y_set:
-                            connected = False
-                            break
-                    # 然后计算第一层零件前后是否相连
-                    if connected:
-                        ...
-                    # 接着计算第一竖排零件上下是否相连
-                    if connected:
-                        if self.ActiveTab == "船体设计":
-                            self.tab1_mod1_widget_verHorPartSet.show()
-                            self.tab2_mod1_widget_verHorPartSet.show()
-                        self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
-                        self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
-                        self.show_tab1_mod1_grid_verHorPartSet()
-                        self.show_tab2_mod1_grid_verHorPartSet()
+                # x_list = []
+                # z_list = []
+                # y_list = []
+                # for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode]:
+                #     if selected_obj is None:
+                #         return
+                #     if x_list.count(selected_obj.Pos[0]) == 0:
+                #         x_list.append(selected_obj.Pos[0])
+                #     if y_list.count(selected_obj.Pos[1]) == 0:
+                #         y_list.append(selected_obj.Pos[1])
+                #     if z_list.count(selected_obj.Pos[2]) == 0:
+                #         z_list.append(selected_obj.Pos[2])
+                # if len(set(x_list)) != 1:  # 排除零件的x坐标不相同的情况
+                #     return
+                # # 如果所有零件的z坐标都相同，那么就说明这是一组纵向排列的船体截块
+                # if len(set(z_list)) == 1:
+                #     connected = True  # 判断是否上下相连
+                #     # 把selected_gl_obj 按照 part_obj.Pos[1] 从小到大排序:
+                #     ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode].sort(key=lambda x: x.Pos[1])
+                #     last_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
+                #     for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][1:]:
+                #         last_up = last_part.Pos[1] + last_part.Hei * last_part.Scl[1] / 2
+                #         this_down = selected_obj.Pos[1] - selected_obj.Hei * selected_obj.Scl[1] / 2
+                #         if last_up < this_down:
+                #             connected = False
+                #             break
+                #         last_part = selected_obj
+                #     if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_verticalPartSet
+                #         if self.ActiveTab == "船体设计":
+                #             self.tab1_mod1_widget_verticalPartSet.show()
+                #             self.tab2_mod1_widget_verticalPartSet.show()
+                #         self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
+                #         self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
+                #         self.show_tab1_mod1_grid_verticalPartSet()
+                #         self.show_tab2_mod1_grid_verticalPartSet()
+                #
+                # # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
+                # elif len(set(y_list)) == 1:
+                #     connected = True  # 判断是否前后相连
+                #     # 把selected_gl_obj 按照 part_obj.Pos[2] 从小到大排序:
+                #     ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode].sort(key=lambda x: x.Pos[2])
+                #     last_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
+                #     for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][1:]:
+                #         last_front = last_part.Pos[2] + last_part.Len * last_part.Scl[2] / 2
+                #         this_back = selected_obj.Pos[2] - selected_obj.Len * selected_obj.Scl[2] / 2
+                #         if last_front != this_back:
+                #             connected = False
+                #             break
+                #         last_part = selected_obj
+                #     if connected:  # 如果相连，接下来要显示self.tab1_mod1_grid_horizontalPartSet
+                #         if self.ActiveTab == "船体设计":
+                #             self.tab1_mod1_widget_horizontalPartSet.show()
+                #             self.tab2_mod1_widget_horizontalPartSet.show()
+                #         self.tab1_current_widget = self.tab1_mod1_widget_horizontalPartSet
+                #         self.tab2_current_widget = self.tab2_mod1_widget_horizontalPartSet
+                #         self.show_tab1_mod1_grid_horizontalPartSet()
+                #         self.show_tab2_mod1_grid_horizontalPartSet()
+                # elif _len == len(set(y_list)) * len(set(z_list)):  # 集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
+                #     """
+                #     （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
+                #     所有等y零件的前后面相切，所有等z零件的上下面相切）
+                #     示例（左视简图）：
+                #     -----------------------------------------
+                #     | x |   x   |  x  |     x     |   x   |x|
+                #     -----------------------------------------
+                #     |   |       |     |           |       | |
+                #     | x |   x   |  x  |     x     |   x   |x|
+                #     |   |       |     |           |       | |
+                #     -----------------------------------------
+                #     | x |   x   |  x  |     x     |   x   |x|
+                #     -----------------------------------------
+                #     """
+                #     connected = True
+                #     # 首先判断是否满足矩形点阵
+                #     zy_dict = {}  # 键值对为z: [part0, part1, ...]
+                #     for selected_obj in ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode]:
+                #         if selected_obj.Pos[2] not in zy_dict:
+                #             zy_dict[selected_obj.Pos[2]] = [selected_obj]
+                #         else:
+                #             zy_dict[selected_obj.Pos[2]].append(selected_obj)
+                #     last_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[0]]])
+                #     for i in range(1, len(zy_dict)):
+                #         this_y_set = set([part_obj.Pos[1] for part_obj in zy_dict[list(zy_dict.keys())[i]]])
+                #         if last_y_set != this_y_set:
+                #             connected = False
+                #             break
+                #     # 然后计算第一层零件前后是否相连
+                #     if connected:
+                #         ...
+                #     # 接着计算第一竖排零件上下是否相连
+                #     if connected:
+                #         if self.ActiveTab == "船体设计":
+                #             self.tab1_mod1_widget_verHorPartSet.show()
+                #             self.tab2_mod1_widget_verHorPartSet.show()
+                #         self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
+                #         self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
+                #         self.show_tab1_mod1_grid_verHorPartSet()
+                #         self.show_tab2_mod1_grid_verHorPartSet()
             elif _type == NaHullXZLayer:
                 self.tab1_mod2_widget_multiLayer.show()
                 self.tab2_mod2_widget_multiLayer.show()
@@ -930,39 +966,25 @@ class HullDesignTab(QWidget):
         self.convertAdhull_button = QPushButton("从PTB转换")
         self.init_buttons()
         self.up_layout.addStretch()
-        self.menu = QMenu()
-        self.init_menu()
+        self.menu = DesignTabGLWinMenu(self.ThreeDFrame)
+        self.menu.connect_basic_funcs(
+            self.undo, self.redo, self.delete, self.add, self.import_, self.export
+        )
+        self.bind_shortcut()
         # -----------------------------------------------------------------------------------信号
+        self.current_na_hull: Union[NAHull, None] = None
         self.camera = self.ThreeDFrame.camera
         self.environment_obj = self.ThreeDFrame.environment_obj
         # 在不同模式下显示的物体：
         self.all_3d_obj = self.ThreeDFrame.all_3d_obj  # 普通模式
-        self.zx_layer_obj = self.ThreeDFrame.zx_layer_obj  # 横剖面模式
-        self.yx_layer_obj = self.ThreeDFrame.yx_layer_obj  # 纵剖面模式
+        self.prj_all_parts = self.ThreeDFrame.prj_all_parts  # 普通模式全体零件
+        self.xz_layer_obj = self.ThreeDFrame.xz_layer_obj  # 横剖面模式
+        self.xy_layer_obj = self.ThreeDFrame.xy_layer_obj  # 纵剖面模式
         self.left_view_obj = self.ThreeDFrame.left_view_obj  # 左视图模式
+        # 被选中的物体：
+        self.selected_gl_objects = self.ThreeDFrame.selected_gl_objects  # 选中的物体
 
-    def init_menu(self):
-        # 右键菜单
-        self.menu.addAction(QAction("撤销 Ctrl+Z", self))
-        self.menu.addAction(QAction("重做 Ctrl+Shift+Z", self))
-        self.menu.addSeparator()
-        self.menu.addAction(QAction("复制 Ctrl+C", self))
-        self.menu.addAction(QAction("粘贴 Ctrl+V", self))
-        self.menu.addSeparator()
-        self.menu.addAction(QAction("删除 Delete", self))
-        self.menu.addAction(QAction("添加 Ctrl+Shift+A", self))
-        self.menu.addSeparator()
-        self.menu.addAction(QAction("导入 I", self))
-        self.menu.addAction(QAction("导出 O", self))
-        # 菜单绑定函数
-        self.menu.actions()[0].triggered.connect(self.undo)
-        self.menu.actions()[1].triggered.connect(self.redo)
-        self.menu.actions()[3].triggered.connect(self.copy)
-        self.menu.actions()[4].triggered.connect(self.paste)
-        self.menu.actions()[6].triggered.connect(self.delete)
-        self.menu.actions()[7].triggered.connect(self.add)
-        self.menu.actions()[9].triggered.connect(self.import_)
-        self.menu.actions()[10].triggered.connect(self.export)
+    def bind_shortcut(self):
         # 快捷键绑定
         undo_ = QShortcut(QKeySequence("Ctrl+Z"), self)
         redo_ = QShortcut(QKeySequence("Ctrl+Shift+Z"), self)
@@ -981,9 +1003,6 @@ class HullDesignTab(QWidget):
         import_.activated.connect(self.import_)
         export_.activated.connect(self.export)
 
-    def show_menu(self, pos):
-        self.menu.exec_(QCursor.pos())
-
     def undo(self):
         show_state(f"撤销", 'success')
 
@@ -997,7 +1016,7 @@ class HullDesignTab(QWidget):
         show_state(f"粘贴 {self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode]}", 'success')
 
     def delete(self):
-        show_state(f"删除{self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode]}", 'success')
+        show_state(f"删除 {self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode]}", 'success')
 
     def add(self):
         show_state(f"添加", 'success')
@@ -1107,20 +1126,14 @@ class HullDesignTab(QWidget):
             _prj_path = save_dialog.selectedFiles()[0]
         except IndexError:
             return
-        # 清空原来的所有对象
-        for mt, objs in self.all_3d_obj.items():
-            objs.clear()
-        self.zx_layer_obj.clear()
-        self.yx_layer_obj.clear()
-        self.left_view_obj.clear()
-        # 保存上一个工程文件
+        # 保存上一个工程文件，清空当前所有被绘制的对象
         save_current_prj()
+        Handler.hull_design_tab.clear_all_plot_obj()
         # 检测颜色种类，弹出对话框，选择颜色
         color_dialog = ColorDialog(Handler.window, _na_hull)
         color_dialog.exec_()
-        self.init_NaHull_partRelationMap_Layers(_na_hull, True)
-        _na_hull.get_layers()
-        self.init_NaHull_partRelationMap_Layers(_na_hull, False, init_zx_layer=True)
+        # 初始化船体需要绘制的对象DrawMap，同时初始化零件关系图
+        Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull)
         # 生成工程文件对象
         generate_project_obj(_prj_path, _original_na_p, _na_hull)
         save_current_prj()  # 保存工程文件
@@ -1170,34 +1183,37 @@ class HullDesignTab(QWidget):
         #     self.convertAdhull_button_pressed()
         #     return
 
-    def init_NaHull_partRelationMap_Layers(self, na_hull, init_partRelationMap, init_zx_layer=False):
+    def init_NaHull_partRelationMap_Layers(self, na_hull):
         """
-        当用户完成了颜色选择后，初始化船体需要绘制的对象DrawMap，同时初始化零件关系图
+        当用户完成了颜色选择后，初始化船体需要绘制的对象DrawMap，同时初始化零件关系图，初始化绘图所需的所有对象
         :param na_hull:
-        :param init_partRelationMap: 是否初始化零件关系图
-        :param init_zx_layer: 是否只更新横剖面：运行完NAHull.get_layers()后，只更新横剖面
         :return:
         """
-        if init_zx_layer:
-            self.zx_layer_obj.extend(na_hull.xzLayers)
-            return
-        self.all_3d_obj["钢铁"].append(na_hull)
-        # 更新ThreeDFrame的paintGL
-        self.update_3d_obj()
-        if init_partRelationMap:
+        if na_hull.Mode == NAHull.NaPathMode:
             # 此时用户显然已经选取了颜色，要根据绘图的DrawMap对需要绘制的零件关系图进行初始化
             na_hull.partRelationMap.init(na_hull.DrawMap)
-
-    def update_3d_obj(self):
-        # self.ThreeDFrame.environment_obj = self.environment_obj
-        # self.ThreeDFrame.all_3d_obj = self.all_3d_obj
-        # self.ThreeDFrame.zx_layer_obj = self.zx_layer_obj
-        # self.ThreeDFrame.yx_layer_obj = self.yx_layer_obj
-        # self.ThreeDFrame.left_view_obj = self.left_view_obj
-        for gl_plot_obj in self.all_3d_obj["钢铁"]:  # 找到NA船壳，把所有零件添加到ThreeDFrame的ShipsAllParts
-            if type(gl_plot_obj) == NAHull:
-                self.ThreeDFrame.ShipsAllParts = gl_plot_obj.Parts
+        na_hull.get_layers()
+        # 更新自身信号
+        self.all_3d_obj["钢铁"].append(na_hull)
+        for _color, objs in na_hull.DrawMap.items():
+            for obj in objs:
+                self.prj_all_parts.append(obj)
+        self.xz_layer_obj.extend(na_hull.xzLayers)
+        self.xy_layer_obj.extend(na_hull.xyLayers)
+        self.left_view_obj.extend(na_hull.leftViews)
+        # 更新ThreeDFrame的paintGL
+        self.current_na_hull = na_hull
         self.ThreeDFrame.update()
+
+    def clear_all_plot_obj(self):
+        for mt, objs in self.all_3d_obj.items():
+            objs.clear()
+        for _class, objs in self.selected_gl_objects.items():
+            objs.clear()
+        self.prj_all_parts.clear()
+        self.xz_layer_obj.clear()
+        self.xy_layer_obj.clear()
+        self.left_view_obj.clear()
 
 
 class ArmorDesignTab(QWidget):
@@ -1213,7 +1229,7 @@ class ArmorDesignTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin2(Config.Sensitivity)
+        self.ThreeDFrame = GLWin(Config.Sensitivity)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -1484,7 +1500,7 @@ class ReadNAHullTab(QWidget):
         self.ThreeDFrame.all_3d_obj = self.all_3d_obj
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
             if type(gl_plot_obj) == NAHull:
-                self.ThreeDFrame.ShipsAllParts = gl_plot_obj.Parts
+                self.ThreeDFrame.prj_all_parts = gl_plot_obj.Parts
 
 
 if __name__ == '__main__':
@@ -1514,7 +1530,7 @@ if __name__ == '__main__':
     Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
     if Config.Projects != {}:
         Handler.LoadingProject = True
-        project_loading_thread = InitConfigProjectLoadingThread()
+        project_loading_thread = ProjectLoadingConfigThread()
         project_loading_thread.update_state.connect(show_state)
         project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
         project_loading_thread.start()

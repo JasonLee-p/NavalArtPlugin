@@ -16,7 +16,7 @@ import math
 from abc import abstractmethod
 # 第三方库
 import numpy as np
-from PyQt5.QtGui import QVector3D
+from PyQt5.QtGui import QVector3D, QMatrix4x4
 # 自定义库
 from NA_design_reader import ReadNA, AdjustableHull
 from PTB_design_reader import ReadPTB
@@ -46,18 +46,11 @@ def get_normal(dot1, dot2, dot3, center=None):
 
 
 class GLObject:
-    all_objects = {
-        # 对象：{面集:{线集:点集}}，其中点集、线集、面集都是列表，列表中的元素是QVector3D
-    }
+    all_objects = {}
 
     def __init__(self, gl):
         self.gl = gl
         self.faces = {}
-        GLObject.all_objects[self] = [[], [], []]
-
-    @abstractmethod
-    def get_set(self):
-        pass
 
 
 class LineGroupObject(GLObject):
@@ -72,6 +65,7 @@ class LineGroupObject(GLObject):
         pass
 
     def draw(self, gl, theme_color, material):
+        gl.glLoadName(id(self) % 4294967296)
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
@@ -98,10 +92,8 @@ class SolidObject(GLObject):
         # 颜色，法向量集，面集
         self.center = QVector3D(0, 0, 0)
 
-    def get_set(self):
-        GLObject.all_objects[self][0] = self.faces["faces"]
-
     def draw(self, gl, material, theme_color):
+        gl.glLoadName(id(self) % 4294967296)
         # 四个参数分别是：环境光，漫反射光，镜面反射光，镜面反射光的高光指数
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
@@ -218,6 +210,7 @@ class LargeSurface(SolidObject):
         }
 
     def draw(self, gl, material, theme_color):
+        gl.glLoadName(id(self) % 4294967296)
         super(LargeSurface, self).draw(gl, material, theme_color)
 
 
@@ -325,6 +318,7 @@ class LightSphere(SolidObject):
         }
 
     def draw(self, gl, material, theme_color):
+        gl.glLoadName(id(self) % 4294967296)
         super(LightSphere, self).draw(gl, material, theme_color)
 
 
@@ -387,6 +381,7 @@ class AdHull(ReadPTB, SolidObject):
             self.deck_dots.append(node_set_transposed[0])
 
     def draw(self, gl, material="钢铁", theme_color=None):
+        gl.glLoadName(id(self) % 4294967296)
         super(AdHull, self).draw(gl, "钢铁", theme_color)
         self.draw_deck(gl, theme_color)  # 绘制甲板
         # self.draw_water_line(gl, theme_color)  # 绘制水线
@@ -476,17 +471,38 @@ class NAHull(ReadNA, SolidObject):
         self.DrawMap = self.ColorPartsMap.copy()
         self.xzLayers = []  # 所有xz截面
         self.xyLayers = []  # 所有xy截面
+        self.leftViews = []  # 中间yz截面
 
     def get_layers(self):
+        self.get_xz_layers()
+        self.get_xy_layers()
+        self.get_left_views()
+
+    def get_xz_layers(self):
         total_y_num = len(self.partRelationMap.xzDotsLayerMap)
         i = 0
         for y, parts in self.partRelationMap.xzDotsLayerMap.items():
             i += 1
-            if len(parts) < 3:
-                continue
             if i % 4567 == 0:
                 self.show_statu_func(f"正在生成xz截面第{i}/{total_y_num}层", "process")
+            if len(parts) < 4:
+                continue
             self.xzLayers.append(NaHullXZLayer(self, y, parts))
+
+    def get_xy_layers(self):
+        total_z_num = len(self.partRelationMap.xyDotsLayerMap)
+        i = 0
+        for z, parts in self.partRelationMap.xyDotsLayerMap.items():
+            i += 1
+            if i % 4567 == 0:
+                self.show_statu_func(f"正在生成xy截面第{i}/{total_z_num}层", "process")
+            if len(parts) < 3:
+                continue
+            self.xyLayers.append(NaHullXYLayer(self, z, parts))
+
+    def get_left_views(self):
+        # TODO: 生成左视图
+        pass
 
     @staticmethod
     def toJson(data):
@@ -520,6 +536,9 @@ class NAHull(ReadNA, SolidObject):
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
         gl.glColor4f(*color_)
         for part in part_set:
+            gl.glLoadName(id(part) % 4294967296)
+            # 获取part的地址
+            part_address = id(part)
             try:
                 for draw_method, faces_dots in part.plot_faces.items():
                     # draw_method是字符串，需要转换为OpenGL的常量
@@ -539,6 +558,7 @@ class NAHull(ReadNA, SolidObject):
                 pass
 
     def draw(self, gl, material="钢铁", theme_color=None):
+        gl.glLoadName(id(self) % 4294967296)
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         # 绘制面
@@ -604,6 +624,7 @@ class NaHullXZLayer(SolidObject):
         return result
 
     def draw(self, gl, material="半透明", theme_color=None):
+        gl.glLoadName(id(self) % 4294967296)
         if not self.PlotAvailable:
             return
         # 绘制面
@@ -622,19 +643,83 @@ class NaHullXZLayer(SolidObject):
             for dot in dots:
                 gl.glVertex3f(*dot)
             gl.glEnd()
-        # # 绘制边框
-        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color["选择框"][0])
-        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color["选择框"][1])
-        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color["选择框"][2])
-        # gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color["选择框"][3])
-        # for part, dots in self.PartsDotsMap.items():
-        #     gl.glLineWidth(0.05)
-        #     color = theme_color["选择框"][0]
-        #     gl.glColor4f(*color)
-        #     gl.glBegin(gl.GL_LINE_LOOP)
-        #     for dot in dots[::-1]:
-        #         gl.glVertex3f(*dot)
-        #     gl.glEnd()
+
+
+class NaHullXYLayer(SolidObject):
+    def __init__(self, na_hull, z, z_parts):
+        """
+        :param na_hull: 暂时没用
+        :param z:
+        :param z_parts:
+        """
+        SolidObject.__init__(self, None)
+        self.na_hull = na_hull
+        self.z = z
+        self.z_parts = z_parts
+        self.PlotAvailable = True  # 当只含有一个零件时，不绘制
+        # 在na_hull中找到所有z值为z的零件和点
+        self.index = []  # 所有点在原来的Part.plot_all_dots中的索引，用来判断是否是含曲面零件的曲面中间点连线，是则不显示。
+        self.PartsDotsMap = self.get_partsDotsMap()  # 键值对：Part对象 和 该对象中z=self.z的点集合
+        self.Pos_list = self.get_pos_list()  # 所有面的点集合
+
+    def get_partsDotsMap(self):
+        result = {}
+        for part in self.z_parts:
+            if type(part) != AdjustableHull:
+                continue
+            for i in range(len(part.plot_all_dots)):
+                dot = list(part.plot_all_dots[i])
+                # if -0.0005 < dot[1] - self.y < 0.0005:
+                if dot[2] == self.z:
+                    if len(part.plot_all_dots) == 48:  # 为带曲面的零件
+                        self.index.append(i) if i not in self.index else None
+                    if part not in result:
+                        result[part] = [dot]
+                    if dot not in result[part]:
+                        result[part].append(dot)
+        if len(result) <= 2:  # 如果只有一两个零件，就不绘制
+            self.PlotAvailable = False
+            return {}
+        if len(self.index) == 4 and self.index[0] not in [0, 24]:  # 曲面的中间点
+            self.PlotAvailable = False
+            return {}
+        # 对result中的点集合进行排序：逆时针排序
+        for part, dots in result.items():
+            center = [part.Pos[0], part.Pos[1], self.z]
+            dots.sort(key=lambda x: math.atan2(x[1] - center[1], x[0] - center[0]))
+        return result
+
+    def get_pos_list(self):
+        result = []
+        for dot_sets in self.PartsDotsMap.values():
+            center = np.array([0., 0., 0.])
+            for dot in dot_sets:
+                result.append(dot)
+                center += np.array(dot)
+            center /= len(dot_sets)
+            result.append(center)
+        return result
+
+    def draw(self, gl, material="半透明", theme_color=None):
+        gl.glLoadName(id(self) % 4294967296)
+        if not self.PlotAvailable:
+            return
+        # 绘制面
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        for part, dots in self.PartsDotsMap.items():
+            gl.glNormal3f(0, 0, 1)
+            gl.glBegin(gl.GL_POLYGON)
+            for dot in dots[::-1]:
+                gl.glVertex3f(*dot)
+            gl.glEnd()
+            gl.glNormal3f(0, 0, -1)
+            gl.glBegin(gl.GL_POLYGON)
+            for dot in dots:
+                gl.glVertex3f(*dot)
+            gl.glEnd()
 
 
 class Camera:
@@ -655,6 +740,20 @@ class Camera:
         # 灵敏度
         self.sensitivity = sensitivity
         Camera.all_cameras.append(self)
+
+    @property
+    def modelview_matrix(self):
+        matrix = QMatrix4x4()
+        return matrix.lookAt(self.pos, self.tar, self.up)
+
+    @property
+    def projection_matrix(self):
+        matrix = QMatrix4x4()
+        return matrix.perspective(self.fovy, self.width / self.height, 0.1, 100000)
+
+    @property
+    def viewport(self):
+        return 0, 0, self.width, self.height
 
     def change_target(self, tar):
         self.pos = tar + (self.pos - self.tar).normalized() * self.distance

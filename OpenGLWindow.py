@@ -3,7 +3,7 @@ OpenGL窗口
 """
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QOpenGLWidget, QApplication, QToolButton
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat, QKeyEvent
+from PyQt5.QtGui import QMouseEvent, QWheelEvent, QSurfaceFormat, QKeyEvent, QKeySequence
 from PyQt5.QtGui import QOpenGLVersionProfile
 
 from OpenGL.GL import *
@@ -61,8 +61,8 @@ class OpenGLWin(QOpenGLWidget):
     UnSelectable = 0
     # 3D物体显示模式
     ShowAll = 11
-    ShowZX = 22
-    ShowYX = 33
+    ShowXZ = 22
+    ShowXY = 33
     ShowLeft = 44
 
     def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
@@ -92,29 +92,32 @@ class OpenGLWin(QOpenGLWidget):
         # 四种不同模式下显示的物体
         self.all_3d_obj = {"钢铁": [], "海面": [], "海底": [], "甲板": [], "光源": [], "船底": []}
         if self.using_various_mode:
-            self.zx_layer_obj = []  # 横剖面模式
-            self.yx_layer_obj = []  # 纵剖面模式
+            self.xz_layer_obj = []  # 横剖面模式
+            self.xy_layer_obj = []  # 纵剖面模式
             self.left_view_obj = []  # 左视图线框模式
             self.showMode_showSet_map = {
                 OpenGLWin.ShowAll: self.all_3d_obj,
-                OpenGLWin.ShowZX: self.zx_layer_obj,
-                OpenGLWin.ShowYX: self.yx_layer_obj,
+                OpenGLWin.ShowXZ: self.xz_layer_obj,
+                OpenGLWin.ShowXY: self.xy_layer_obj,
                 OpenGLWin.ShowLeft: self.left_view_obj
             }
-        self.ShipsAllParts = []  # 船体所有零件，用于选中时遍历
+        self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
             if type(gl_plot_obj) == NAHull:
-                self.ShipsAllParts = gl_plot_obj.Parts
-                self.zx_layer_obj.extend(gl_plot_obj.xzLayers)
+                for _color, parts in gl_plot_obj.PartsColorMap.items():
+                    for part in parts:
+                        self.prj_all_parts.append(part)
+                self.xz_layer_obj.extend(gl_plot_obj.xzLayers)
+                self.xy_layer_obj.extend(gl_plot_obj.xyLayers)
+                self.left_view_obj.extend(gl_plot_obj.leftViews)
         # =========================================================================================事件
         self.camera = Camera(self.width, self.height, camera_sensitivity)
         self.lastPos = QPoint()  # 上一次鼠标位置
         self.select_start = None  # 选择框起点
         self.select_end = None  # 选择框终点
         self.rotate_start = None  # 旋转起点
-        self.all_gl_objects = GLObject.all_objects  # 所有的GL对象 # TODO：暂时不用
         self.selected_gl_objects = {
-            self.ShowAll: [], self.ShowZX: [], self.ShowYX: [], self.ShowLeft: []
+            self.ShowAll: [], self.ShowXZ: [], self.ShowXY: [], self.ShowLeft: []
         }
         # ========================================================================================子控件
         self.mod1_button = QToolButton(self)
@@ -201,8 +204,8 @@ class OpenGLWin(QOpenGLWidget):
         self.mod3_button.setText("纵剖面")
         self.mod4_button.setText("左视图")
         self.mod1_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowAll))
-        self.mod2_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowZX))
-        self.mod3_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowYX))
+        self.mod2_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowXZ))
+        self.mod3_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowXY))
         self.mod4_button.clicked.connect(lambda: self.set_show_3d_obj_mode(OpenGLWin.ShowLeft))
         for button in self.mod_buttons:
             button.setCheckable(True)
@@ -230,20 +233,20 @@ class OpenGLWin(QOpenGLWidget):
             self.mod4_button.setChecked(False)
             self.show_statu_func("切换至全视图模式 (1)", "success")
             self.show_3d_obj_mode = OpenGLWin.ShowAll
-        elif mode == OpenGLWin.ShowZX:
+        elif mode == OpenGLWin.ShowXZ:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(True)
             self.mod3_button.setChecked(False)
             self.mod4_button.setChecked(False)
             self.show_statu_func("切换至横剖面模式 (2)", "success")
-            self.show_3d_obj_mode = OpenGLWin.ShowZX
-        elif mode == OpenGLWin.ShowYX:
+            self.show_3d_obj_mode = OpenGLWin.ShowXZ
+        elif mode == OpenGLWin.ShowXY:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(False)
             self.mod3_button.setChecked(True)
             self.mod4_button.setChecked(False)
             self.show_statu_func("切换至纵剖面模式 (3)", "success")
-            self.show_3d_obj_mode = OpenGLWin.ShowYX
+            self.show_3d_obj_mode = OpenGLWin.ShowXY
         elif mode == OpenGLWin.ShowLeft:
             self.mod1_button.setChecked(False)
             self.mod2_button.setChecked(False)
@@ -278,7 +281,7 @@ class OpenGLWin(QOpenGLWidget):
                         for dot in face:
                             self.gl.glVertex3f(dot[0], dot[1], dot[2])
                         self.gl.glEnd()
-        elif self.show_3d_obj_mode == OpenGLWin.ShowZX:
+        elif self.show_3d_obj_mode in (OpenGLWin.ShowXZ, OpenGLWin.ShowXY, OpenGLWin.ShowLeft):
             # 材料设置
             self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_AMBIENT, self.theme_color["被选中"][0])
             self.gl.glMaterialfv(self.gl.GL_FRONT_AND_BACK, self.gl.GL_DIFFUSE, self.theme_color["被选中"][1])
@@ -355,11 +358,11 @@ class OpenGLWin(QOpenGLWidget):
 
     def get_choosing_obj_list(self):
         if self.show_3d_obj_mode == OpenGLWin.ShowAll:
-            return self.ShipsAllParts
-        elif self.show_3d_obj_mode == OpenGLWin.ShowZX:
-            return self.zx_layer_obj
-        elif self.show_3d_obj_mode == OpenGLWin.ShowYX:
-            return self.yx_layer_obj
+            return self.prj_all_parts
+        elif self.show_3d_obj_mode == OpenGLWin.ShowXZ:
+            return self.xz_layer_obj
+        elif self.show_3d_obj_mode == OpenGLWin.ShowXY:
+            return self.xy_layer_obj
         elif self.show_3d_obj_mode == OpenGLWin.ShowLeft:
             return self.left_view_obj
         else:
@@ -367,52 +370,84 @@ class OpenGLWin(QOpenGLWidget):
 
     def add_selected_objects_when_click(self):
         pos = self.select_start
-        min_distance = 100000
-        min_distance_part = None
-        for obj in self.get_choosing_obj_list():
-            if type(obj) in (AdjustableHull, Part):
-                dots = [obj.Pos]
-            elif type(obj) == NaHullXZLayer:
-                dots = obj.Pos_list
-            else:  # TODO: 其他模式下的选中
-                dots = []
-            if len(dots) == 0:
-                continue
-            s_dots = self.transform_points(self.camera.fovy, self.camera.pos, self.camera.up, self.camera.angle,
-                                           QOpenGLWidget.width(self), QOpenGLWidget.height(self), dots)
-            for dot in s_dots:
-                distance = np.sqrt((dot[0] - pos.x()) ** 2 + (dot[1] - pos.y()) ** 2)
-                if distance < min_distance:
-                    min_distance = distance
-                    min_distance_part = obj
-        if min_distance < 100:  # 如果距离小于100像素，就将零件加入到选中列表中
-            return min_distance_part
-        return None
+        # 将屏幕坐标点转换为OpenGL坐标系中的坐标点
+        _x, _y = pos.x(), self.height - pos.y() - 1
+        # 使用拾取技术来确定被点击的三角形
+        glSelectBuffer(512)
+        glRenderMode(GL_SELECT)
+        glInitNames()
+        glPushName(0)
+        self.gl.glViewport(0, 0, self.width, self.height)
+        self.gl.glMatrixMode(GL_PROJECTION)
+        self.gl.glPushMatrix()
+        self.gl.glLoadIdentity()
+        gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
+        # 设置透视投影
+        aspect_ratio = self.width / self.height
+        gluPerspective(self.fovy, aspect_ratio, 0.1, 10000.0)  # 设置透视投影
+        self.gl.glMatrixMode(GL_MODELVIEW)
+        self.paintGL()  # 重新渲染场景
+        self.gl.glMatrixMode(GL_PROJECTION)
+        self.gl.glPopMatrix()
+        self.gl.glMatrixMode(GL_MODELVIEW)
+        hits = glRenderMode(GL_RENDER)
+        # self.show_statu_func(f"{len(hits)}个零件被选中", "success")
+        # 在hits中找到深度最小的零件
+        min_depth = 100000
+        min_depth_part = None
+        for hit in hits:
+            _name = hit.names[0]
+            if _name in Part.id_map:
+                part = Part.id_map[_name]
+                if hit.near < min_depth:
+                    min_depth = hit.near
+                    min_depth_part = part
+        if min_depth_part:
+            return min_depth_part
 
     def add_selected_objects_of_selectBox(self):
         if self.select_start and self.select_end:
             result = []
+            # 转化为OpenGL坐标系
             min_x = min(self.select_start.x(), self.select_end.x())
             max_x = max(self.select_start.x(), self.select_end.x())
-            min_y = min(self.select_start.y(), self.select_end.y())
-            max_y = max(self.select_start.y(), self.select_end.y())
-            # 获取屏幕
-            for obj in self.get_choosing_obj_list():
-                if type(obj) in (AdjustableHull, Part):
-                    dots = [obj.Pos]
-                elif type(obj) == NaHullXZLayer:
-                    dots = obj.Pos_list
-                else:  # TODO: 其他模式下的选中
-                    dots = []
-                if len(dots) == 0:
-                    continue
-                s_dots = self.transform_points(self.camera.fovy, self.camera.pos, self.camera.up, self.camera.angle,
-                                               QOpenGLWidget.width(self), QOpenGLWidget.height(self), dots)
-                for dot in s_dots:
-                    if min_x < dot[0] < max_x and min_y < dot[1] < max_y:
-                        result.append(obj)
+            # 对y翻转
+            min_y = min(self.height - self.select_start.y() - 1, self.height - self.select_end.y() - 1)
+            max_y = max(self.height - self.select_start.y() - 1, self.height - self.select_end.y() - 1)
+            # 使用拾取技术来确定被点击的三角形
+            glSelectBuffer(2**20)
+            glRenderMode(GL_SELECT)
+            glInitNames()
+            glPushName(0)
+            self.gl.glViewport(0, 0, self.width, self.height)
+            self.gl.glMatrixMode(GL_PROJECTION)
+            self.gl.glPushMatrix()
+            self.gl.glLoadIdentity()
+            aspect_ratio = self.width / self.height
+            # 设置选择框
+            gluPickMatrix(
+                (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
+            )
+            # 设置透视投影
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 10000.0)
+            # 转换回模型视图矩阵
+            self.gl.glMatrixMode(GL_MODELVIEW)
+            self.paintGL()
+            # 恢复原来的矩阵
+            self.gl.glMatrixMode(GL_PROJECTION)
+            self.gl.glPopMatrix()
+            # 转换回模型视图矩阵
+            self.gl.glMatrixMode(GL_MODELVIEW)
+            # 获取选择框内的物体
+            hits = glRenderMode(GL_RENDER)
+            for hit in hits:
+                _name = hit.names[0]
+                if _name in Part.id_map:
+                    part = Part.id_map[_name]
+                    if part not in result:
+                        result.append(part)
+            # print([part.Pos for part in result])
             return result
-        return []
 
     @staticmethod
     def get_matrix():
@@ -478,9 +513,9 @@ class OpenGLWin(QOpenGLWidget):
         if event.key() == Qt.Key_1:
             self.set_show_3d_obj_mode(OpenGLWin.ShowAll)
         elif event.key() == Qt.Key_2:
-            self.set_show_3d_obj_mode(OpenGLWin.ShowZX)
+            self.set_show_3d_obj_mode(OpenGLWin.ShowXZ)
         elif event.key() == Qt.Key_3:
-            self.set_show_3d_obj_mode(OpenGLWin.ShowYX)
+            self.set_show_3d_obj_mode(OpenGLWin.ShowXY)
         elif event.key() == Qt.Key_4:
             self.set_show_3d_obj_mode(OpenGLWin.ShowLeft)
         # a键摄像机目标回（0, 0, 0）
@@ -510,13 +545,13 @@ class OpenGLWin(QOpenGLWidget):
                         next_obj = list(down_objs.keys())[0]
                         move_direction = "下"
                 elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
-                      event.key() == Qt.Key_Right and self.camera.angle.x() > 0):  # =========Alt左键
+                        event.key() == Qt.Key_Right and self.camera.angle.x() > 0):  # =========Alt左键
                     front_objs = selected_obj_relations[PRM.FRONT]
                     if len(front_objs) != 0:
                         next_obj = list(front_objs.keys())[0]
                         move_direction = "前"
                 elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
-                      event.key() == Qt.Key_Left and self.camera.angle.x() > 0):  # =========Alt右键
+                        event.key() == Qt.Key_Left and self.camera.angle.x() > 0):  # =========Alt右键
                     back_objs = selected_obj_relations[PRM.BACK]
                     if len(back_objs) != 0:
                         next_obj = list(back_objs.keys())[0]
@@ -546,6 +581,10 @@ class OpenGLWin(QOpenGLWidget):
             # 判断是否按下shift，如果没有按下，就清空选中列表
             if QApplication.keyboardModifiers() != Qt.ShiftModifier:
                 self.selected_gl_objects[self.show_3d_obj_mode].clear()
+            add_part = self.add_selected_objects_when_click()
+            if add_part is not None:
+                self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
+
         elif event.button() == Qt.RightButton:  # 右键按下
             self.rotate_start = event.pos()
             self.lastPos = event.pos()
@@ -576,11 +615,12 @@ class OpenGLWin(QOpenGLWidget):
             if self.operation_mode == OpenGLWin.Selectable:
                 if QApplication.keyboardModifiers() != Qt.ShiftModifier:  # 如果shift没有按下：
                     if self.select_start and self.select_end:
-                        self.selected_gl_objects[self.show_3d_obj_mode].extend(self.add_selected_objects_of_selectBox())
-                    elif self.select_end is None and self.select_start:
-                        if self.add_selected_objects_when_click() is not None:
-                            self.selected_gl_objects[self.show_3d_obj_mode].append(
-                                self.add_selected_objects_when_click())
+                        self.selected_gl_objects[self.show_3d_obj_mode].extend(
+                            self.add_selected_objects_of_selectBox())
+                    # elif self.select_end is None and self.select_start:
+                    #     if self.add_selected_objects_when_click() is not None:
+                    #         self.selected_gl_objects[self.show_3d_obj_mode].append(
+                    #             self.add_selected_objects_when_click())
                     self.select_start = None
                     self.select_end = None
                 elif QApplication.keyboardModifiers() == Qt.ShiftModifier:  # 如果shift按下：
@@ -667,67 +707,71 @@ class OpenGLWin(QOpenGLWidget):
         # self.gl.glEnable(self.gl.GL_SAMPLE_BUFFERS)  # 启用采样缓冲区
 
 
-class OpenGLWin2(QOpenGLWidget):
-    # 操作模式
-    Selectable = 1
-    UnSelectable = 0
-    # 3D物体显示模式
-    ShowAll = 11
-    ShowZX = 22
-    ShowYX = 33
-    ShowLeft = 44
-
-    def __init__(self, camera_sensitivity):
+class DesignTabGLWinMenu(QMenu):
+    def __init__(self, gl_win):
         super().__init__()
-        # 配置OpenGL格式
-        _format = QSurfaceFormat()
-        _format.setVersion(4, 3)  # 指定OpenGL版本为3.3
-        _format.setProfile(QSurfaceFormat.CoreProfile)  # 使用Core Profile
-        _format.setSwapBehavior(QSurfaceFormat.DoubleBuffer)  # 双缓冲
-        _format.setDepthBufferSize(24)  # 设置深度缓冲区大小
-        self.setFormat(_format)
-        # VAO和VBO的相关变量
-        self.vao = None
-        self.vbo = None
-        # 摄像机属性
-        self.camera = Camera(self.width, self.height, camera_sensitivity)
+        self.GlWin = gl_win
+        # 设置样式
+        self.style = f"""
+            QMenu {{
+                background-color: {BG_COLOR0};
+                color: {FG_COLOR0};
+                border: 5px solid {BG_COLOR0};
+                border-radius: 8px;
+            }}
+            QMenu::item {{
+                background-color: {BG_COLOR0};
+                color: {FG_COLOR0};
+            }}
+            QMenu::item:disabled {{
+                background-color: {BG_COLOR0};
+                color: {GRAY};
+            }}
+            QMenu::item:selected {{
+                background-color: {BG_COLOR1};
+                color: {FG_COLOR0}; 
+            }}
+        """
+        self.setStyleSheet(self.style)
+        # 右键菜单
+        self.expand_select_area_A = QAction("选区扩展 Ctrl+E", self)
+        self.edit_select_area_A = QAction("编辑选区 Ctrl+Enter", self)
+        self.undo_A = QAction("撤销 Ctrl+Z", self)
+        self.redo_A = QAction("重做 Ctrl+Shift+Z", self)
+        self.delete_selected_objects_A = QAction("删除 Delete", self)
+        self.add_selected_objects_A = QAction("添加 Ctrl+Shift+A", self)
+        self.import_selected_objects_A = QAction("导入 I", self)
+        self.export_selected_objects_A = QAction("导出 O", self)
+        # 扩展选区子菜单
+        self.add_selected_objects_menu = QMenu("扩大选区", self)
+        self.expand_select_area_A.setMenu(self.add_selected_objects_menu)  # 添加动作
+        self.add_selected_objects_A_y = QAction("至xz水平面 Ctrl+E+Y", self.add_selected_objects_menu)
+        self.add_selected_objects_A_z = QAction("至xy纵截面 Ctrl+E+Z", self.add_selected_objects_menu)
+        self.add_selected_objects_menu.addAction(self.add_selected_objects_A_y)
+        self.add_selected_objects_menu.addAction(self.add_selected_objects_A_z)
 
-    def initializeGL(self):
-        # 初始化OpenGL函数
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)  # 启用背面剔除
-        glCullFace(GL_BACK)  # 剔除背面
-        glFrontFace(GL_CCW)  # 设置逆时针为正面
-        # 创建VAO VBO
-        self.vao = glGenVertexArrays(1)
-        self.vbo = glGenBuffers(1)
-        # 初始化VAO和VBO
-        self.init_vao_vbo()
+        self.actions = {
+            self.expand_select_area_A: False,
+            self.edit_select_area_A: False,
+            self.undo_A: False,
+            self.redo_A: False,
+            self.delete_selected_objects_A: False,
+            self.add_selected_objects_A: False,
+            self.import_selected_objects_A: True,
+            self.export_selected_objects_A: False,
+        }
+        for action, available in self.actions.items():
+            action.setEnabled(available)
+            self.addAction(action)
 
-    def paintGL(self):
-        glClearColor(0.3, 0.3, 0.3, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        # 设置视角
-        # glLoadIdentity()
-        # 绘制一个基本正方体
-        glBindVertexArray(self.vao)
-        glDrawArrays(GL_TRIANGLES, 0, 36)
-        glBindVertexArray(0)
+    def connect_basic_funcs(self, undo_func, redo_func, delete_func, add_func, import_func, export_func):
+        self.undo_A.triggered.connect(undo_func)
+        self.redo_A.triggered.connect(redo_func)
+        self.delete_selected_objects_A.triggered.connect(delete_func)
+        self.add_selected_objects_A.triggered.connect(add_func)
+        self.import_selected_objects_A.triggered.connect(import_func)
+        self.export_selected_objects_A.triggered.connect(export_func)
 
-    def resizeGL(self, width, height):
-        glViewport(0, 0, width, height)
-
-    def init_vao_vbo(self):
-        vertices = [
-            # 顶点坐标
-            -1.0, 0.0, -1.0,
-            1.0, 0.0, -1.0,
-            1.0, 0.0, 1.0,
-            -1.0, 0.0, 1.0,
-        ]
-        glBindVertexArray(self.vao)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, np.array(vertices, dtype=np.float32), GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
-        glEnableVertexAttribArray(0)
-        glBindVertexArray(0)
+    def connect_expand_select_area_funcs(self, add2xzLayer_func, add2yxLayer_func):
+        self.add_selected_objects_A_y.triggered.connect(add2xzLayer_func)
+        self.add_selected_objects_A_z.triggered.connect(add2yxLayer_func)

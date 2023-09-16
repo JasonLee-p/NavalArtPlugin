@@ -2,7 +2,7 @@
 读取NA设计文件的模块
 """
 import xml.etree.ElementTree as ET
-from typing import Union
+from typing import Union, List, Dict, Callable
 
 import numpy as np
 from quaternion import quaternion
@@ -166,6 +166,7 @@ def rotate_quaternion(dot_dict, rot):
 
 class Part:
     ShipsAllParts = []
+    id_map = {}  # 储存零件ID与零件实例的映射
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.read_na_obj = read_na
@@ -177,6 +178,7 @@ class Part:
         self.Col = color
         self.Amr = armor
         Part.ShipsAllParts.append(self)
+        Part.id_map[id(self) % 4294967296] = self
 
     def __str__(self):
         part_type = "Part"
@@ -527,6 +529,9 @@ class MainWeapon(Part):
 
 
 class ReadNA:
+    NaPathMode = "path"
+    NaDataMode = "data"
+
     def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None):
         """
 
@@ -534,10 +539,25 @@ class ReadNA:
         :param data: 字典，键是颜色的十六进制表示，值是零件的列表，但是尚未实例化，是字典形式的数据
         :param show_statu_func:
         """
+        self.filename: str  # 文件名
+        self.filepath: str  # 文件路径
+        self.ShipName: str  # 船名
+        self.Author: str  # 作者
+        self.HornType: str  # 喇叭类型
+        self.HornPitch: str  # 喇叭音高
+        self.TracerCol: str  # 弹道颜色
+        self.Parts: List[Part]  # 所有零件的列表
+        self.Weapons: List[MainWeapon]  # 所有武器的列表
+        self.AdjustableHulls: List[AdjustableHull]  # 所有可调节船体的列表
+        self.ColorPartsMap: Dict[str, List[Part]]  # 用于绘制的颜色-零件映射表
+        self.show_statu_func: Callable  # 用于显示状态的函数
+        self.partRelationMap: PartRelationMap  # 零件关系图，包含零件的上下左右前后关系
+        # 赋值
         self.show_statu_func = show_statu_func
         self.Parts = []
         self.partRelationMap = PartRelationMap(self, self.show_statu_func)  # 零件关系图，包含零件的上下左右前后关系
         if filepath is False:
+            self.Mode = ReadNA.NaDataMode
             # ===================================================================== 实例化data中的零件
             self.ColorPartsMap = {}
             total_parts_num = sum([len(parts) for parts in data.values()])
@@ -600,6 +620,7 @@ class ReadNA:
             self.partRelationMap.sort()
             self.partRelationMap.init(drawMap=None, init=False)  # 上方已经初始化了drawMap。
         else:  # =========================================================================== 读取na文件
+            self.Mode = ReadNA.NaPathMode
             self.filename = filepath.split('\\')[-1]
             self.filepath = filepath
             try:
@@ -649,11 +670,11 @@ class ReadNA:
                     try:
                         manual_control = part.find('turret').attrib['manualControl']
                     except KeyError:
-                        manual_control = part.find('turret').attrib['manualControl'] = None
+                        manual_control = None
                     try:
                         elevatorH = part.find('turret').attrib['evevator']
                     except KeyError:
-                        elevatorH = part.find('turret').attrib['evevator'] = None
+                        elevatorH = None
                     obj = MainWeapon(self, _id, _pos, _rot, _scl, _col, _amr,
                                      manual_control, elevatorH)
                 # 最后添加到普通零件
@@ -669,20 +690,6 @@ class ReadNA:
                 self.Parts.append(obj)
                 # 注意，这里没有对partRelationMap进行初始化，因为这里只是读取零件，还没有选颜色，所以要等到用户选颜色之后才能初始化
         self.show_statu_func("零件读取完成!", "success")
-        # 至此已经初始化的公有属性：
-        # self.filename *
-        # self.filepath *
-        # self.ShipName
-        # self.Author
-        # self.HornType
-        # self.HornPitch
-        # self.TracerCol
-        # self.Parts  # 所有零件的列表
-        # self.Weapons  # 所有武器的列表
-        # self.AdjustableHulls  # 所有可调节船体的列表
-        # self.ColorPartsMap  # 用于绘制的颜色-零件映射表
-        # self.show_statu_func  # 进度条
-        # self.partRelationMap  # 零件关系图，包含零件的上下左右前后关系
 
 
 class PartRelationMap:
@@ -826,6 +833,8 @@ class PartRelationMap:
                     self.xzDotsLayerMap[_y].append(newPart)
                 if _z not in self.xyDotsLayerMap.keys():
                     self.xyDotsLayerMap[_z] = [newPart]
+                else:
+                    self.xyDotsLayerMap[_z].append(newPart)
         # 初始化零件的上下左右前后零件
         newPart_relation = {self.FRONT: {}, self.BACK: {},
                             self.UP: {}, self.DOWN: {},

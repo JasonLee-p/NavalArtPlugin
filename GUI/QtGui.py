@@ -422,7 +422,7 @@ class MySlider(QSlider):
         self.valueLabel.setFixedSize(50, 20)
         self.valueLabel.setParent(self)
         # 值变化绑定
-        self.valueChanged.connect(self.valueLabel.setNum)
+        self.valueChanged.connect_basic_funcs(self.valueLabel.setNum)
 
     # 重写鼠标滚轮
     def wheelEvent(self, event):
@@ -444,7 +444,7 @@ class CircleSelectButton(QPushButton):
         # 事件
         self.setCheckable(True)
         self.setChecked(init_statu)
-        self.clicked.connect(self.change_color)
+        self.clicked.connect_basic_funcs(self.change_color)
 
     def change_color(self):
         if self.isChecked():
@@ -475,7 +475,7 @@ class CircleSelectButtonGroup:
             # 事件
             button.setCheckable(True)
             button.setChecked(False)
-            button.clicked.connect(self.change_color)
+            button.clicked.connect_basic_funcs(self.change_color)
         self.group[0].setChecked(True)
         self.selected_bt_index = 0
 

@@ -56,7 +56,7 @@ class Mod1SinglePartView(QWidget):
                     textEdit.setFixedWidth(60)
                     textEdit.setFixedHeight(25)
                     textEdit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 不显示滚动条
-                    textEdit.wheelEvent = self.tab1_grid_qte_mouse_wheel  # 重写鼠标滚轮事件
+                    textEdit.setReadOnly(True)
                     textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
                                            f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
                     self.layout.addWidget(textEdit, i, j + 1)
@@ -84,13 +84,17 @@ class Mod1SinglePartView(QWidget):
         active_textEdit.setText(str(value))
 
     def update_context(self, selected_obj):
+        # 更新内容
         obj_type_text = "可调节船体" if selected_obj.Id == "0" else "其他零件"
         self.content["类型"].setText(obj_type_text)
         for i in range(3):
+            # 修改颜色格式：从无井号16进制转换为0-255
+            col_txt = selected_obj.Col[i * 2: i * 2 + 2]
+            col = int(col_txt, 16)
             self.content["坐标"]["QTextEdit"][i].setText(str(selected_obj.Pos[i]))
             self.content["旋转"]["QTextEdit"][i].setText(str(selected_obj.Rot[i]))
             self.content["缩放"]["QTextEdit"][i].setText(str(selected_obj.Scl[i]))
-            self.content["颜色"]["QTextEdit"][i].setText(str(selected_obj.Col[i]))
+            self.content["颜色"]["QTextEdit"][i].setText(str(col))
         self.content["装甲"]["QTextEdit"][0].setText(str(selected_obj.Amr))
         if obj_type_text == "可调节船体":
             # 更新可调节零件模型信息
@@ -104,10 +108,3 @@ class Mod1SinglePartView(QWidget):
             self.content["下弧度"]["QTextEdit"][0].setText(str(selected_obj.DCur))
             self.content["高缩放"]["QTextEdit"][0].setText(str(selected_obj.HScl))
             self.content["高偏移"]["QTextEdit"][0].setText(str(selected_obj.HOff))
-
-    def lock(self):
-        # 锁定输入框
-        for key in self.content:
-            if key != "类型":
-                for qte in self.content[key]["QTextEdit"]:
-                    qte.setEnabled(False)

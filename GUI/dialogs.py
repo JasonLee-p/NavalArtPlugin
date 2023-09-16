@@ -1,3 +1,4 @@
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog
 # 本地库
 from PTB_design_reader import ReadPTB
@@ -304,7 +305,8 @@ class NewProjectDialog(BasicDialog):
         """
         用户选择路径
         """
-        path = QFileDialog.getExistingDirectory(self, "选择工程路径", "./")
+        choose_path_from = self.NAPath
+        path = QFileDialog.getExistingDirectory(self, "选择工程路径", choose_path_from)
         self.input_path.setText(path)
 
     def check_na_path(self):
@@ -468,6 +470,8 @@ class SensitiveDialog(BasicDialog):
 
 
 class ColorDialog(BasicDialog):
+    color_selected = pyqtSignal()
+
     def __init__(self, parent, na_hull):
         self.title = "选择：该设计中 船体独有的颜色"
         self.na_hull = na_hull
@@ -582,5 +586,6 @@ class ColorDialog(BasicDialog):
         self.na_hull.DrawMap = draw_map
         if draw_map:
             super().ensure()
+            self.color_selected.emit()  # 发送自定义信号通知颜色选择完成
         else:
             MyMessageBox().information(None, "提示", "未选择任何颜色", MyMessageBox.Ok)
