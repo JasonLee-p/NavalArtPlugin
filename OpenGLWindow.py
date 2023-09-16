@@ -581,9 +581,16 @@ class OpenGLWin(QOpenGLWidget):
             # 判断是否按下shift，如果没有按下，就清空选中列表
             if QApplication.keyboardModifiers() != Qt.ShiftModifier:
                 self.selected_gl_objects[self.show_3d_obj_mode].clear()
-            add_part = self.add_selected_objects_when_click()
-            if add_part is not None:
-                self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
+                add_part = self.add_selected_objects_when_click()
+                if add_part is not None:
+                    self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
+            else:  # shift按下时，判断是否点击到了已经选中的物体
+                add_part = self.add_selected_objects_when_click()
+                if add_part is not None:
+                    if add_part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                        self.selected_gl_objects[self.show_3d_obj_mode].remove(add_part)
+                    else:
+                        self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
 
         elif event.button() == Qt.RightButton:  # 右键按下
             self.rotate_start = event.pos()
@@ -617,12 +624,6 @@ class OpenGLWin(QOpenGLWidget):
                     if self.select_start and self.select_end:
                         self.selected_gl_objects[self.show_3d_obj_mode].extend(
                             self.add_selected_objects_of_selectBox())
-                    # elif self.select_end is None and self.select_start:
-                    #     if self.add_selected_objects_when_click() is not None:
-                    #         self.selected_gl_objects[self.show_3d_obj_mode].append(
-                    #             self.add_selected_objects_when_click())
-                    self.select_start = None
-                    self.select_end = None
                 elif QApplication.keyboardModifiers() == Qt.ShiftModifier:  # 如果shift按下：
                     if self.select_start and self.select_end:
                         add_list = self.add_selected_objects_of_selectBox()
@@ -631,15 +632,8 @@ class OpenGLWin(QOpenGLWidget):
                                 self.selected_gl_objects[self.show_3d_obj_mode].remove(add_obj)
                             else:
                                 self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
-                    elif self.select_end is None and self.select_start:
-                        add_obj = self.add_selected_objects_when_click()
-                        # 选择性地添加或删除物体
-                        if add_obj in self.selected_gl_objects[self.show_3d_obj_mode]:
-                            self.selected_gl_objects[self.show_3d_obj_mode].remove(add_obj)
-                        else:
-                            self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
-                    self.select_start = None
-                    self.select_end = None
+                self.select_start = None
+                self.select_end = None
         self.update()
 
     def set_camera(self):
