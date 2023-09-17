@@ -28,63 +28,8 @@ from quaternion import quaternion
     </newPart>
   </root>
 """
-
-
-def show_statu():
-    return
-
-
-def rotate_axis(rotated_axis, axis, angle):
-    # 将轴向量和要旋转的向量归一化
-    axis = axis / np.linalg.norm(axis)
-    rotated_axis = rotated_axis / np.linalg.norm(rotated_axis)
-
-    # 计算旋转后的向量
-    cos_theta = np.cos(angle)
-    sin_theta = np.sin(angle)
-    cross_product = np.cross(axis, rotated_axis)
-    dot_product = np.dot(axis, rotated_axis)
-
-    rotated = (rotated_axis * cos_theta +
-               cross_product * sin_theta +
-               axis * dot_product * (1 - cos_theta))
-
-    return rotated
-
-
-def rotate(dot_dict, rot):
-    """
-    对点集进行欧拉角旋转
-
-    :param dot_dict: 字典，值是零件的各个点的坐标，格式为 {'point1': [x1, y1, z1], 'point2': [x2, y2, z2], ...}
-    :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
-    :return: 旋转后的点集，格式与输入点集相同，但是返回np.array类型的值
-    """
-    # 将角度转换为弧度
-    rot = np.deg2rad(rot)
-    # 获取旋转矩阵
-    Rx = np.array([[1, 0, 0],
-                   [0, np.cos(rot[0]), -np.sin(rot[0])],
-                   [0, np.sin(rot[0]), np.cos(rot[0])]])
-
-    Ry = np.array([[np.cos(rot[1]), 0, np.sin(rot[1])],
-                   [0, 1, 0],
-                   [-np.sin(rot[1]), 0, np.cos(rot[1])]])
-
-    Rz = np.array([[np.cos(rot[2]), -np.sin(rot[2]), 0],
-                   [np.sin(rot[2]), np.cos(rot[2]), 0],
-                   [0, 0, 1]])
-
-    # 遍历点集进行旋转
-    rotated_dot_dict = {}
-    for key, point in dot_dict.items():
-        # 转换为NumPy数组
-        point_np = np.array(point)
-        # 进行旋转
-        rotated_point = Rx.dot(Ry).dot(Rz).dot(point_np)
-        # 将结果保存到字典中
-        rotated_dot_dict[key] = rotated_point
-    return rotated_dot_dict
+orders = ["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
+RotateOrder = orders[2]
 
 
 def rotate_quaternion2(dot_dict, rot):
@@ -98,31 +43,43 @@ def rotate_quaternion2(dot_dict, rot):
     """
     # 转换为弧度
     rot = np.radians(rot)
-    # 计算旋转矩阵
-    rot_x = np.array([[1, 0, 0],
-                      [0, np.cos(rot[0]), -np.sin(rot[0])],
-                      [0, np.sin(rot[0]), np.cos(rot[0])]])
+    # 计算旋转的四元数
+    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
+    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
+    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
 
-    rot_y = np.array([[np.cos(rot[1]), 0, np.sin(rot[1])],
-                      [0, 1, 0],
-                      [-np.sin(rot[1]), 0, np.cos(rot[1])]])
-
-    rot_z = np.array([[np.cos(rot[2]), -np.sin(rot[2]), 0],
-                      [np.sin(rot[2]), np.cos(rot[2]), 0],
-                      [0, 0, 1]])
-
-    # 合并旋转矩阵
-    rotation_matrix = rot_z.dot(rot_y).dot(rot_x)
+    # 合并三个旋转四元数
+    q = quaternion(1, 0, 0, 0)
+    if RotateOrder == "XYZ":
+        q = q * quaternion(*q_x) * quaternion(*q_y) * quaternion(*q_z)
+    elif RotateOrder == "XZY":
+        q = q * quaternion(*q_x) * quaternion(*q_z) * quaternion(*q_y)
+    elif RotateOrder == "YXZ":
+        q = q * quaternion(*q_y) * quaternion(*q_x) * quaternion(*q_z)
+    elif RotateOrder == "YZX":
+        q = q * quaternion(*q_y) * quaternion(*q_z) * quaternion(*q_x)
+    elif RotateOrder == "ZXY":
+        q = q * quaternion(*q_z) * quaternion(*q_x) * quaternion(*q_y)
+    elif RotateOrder == "ZYX":
+        q = q * quaternion(*q_z) * quaternion(*q_y) * quaternion(*q_x)
+    else:
+        raise ValueError("Invalid RotateOrder!")
 
     # 遍历点集进行旋转
     rotated_dot_dict = {}
     for key, pointset in dot_dict.items():
-        # 转换为NumPy数组
-        pointset_np = np.array(pointset)
-        # 进行旋转
-        rotated_pointset = np.dot(pointset_np, rotation_matrix.T)
-        # 将结果保存到字典中
-        rotated_dot_dict[key] = rotated_pointset
+        for i, point in enumerate(pointset):
+            # 将点坐标转换为四元数
+            point_quat = np.quaternion(0, *point)
+            # 进行四元数旋转
+            rotated_point_quat = q * point_quat * np.conj(q)
+            # 提取旋转后的点坐标
+            rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
+            # 将结果保存到字典中
+            if i == 0:
+                rotated_dot_dict[key] = [rotated_point]
+            else:
+                rotated_dot_dict[key].append(rotated_point)
 
     return rotated_dot_dict
 
@@ -137,7 +94,50 @@ def rotate_quaternion(dot_dict, rot):
     """
     # 将角度转换为弧度
     rot = np.radians(rot)
-
+    # # 计算旋转矩阵
+    # R_x = np.array([[1, 0, 0],
+    #                 [0, np.cos(rot[0]), -np.sin(rot[0])],
+    #                 [0, np.sin(rot[0]), np.cos(rot[0])]])
+    #
+    # R_y = np.array([[np.cos(rot[1]), 0, np.sin(rot[1])],
+    #                 [0, 1, 0],
+    #                 [-np.sin(rot[1]), 0, np.cos(rot[1])]])
+    #
+    # R_z = np.array([[np.cos(rot[2]), -np.sin(rot[2]), 0],
+    #                 [np.sin(rot[2]), np.cos(rot[2]), 0],
+    #                 [0, 0, 1]])
+    # # 计算每个轴的旋转角度
+    # theta_x = np.arctan2(R_y[2, 1], R_y[2, 2])
+    # theta_y = np.arctan2(-R_x[2, 0], np.sqrt(R_x[2, 1] ** 2 + R_x[2, 2] ** 2))
+    # theta_z = np.arctan2(R_x[1, 0], R_x[0, 0])
+    # # 判断是否存在万向锁现象
+    # if np.abs(theta_x) == np.pi / 2:
+    #     locked_axes = "YZ"
+    #     if RotateOrder == "XYZ":
+    #         rot[0] = 0
+    # elif np.abs(theta_y) == np.pi / 2:
+    #     locked_axes = "XZ"
+    #     if RotateOrder == "XYZ":
+    #         rot[1] = 0
+    # elif np.abs(theta_z) == np.pi / 2:
+    #     locked_axes = "XY"
+    #     if RotateOrder == "XYZ":
+    #         rot[2] = 0
+    # # 合并旋转矩阵
+    # if RotateOrder == "XYZ":
+    #     rotation_matrix = np.dot(R_z, np.dot(R_y, R_x))
+    # elif RotateOrder == "XZY":
+    #     rotation_matrix = np.dot(R_y, np.dot(R_z, R_x))
+    # elif RotateOrder == "YXZ":
+    #     rotation_matrix = np.dot(R_z, np.dot(R_x, R_y))
+    # elif RotateOrder == "YZX":
+    #     rotation_matrix = np.dot(R_x, np.dot(R_z, R_y))
+    # elif RotateOrder == "ZXY":
+    #     rotation_matrix = np.dot(R_y, np.dot(R_x, R_z))
+    # elif RotateOrder == "ZYX":
+    #     rotation_matrix = np.dot(R_x, np.dot(R_y, R_z))
+    # else:
+    #     raise ValueError("Invalid RotateOrder!")
     # 计算旋转的四元数
     q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
     q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
@@ -145,9 +145,20 @@ def rotate_quaternion(dot_dict, rot):
 
     # 合并三个旋转四元数
     q = quaternion(1, 0, 0, 0)
-    q = q * quaternion(*q_x)
-    q = q * quaternion(*q_y)
-    q = q * quaternion(*q_z)
+    if RotateOrder == "XYZ":
+        q = q * quaternion(*q_x) * quaternion(*q_y) * quaternion(*q_z)
+    elif RotateOrder == "XZY":
+        q = q * quaternion(*q_x) * quaternion(*q_z) * quaternion(*q_y)
+    elif RotateOrder == "YXZ":
+        q = q * quaternion(*q_y) * quaternion(*q_x) * quaternion(*q_z)
+    elif RotateOrder == "YZX":
+        q = q * quaternion(*q_y) * quaternion(*q_z) * quaternion(*q_x)
+    elif RotateOrder == "ZXY":
+        q = q * quaternion(*q_z) * quaternion(*q_x) * quaternion(*q_y)
+    elif RotateOrder == "ZYX":
+        q = q * quaternion(*q_z) * quaternion(*q_y) * quaternion(*q_x)
+    else:
+        raise ValueError("Invalid RotateOrder!")
 
     # 遍历点集进行旋转
     rotated_dot_dict = {}
@@ -164,7 +175,7 @@ def rotate_quaternion(dot_dict, rot):
     return rotated_dot_dict
 
 
-class Part:
+class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
 
@@ -177,11 +188,11 @@ class Part:
         self.Scl = scale
         self.Col = color
         self.Amr = armor
-        Part.ShipsAllParts.append(self)
-        Part.id_map[id(self) % 4294967296] = self
+        NAPart.ShipsAllParts.append(self)
+        NAPart.id_map[id(self) % 4294967296] = self
 
     def __str__(self):
-        part_type = "Part"
+        part_type = "NAPart"
         return str(
             f"\n\nTyp:  {part_type}\n"
             f"Id:   {self.Id}\n"
@@ -198,7 +209,7 @@ class Part:
     # 定义被存为json文件的格式
     def to_dict(self):
         return {
-            "Typ": 'Part',
+            "Typ": 'NAPart',
             "Id": self.Id,
             "Pos": list(self.Pos),
             "Rot": list(self.Rot),
@@ -208,7 +219,7 @@ class Part:
         }
 
 
-class AdjustableHull(Part):
+class AdjustableHull(NAPart):
     All = []
 
     def __init__(
@@ -233,7 +244,7 @@ class AdjustableHull(Part):
         :param heightScale: 浮点型，前端高度缩放
         :param heightOffset: 浮点型，前端高度偏移
         """
-        Part.__init__(self, read_na, Id, pos, rot, scale, color, armor)
+        NAPart.__init__(self, read_na, Id, pos, rot, scale, color, armor)
         self.Len = length
         self.Hei = height
         self.FWid = frontWidth
@@ -295,7 +306,7 @@ class AdjustableHull(Part):
             "GL_QUAD_STRIP": [],
             "GL_POLYGON": [],
         }
-        if self.UCur == 0 and self.DCur == 0:
+        if self.UCur < 0.005 and self.DCur <= 0.005:
             # 旋转
             dots = rotate_quaternion(self.vertex_coordinates, self.Rot)
             for key in dots.keys():
@@ -462,22 +473,22 @@ class AdjustableHull(Part):
     def __str__(self):
         part_type = str(self.__class__.__name__)
         return str(
-            f"\nTyp:  {part_type}\n"
+            f"\nTyp:  {part_type}\t"
             f"Id:   {self.Id}\n"
-            f"Pos:  {self.Pos}\n"
-            f"Rot:  {self.Rot}\n"
-            f"Scl:  {self.Scl}\n"
-            f"Col:  #{self.Col}\n"
+            f"Pos:  {self.Pos}\t"
+            f"Rot:  {self.Rot}\t"
+            f"Scl:  {self.Scl}\t"
+            f"Col:  #{self.Col}\t"
             f"Amr:  {self.Amr} mm\n"
-            f"Len:  {self.Len} m\n"
-            f"Hei:  {self.Hei} m\n"
-            f"FWid: {self.FWid} m\n"
-            f"BWid: {self.BWid} m\n"
-            f"FSpr: {self.FSpr} m\n"
-            f"BSpr: {self.BSpr} m\n"
-            f"UCur: {self.UCur} m\n"
-            f"DCur: {self.DCur} m\n"
-            f"HScl: {self.HScl} m\n"
+            f"Len:  {self.Len} m\t"
+            f"Hei:  {self.Hei} m\t"
+            f"FWid: {self.FWid} m\t"
+            f"BWid: {self.BWid} m\t"
+            f"FSpr: {self.FSpr} m\t"
+            f"BSpr: {self.BSpr} m\t"
+            f"UCur: {self.UCur}  \t"
+            f"DCur: {self.DCur}  \t"
+            f"HScl: {self.HScl}  \t"
             f"HOff: {self.HOff} m\n"
         )
 
@@ -504,7 +515,7 @@ class AdjustableHull(Part):
         }
 
 
-class MainWeapon(Part):
+class MainWeapon(NAPart):
     All = []
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor, manual_control, elevator):
@@ -546,10 +557,10 @@ class ReadNA:
         self.HornType: str  # 喇叭类型
         self.HornPitch: str  # 喇叭音高
         self.TracerCol: str  # 弹道颜色
-        self.Parts: List[Part]  # 所有零件的列表
+        self.Parts: List[NAPart]  # 所有零件的列表
         self.Weapons: List[MainWeapon]  # 所有武器的列表
         self.AdjustableHulls: List[AdjustableHull]  # 所有可调节船体的列表
-        self.ColorPartsMap: Dict[str, List[Part]]  # 用于绘制的颜色-零件映射表
+        self.ColorPartsMap: Dict[str, List[NAPart]]  # 用于绘制的颜色-零件映射表
         self.show_statu_func: Callable  # 用于显示状态的函数
         self.partRelationMap: PartRelationMap  # 零件关系图，包含零件的上下左右前后关系
         # 赋值
@@ -568,8 +579,8 @@ class ReadNA:
                         process = round(i / total_parts_num * 100, 2)
                         self.show_statu_func(f"正在实例化第{i}个零件，进度：{process} %", "process")
                     i += 1
-                    if part["Typ"] == "Part":
-                        obj = Part(
+                    if part["Typ"] == "NAPart" or part["Typ"] == "Part":  # TODO: Part名称已经被弃用
+                        obj = NAPart(
                             self,
                             part["Id"],
                             tuple(part["Pos"]), tuple(part["Rot"]), tuple(part["Scl"]),
@@ -595,7 +606,7 @@ class ReadNA:
                             manual_control=manual_control,
                             elevator=elevator
                         )
-                    elif part["Typ"] == "AdjustableHull":
+                    elif part["Typ"] == AdjustableHull.__name__:
                         obj = AdjustableHull(
                             self,
                             part["Id"],
@@ -679,7 +690,7 @@ class ReadNA:
                                      manual_control, elevatorH)
                 # 最后添加到普通零件
                 else:
-                    obj = Part(self, _id, _pos, _rot, _scl, _col, _amr)
+                    obj = NAPart(self, _id, _pos, _rot, _scl, _col, _amr)
                 # 添加颜色
                 _color = f"#{part.find('color').attrib['hex']}"
                 if _color not in self.ColorPartsMap.keys():
@@ -730,7 +741,7 @@ class PartRelationMap:
         """零件关系图"""
         self.basicMap = {  # 以零件为基础的关系图，包含零件的上下左右前后和距离关系
             # 零件对象： {方向0：{对象0：距离0, 对象1：距离1, ...}, 方向1：{对象0：距离0, 对象1：距离1, ...}, ...}
-            # Part: {PartRelationMap.FRONT: {FrontPart0: FrontValue0, ...},
+            # NAPart: {PartRelationMap.FRONT: {FrontPart0: FrontValue0, ...},
             #        PartRelationMap.BACK: {BackPart0: BackValue0, ...},
             #        PartRelationMap.UP: {UpPart0: UpValue0, ...},
             #        PartRelationMap.DOWN: {DownPart0: DownValue0, ...},

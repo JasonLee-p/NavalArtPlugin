@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from typing import Tuple, List
 import os
 
-from Data.PartAttrMaps import *
+from part_data.PartAttrMaps import *
 
 WEIGHT_MULTIPLIER = 0.216  # xml的weight值与真实重量的比例，也就是（3/5）的三次方
 HULL_DENSITY = 0.2  # 普通船体的密度
@@ -18,7 +18,7 @@ NUM_STRS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 _LOCAL_ADDRESS = os.path.dirname(os.path.abspath(__file__))
 
 
-class Part:
+class PTBPart:
     ShipsAllParts = []  # 所有零件的列表
     ClassesWeight = {"船体": 0, "装甲舱": 0, "火炮": 0, "鱼雷": 0, "防空炮": 0,
                      "火控": 0, "测距仪": 0, "排烟器": 0, "传动": 0, "弹射器": 0, "装饰": 0}  # 所有零件类别的重量
@@ -62,9 +62,9 @@ class Part:
         else:  # 如果是名称
             self.ID = Id
         # --------------------------------------计算信息-------------------------------------- #
-        Part.ShipsAllParts.append(self)
+        PTBPart.ShipsAllParts.append(self)
         if "机库" in self.ID:
-            Part.plane_weight += PLANE_WEIGHT
+            PTBPart.plane_weight += PLANE_WEIGHT
 
     @staticmethod
     def get_all_classes_weight(cls):
@@ -172,7 +172,7 @@ class Part:
         cls.ShipsAllParts = []
 
 
-class Funnel(Part):
+class Funnel(PTBPart):
     funnels = []
     funnels_weight = 0.0
     turbines_weight = 0
@@ -214,7 +214,7 @@ class Funnel(Part):
         cls.TurbinesNum = 0
 
 
-class MainWeapon(Part):
+class MainWeapon(PTBPart):
     Gun = []
     Torpedo = []
     # 重量
@@ -327,7 +327,7 @@ class MainWeapon(Part):
         cls.TotalFireRate = 0.0
 
 
-class AA(Part):
+class AA(PTBPart):
     aas = []
     total_weight = 0.0
     NeedMagazines = 0.0
@@ -352,7 +352,7 @@ class AA(Part):
         cls.NeedMagazines = 0.0
 
 
-class Armor(Part):
+class Armor(PTBPart):
     armors = []
     total_weight = 0.0
     total_added_weight = 0.0
@@ -897,11 +897,11 @@ class ReadPTB:
             elif '112' in part.attrib["Id"][:3]:  # --------------------------------------------------初始化AA
                 AA_ = AA(part.attrib['Id'], name, weight, buoyancy, rotation, position, scale, color)
                 result['防空炮'].append(AA_)
-            elif "装甲舱" in Part.id2name(part.attrib['Id']):  # --------------------------------------初始化装甲舱
+            elif "装甲舱" in PTBPart.id2name(part.attrib['Id']):  # --------------------------------------初始化装甲舱
                 Armor_ = Armor(part.attrib['Id'], name, weight, buoyancy, rotation, position, scale, color)
                 result['装甲舱'].append(Armor_)
             else:
-                P = Part(  # ------------------------------------------------------------------------初始化Part
+                P = PTBPart(  # ------------------------------------------------------------------------初始化Part
                     part.attrib['Id'], name, weight, buoyancy, rotation, position, scale, color)
                 # 对零件进行分类装入result，通过mapping来匹配
                 added_to_category = False  # 是否被添加到result中
@@ -1117,7 +1117,7 @@ class ReadPTB:
 
     @staticmethod
     def change_ship():
-        Part.change_ship()
+        PTBPart.change_ship()
         ArmorBoard.change_ship()
         Rebar.change_ship()
         AdvancedHull.change_ship()
@@ -1207,14 +1207,14 @@ class DesignAnalyser:
         self.weight_relation_data = {  # 重量关系
             "船体": sum(
                 p.Weight for p in (DR_dict['Parts']['船体'] + DR_dict['Parts']['传动'] + DR_dict['Parts']['弹射器'])
-            ) + Armor.total_original_weight - Part.plane_weight,
+            ) + Armor.total_original_weight - PTBPart.plane_weight,
             "装甲舱增重": Armor.total_added_weight,
             "装甲板": ArmorBoard.total_weight,
             "动力系统": Funnel.turbines_weight + Funnel.funnels_weight,
             "火炮": MainWeapon.GunTotalWeight,
             "鱼雷": MainWeapon.TorpedoTotalWeight,
             "防空炮": AA.total_weight,
-            "舰载机增重": Part.plane_weight,
+            "舰载机增重": PTBPart.plane_weight,
             "装饰": sum(
                 p.Weight for p in (DR_dict['Parts']['装饰'] + DR_dict['Parts']['测距仪'] + DR_dict['Parts']['火控'])
             )

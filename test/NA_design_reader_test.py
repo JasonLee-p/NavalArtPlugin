@@ -1,4 +1,4 @@
-from NA_design_reader import ReadNA as Reader
+from ship_reader.NA_design_reader import ReadNA as Reader
 import unittest
 
 

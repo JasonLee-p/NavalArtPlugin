@@ -2,7 +2,7 @@
 右侧元素检视器的内容
 """
 from PyQt5.QtWidgets import QTextEdit
-from GUI.QtGui import *
+from GUI.basic import *
 
 
 class Mod1SinglePartView(QWidget):

@@ -1,9 +1,18 @@
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QFileDialog
+# -*- coding: utf-8 -*-
+"""
+对话框
+"""
 # 本地库
-from PTB_design_reader import ReadPTB
-from GUI.QtGui import *
+import os
+
 from path_utils import find_ptb_path, find_na_root_path
+from ship_reader import ReadPTB
+from GUI import *
+
+
+# def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
+#     import GUI.basic.set
+#     GUI.set_button_style(button, size, font, style, active_color, icon)
 
 
 class NewProjectDialog(BasicDialog):
@@ -73,12 +82,12 @@ class NewProjectDialog(BasicDialog):
 
         # 布局
         self.center_layout.addLayout(self.center_top_layout)  # -----------------------------------------顶部布局
-        self.center_top_layout.addWidget(MyLabel('工程名称：', font=QFont("Microsoft YaHei", 10)), 0, 0)
+        self.center_top_layout.addWidget(MyLabel('工程名称：', font=FONT_10), 0, 0)
         self.center_top_layout.addWidget(self.input_name, 0, 1)
-        self.center_top_layout.addWidget(MyLabel('工程路径：', font=QFont("Microsoft YaHei", 10)), 1, 0)
+        self.center_top_layout.addWidget(MyLabel('工程路径：', font=FONT_10), 1, 0)
         self.center_top_layout.addWidget(self.input_path, 1, 1)
         self.center_top_layout.addWidget(self.search_prj_path_button, 1, 2)
-        self.center_layout.addWidget(MyLabel('初始化选项：', font=QFont("Microsoft YaHei", 10)))  # -------中间文字
+        self.center_layout.addWidget(MyLabel('初始化选项：', font=FONT_10))  # -------中间文字
         self.center_layout.addLayout(self.center_bottom_layout0)  # ------------------------------------底部0布局
         self.center_bottom_layout0.addWidget(self.select_circle0, 0, 0)
         self.center_bottom_layout0.addWidget(MyLabel('创建空白工程'), 0, 1)
@@ -97,7 +106,7 @@ class NewProjectDialog(BasicDialog):
         self.center_bottom_layout0.addWidget(MyLabel('使用自定义预设'), 4, 1)
         self.center_bottom_layout0.addWidget(self.show_preset_path, 4, 2)
         self.center_bottom_layout0.addWidget(self.search_preset_button, 4, 3)
-        self.center_layout.addWidget(MyLabel('船体参数（供预设使用）：', font=QFont("Microsoft YaHei", 10)))  # -------底部1布局
+        self.center_layout.addWidget(MyLabel('船体参数（供预设使用）：', font=FONT_10))  # -------底部1布局
         self.center_layout.addLayout(self.center_bottom_layout1)
         self.center_bottom_layout1.addWidget(MyLabel('船长：'), 0, 0)
         self.center_bottom_layout1.addWidget(self.length_slider, 0, 1)
@@ -111,10 +120,10 @@ class NewProjectDialog(BasicDialog):
         self.set_widgets()
         # 设置信号槽
         self.search_prj_path_button.clicked.connect(self.check_path)
-        set_button_style(self.search_prj_path_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
+        self.set_button_style(self.search_prj_path_button, size=(60, 26), style="圆角边框")
+        self.set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
+        self.set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
+        self.set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
         super().__init__(parent, title, size, self.center_layout)
 
     def set_widgets(self):
@@ -165,6 +174,11 @@ class NewProjectDialog(BasicDialog):
         self.search_preset_button.clicked.connect(self.select_preset)
         self.show_preset_path.setPlaceholderText('请选择预设')
         self.show_preset_path.setReadOnly(True)
+
+    @staticmethod
+    def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
+        from GUI.basic import set_button_style
+        set_button_style(button, size, font, style, active_color, icon)
 
     def button0_clicked(self):
         self.select_circle0.setChecked(True)
@@ -365,9 +379,9 @@ class ThemeDialog(BasicDialog):
             parent=self,
             half_size=7
         )
-        self.lb0 = MyLabel("白天", font=QFont("微软雅黑", 10))
-        self.lb1 = MyLabel("夜晚", font=QFont("微软雅黑", 10))
-        self.lb2 = MyLabel("自定义", font=QFont("微软雅黑", 10))
+        self.lb0 = MyLabel("白天", font=FONT_10)
+        self.lb1 = MyLabel("夜晚", font=FONT_10)
+        self.lb2 = MyLabel("自定义", font=FONT_10)
         # 布局
         self.center_layout.addWidget(self.cb0, 0, 0)
         self.center_layout.addWidget(self.cb1, 1, 0)
@@ -393,7 +407,6 @@ class ThemeDialog(BasicDialog):
         self.lb1.mousePressEvent = lambda x: self.cb1.click()
         self.lb2.mousePressEvent = lambda x: self.cb2.click()
 
-
     def ensure(self):
         super().ensure()
         if self.button_group.selected_bt_index == 0:
@@ -414,9 +427,9 @@ class SensitiveDialog(BasicDialog):
         self.config = config
         self.camera = camera
         self.center_layout = QGridLayout()
-        self.lb0 = MyLabel("缩放灵敏度", font=QFont("微软雅黑", 10))
-        self.lb1 = MyLabel("旋转灵敏度", font=QFont("微软雅黑", 10))
-        self.lb2 = MyLabel("平移灵敏度", font=QFont("微软雅黑", 10))
+        self.lb0 = MyLabel("缩放灵敏度", font=FONT_10)
+        self.lb1 = MyLabel("旋转灵敏度", font=FONT_10)
+        self.lb2 = MyLabel("平移灵敏度", font=FONT_10)
         # 滑动条
         self.sld0 = QSlider(Qt.Horizontal)
         self.sld1 = QSlider(Qt.Horizontal)

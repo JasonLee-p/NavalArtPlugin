@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
+"""
+将会被多次使用的基础类
+"""
 # 内置库
 import ctypes
 import json
 import os
 from abc import abstractmethod
 # 第三方库
-from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QSplitter, QDialog, QToolBar, QGridLayout, \
-    QProgressBar, QMainWindow
-from PyQt5.QtWidgets import QTabWidget, QMenu, QAction, QLineEdit, QComboBox, QSlider, QPushButton
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
+from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from base64 import b64decode
 # 本地库
@@ -27,30 +29,38 @@ except FileNotFoundError or PermissionError:
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':
-    from ThemeConfigColor.Day import *
-    from IMG.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, close
+    from theme_config_color.day_color import *
+    from IMG.ImgPng_day import close
 elif Theme == 'Night':
-    from ThemeConfigColor.Night import *
-    from IMG.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, close
+    from theme_config_color.night_color import *
+    from IMG.ImgPng_night import close
 
 # 常量
 WHITE = 'white'
 GOLD = 'gold'
 GRAY = '#808080'
-FONT0 = 'Times New Roman'
-FONT1 = '微软雅黑'
-Font0 = QFont(FONT0, 12)  # 设置字体
-Font1 = QFont(FONT1, 12)  # 设置字体
+YAHEI = '微软雅黑'
+FONT_8 = QFont(YAHEI, 8)  # 设置字体
+FONT_9 = QFont(YAHEI, 9)  # 设置字体
+FONT_10 = QFont(YAHEI, 10)  # 设置字体
+FONT_11 = QFont(YAHEI, 11)  # 设置字体
+FONT_12 = QFont(YAHEI, 12)  # 设置字体
+FONT_13 = QFont(YAHEI, 13)  # 设置字体
+FONT_14 = QFont(YAHEI, 14)  # 设置字体
+FONT_15 = QFont(YAHEI, 15)  # 设置字体
+FONT_16 = QFont(YAHEI, 16)  # 设置字体
+FONT_17 = QFont(YAHEI, 17)  # 设置字体
+FONT_18 = QFont(YAHEI, 18)  # 设置字体
+FONT_19 = QFont(YAHEI, 19)  # 设置字体
+FONT_20 = QFont(YAHEI, 20)  # 设置字体
+FONT_21 = QFont(YAHEI, 21)  # 设置字体
+FONT_22 = QFont(YAHEI, 22)  # 设置字体
 LOCAL_ADDRESS = os.path.dirname(os.path.abspath(__file__))
 ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 设置高分辨率
 user32 = ctypes.windll.user32
 WinWid = user32.GetSystemMetrics(0)  # 获取分辨率
 WinHei = user32.GetSystemMetrics(1)  # 获取分辨率
 RATE = WinWid / 1920
-# 图标
-ICO_ = b64decode(ICO)
-ADD_ = b64decode(add)
-CHOOSE_ = b64decode(choose)
 
 
 def getFG_fromBG(bg: QColor):
@@ -75,7 +85,7 @@ def front_completion(txt, length, add_char):
         return txt
 
 
-def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style="普通", active_color='gray', icon=None):
+def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
     """
     设置按钮样式
     :param button: QPushButton对象
@@ -90,12 +100,12 @@ def set_button_style(button, size: tuple, font=QFont("微软雅黑", 14), style=
     if style == "普通":
         button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:14px;'
                              f'color:{FG_COLOR0};'
-                             f'font-family:{FONT1};}}'
+                             f'font-family:{YAHEI};}}'
                              f'QPushButton:hover{{background-color:{active_color};}}')
     elif style == "圆角边框":
         button.setStyleSheet(f'QPushButton{{border-radius:5px;border:1px solid gray;color:{FG_COLOR0};'
                              f'color:{FG_COLOR0};'
-                             f'font-size:14px;font-family:{FONT1};}}'
+                             f'font-size:14px;font-family:{YAHEI};}}'
                              f'QPushButton:hover{{background-color:{active_color};}}')
     button.setFont(font)
     if icon:
@@ -148,202 +158,6 @@ def set_tool_bar_style(tool_bar: QToolBar):
     tool_bar.setMovable(True)
     tool_bar.setFloatable(True)
     tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
-
-
-class MainWindow(QWidget):
-    def __init__(self, config):
-        # 获取配置文件
-        self.Config = config
-        # 设置窗口属性
-        self.topH = 35
-        self.three_button_size = 25
-        self.logo_size = 25
-        # 读取图片
-        self.ICO = QIcon(QPixmap.fromImage(QImage.fromData(ICO_)))  # 把图片编码转换成QIcon
-        self.minimize_bg = b64decode(minimize)
-        self.minimize_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.minimize_bg)))
-        self.maximize_bg = b64decode(maximize)
-        self.maximize_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.maximize_bg)))
-        self.maximize_exit_bg = b64decode(maximize_exit)
-        self.maximize_exit_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.maximize_exit_bg)))
-        self.close_bg = b64decode(close)
-        self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
-        super().__init__(parent=None)
-        self.hide()
-        # 设置窗口属性
-        self.setWindowTitle('NavalArt Plugin')
-        self.setWindowIcon(self.ICO)
-        self.set_bg_color(BG_COLOR1)
-        self.setWindowFlags(Qt.FramelessWindowHint)  # 隐藏标题栏
-        self.setMinimumSize(0.7 * WinWid, 0.7 * WinHei)
-        self.setMaximumSize(WinWid, WinHei)
-        # 添加布局器
-        self.MainLayout = QVBoxLayout()  # 主布局器
-        self.MainLayout.setContentsMargins(0, 0, 0, 0)
-        self.MainLayout.setSpacing(0)
-        self.top_layout = QHBoxLayout()  # top布局器
-        self.logo = QLabel()  # logo
-        self.menu_layout = QHBoxLayout()  # 菜单布局器
-        self.three_button_layout = QHBoxLayout()  # 三个按钮布局器
-        self.down_splitter = QSplitter(Qt.Horizontal)  # 下方布局器
-        self.state_widget = QWidget()
-        self.state_layout = QHBoxLayout()
-        self.statu_label = MyLabel(" ", color="gray")
-        self.setLayout(self.MainLayout)
-        # 添加控件
-        self.MainLayout.addLayout(self.top_layout)
-        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
-        self.MainLayout.addWidget(spl, alignment=Qt.AlignTop)
-        self.MainLayout.addWidget(self.down_splitter, 1)  # 添加下方布局器
-        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
-        self.MainLayout.addWidget(spl, alignment=Qt.AlignTop)
-        self.MainLayout.addWidget(self.state_widget)  # 添加状态栏
-        # 初始化TabWidget
-        self.MainTabWidget = MyMainTabWidget()
-        # 按钮初始化
-        self.minimize_button = QPushButton()
-        self.maximize_button = QPushButton()
-        self.close_button = QPushButton()
-        # 给top_layout的区域添加鼠标拖动功能
-        self.m_flag = False
-        self.m_Position = None
-        self.drag = None  # 初始化拖动条
-
-    def set_bg_color(self, color):
-        self.setStyleSheet(f"background-color: {color};")
-
-    def add_top_bar(self, menu_map):
-        # 添加图片
-        self.logo.setPixmap(self.ICO.pixmap(QSize(self.logo_size, self.logo_size)))
-        self.logo.setFixedSize(55, self.topH)
-        self.logo.setAlignment(Qt.AlignCenter)
-
-        # 自定义菜单栏
-        for menu_name in menu_map:
-            menu_button = QPushButton(menu_name)
-            menu_button.setFixedSize(55 * RATE, self.topH)
-            menu_button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:16px;'
-                                      f'font-family:{FONT1};}}'
-                                      f'QPushButton:hover{{background-color:gray;}}'
-                                      f'QPushButton::menu-indicator{{image:none;}}')  # 去掉下拉箭头
-            menu_button.setMenu(self.init_sub_menu(menu_name, menu_map))
-            self.menu_layout.addWidget(menu_button, alignment=Qt.AlignLeft)
-        # 最小化按钮
-        self.set_button_style(self.minimize_button, self.minimize_bg, self.three_button_size, 'white', 'gray')
-        self.minimize_button.clicked.connect(self.showMinimized)
-        # 最大化按钮
-        self.set_button_style(self.maximize_button, self.maximize_bg, self.three_button_size, 'white', 'gray')
-        self.maximize_button.clicked.connect(self.showMaximized)
-        # 关闭按钮
-        self.set_button_style(self.close_button, self.close_bg, self.three_button_size, 'white', 'red')
-        # 在main文件MainHandler中绑定关闭事件
-        # 添加拖动条，控制窗口位置
-        self.drag = self.add_drag_bar()
-        # 添加按钮到子布局器
-        self.three_button_layout.addWidget(self.minimize_button)
-        self.three_button_layout.addWidget(self.maximize_button)
-        self.three_button_layout.addWidget(self.close_button)
-
-    def add_drag_bar(self):
-        # 添加拖动条，控制窗口大小
-        drag_widget = QWidget()
-        # 设置宽度最大化
-        drag_widget.setFixedWidth(10000)
-        # drag_widget.setFixedSize(5, 5)
-        drag_widget.setStyleSheet("background-color: rgba(0,0,0,0)")
-        drag_widget.mouseMoveEvent = self.mouseMoveEvent
-        drag_widget.mousePressEvent = self.mousePressEvent
-        drag_widget.mouseReleaseEvent = self.mouseReleaseEvent
-        self.MainLayout.addWidget(drag_widget, alignment=Qt.AlignBottom | Qt.AlignRight)
-        return drag_widget
-
-    def init_sub_menu(self, menu_name, menu_map):
-        menu = QMenu()
-        for sub_menu_name in menu_map[menu_name]:
-            sub_menu = QAction(sub_menu_name, self)
-            sub_menu.triggered.connect(menu_map[menu_name][sub_menu_name])
-            menu.addAction(sub_menu)
-        return menu
-
-    def set_button_style(self, button, icon, icon_size, color, hover_color):
-        button.setFixedSize(55, self.topH)
-        button.setIcon(icon)
-        button.setIconSize(QSize(icon_size, icon_size))
-        button.setStyleSheet(f'QPushButton{{border:none;color:{color};}}'
-                             f'QPushButton:hover{{background-color:{hover_color};}}')
-
-    def init_state_widget(self):
-        self.state_widget.setLayout(self.state_layout)
-        self.state_layout.addWidget(self.statu_label)
-        self.statu_label.setFixedHeight(20)
-        self.statu_label.setText("初始化编辑器完成")
-
-    def init_down_splitter(self):
-        self.down_splitter.setHandleWidth(1)  # 设置分割条的宽度
-        self.down_splitter.setStyleSheet(  # 设置分割条的样式
-            "QSplitter::handle{background-color:gray;}"
-            "QSplitter::handle:hover{background-color:darkgray;}"
-            "QSplitter::handle:pressed{background-color:lightgray;}")
-
-    def showMaximized(self):
-        # 检查是否已经最大化
-        if self.isMaximized():
-            self.showNormal()
-            self.maximize_button.setIcon(self.maximize_exit_bg)
-        else:
-            super().showMaximized()
-            self.maximize_button.setIcon(self.maximize_bg)
-
-    def mousePressEvent(self, event):
-        # 鼠标按下时，记录当前位置，若在标题栏内且非最大化，则允许拖动
-        if event.button() == Qt.LeftButton and event.y() < self.topH and self.isMaximized() is False:
-            self.m_flag = True
-            self.m_Position = event.globalPos() - self.pos()
-            event.accept()
-
-    def mouseReleaseEvent(self, QMouseEvent):
-        # 拖动窗口时，鼠标释放后停止拖动
-        self.m_flag = False if self.m_flag else self.m_flag
-
-    def mouseMoveEvent(self, QMouseEvent):
-        # 当鼠标在标题栏按下且非最大化时，移动窗口
-        if Qt.LeftButton and self.m_flag:
-            self.move(QMouseEvent.globalPos() - self.m_Position)
-            QMouseEvent.accept()
-
-
-class MyMainTabWidget(QTabWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        # 设置标签页
-        self.setDocumentMode(True)
-        self.setTabPosition(QTabWidget.North)
-        self.setMovable(True)
-        # 设置标签栏向下对齐
-        self.setStyleSheet(
-            f"QTabBar::tab{{background-color:{BG_COLOR0};"
-            f"color:{FG_COLOR0};"
-            "padding:4px;"
-            "min-width:30ex;"
-            f"border-top:0px solid {FG_COLOR2};"
-            f"border-bottom:1px solid {FG_COLOR2};}}"
-            # 设置选中标签栏样式
-            f"QTabBar::tab:selected{{background-color:{BG_COLOR3};"
-            f"color:{FG_COLOR0};"
-            "padding:4px;"
-            "min-width:30ex;"
-            f"border-top:0px solid {FG_COLOR2};"
-            f"border-bottom:1px solid {FG_COLOR2};}}"
-            # 设置鼠标悬停标签栏样式
-            f"QTabBar::tab:hover{{background-color:{BG_COLOR0};"
-            f"color:{FG_COLOR0};"
-            "padding:4px;"
-            "min-width:30ex;"
-            f"border-top:0px solid {FG_COLOR2};"
-            f"border-bottom:1px solid {FG_COLOR1};}}"
-        )
 
 
 class MyMessageBox(QMessageBox):
@@ -422,7 +236,7 @@ class MySlider(QSlider):
         self.valueLabel.setFixedSize(50, 20)
         self.valueLabel.setParent(self)
         # 值变化绑定
-        self.valueChanged.connect_basic_funcs(self.valueLabel.setNum)
+        self.valueChanged.connect(self.valueLabel.setNum)
 
     # 重写鼠标滚轮
     def wheelEvent(self, event):
@@ -444,7 +258,7 @@ class CircleSelectButton(QPushButton):
         # 事件
         self.setCheckable(True)
         self.setChecked(init_statu)
-        self.clicked.connect_basic_funcs(self.change_color)
+        self.clicked.connect(self.change_color)
 
     def change_color(self):
         if self.isChecked():
@@ -475,7 +289,7 @@ class CircleSelectButtonGroup:
             # 事件
             button.setCheckable(True)
             button.setChecked(False)
-            button.clicked.connect_basic_funcs(self.change_color)
+            button.clicked.connect(self.change_color)
         self.group[0].setChecked(True)
         self.selected_bt_index = 0
 
@@ -629,35 +443,3 @@ class ShortCutWidget(QWidget):
             _l = i % 4 + 1
             _r = i // 4
             self.layout.addWidget(self.shortcut_labels[i], _l, _r)
-
-
-class ProgressBarWindow(QMainWindow):
-    def __init__(self, title):
-        super().__init__()
-        self.title = title
-        self.central_widget = QWidget()
-        self.progress_bar = QProgressBar()
-        self.progress_timer = QTimer(self)
-        self.initUI()
-        self.showProgress()
-
-    def initUI(self):
-        self.setWindowTitle(self.title)
-        self.setGeometry(100, 100, 400, 100)
-        self.setCentralWidget(self.central_widget)
-        self.progress_bar.setAlignment(Qt.AlignCenter)
-        layout = QVBoxLayout()
-        layout.addWidget(self.progress_bar)
-        self.central_widget.setLayout(layout)
-
-    def showProgress(self):
-        self.progress_bar.setValue(0)
-        self.progress_timer.timeout.connect(self.updateProgress)  # 连接信号与槽
-        self.progress_timer.start(100)  # 更新进度条的时间间隔（毫秒）
-
-    def updateProgress(self, value):
-        self.progress_bar.setValue(value)
-
-        if value == 100:
-            self.progress_timer.stop()
-            self.close()  # 当进度到达100%时关闭窗口

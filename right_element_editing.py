@@ -3,7 +3,7 @@
 """
 from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QTextEdit, QShortcut
-from GUI.QtGui import *
+from GUI.basic import *
 
 
 class Mod2SingleLayerEditing(QWidget):

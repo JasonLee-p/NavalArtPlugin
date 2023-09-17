@@ -1,30 +1,31 @@
+# -*- coding: utf-8 -*-
 """
-
+NavalArt Hull Editor
+NavalArt 船体编辑器
+Version: va0.0.1
+Author: @JasonLee
+Date: 2023-9-18
 """
 # 系统库
+import ctypes
 import os.path
 import sys
 import webbrowser
-# 第三方库
-from typing import Union
 
 try:
+    # 第三方库
+    from typing import Union
     from ctypes import util
-    from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
-    from PyQt5.QtCore import QThread, pyqtSignal
-    from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
-    from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut
     # 本地库
-    from NA_design_reader import Part
-    from path_utils import find_ptb_path
-    from GUI.QtGui import *
-    from GUI.dialogs import NewProjectDialog, ColorDialog, ThemeDialog, SensitiveDialog
-    from OpenGLWindow import OpenGLWin, DesignTabGLWinMenu
-    from PTB_design_reader import AdvancedHull
-    from OpenGL_objs import *
+    from ship_reader import *
+    from GUI import *
+    from GL_plot import *
+    from path_utils import find_ptb_path, find_na_root_path
+    from OpenGLWindow import Camera, OpenGLWin, DesignTabGLWinMenu
+    from right_element_view import Mod1SinglePartView
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
-    from right_element_view import Mod1SinglePartView
+
 except Exception as e:
     print(e)
     input("无法正确导入库！请按回车键退出")
@@ -307,7 +308,7 @@ class CurrentProject(PF):
         Config.ProjectsFolder = os.path.dirname(self.Path)
         Config.Projects[self.Name] = self.Path
         # 重置NavalArt的Part的ShipsAllParts
-        Part.ShipsAllParts = []
+        NAPart.ShipsAllParts = []
 
     @staticmethod
     def load_project(path) -> Union[None, 'CurrentProject', 'PF']:
@@ -318,12 +319,12 @@ class CurrentProject(PF):
             Config.save_config()  # 保存配置文件
             return None
         # 重置NavalArt的Part的ShipsAllParts
-        Part.ShipsAllParts = []
+        NAPart.ShipsAllParts = []
         # 修改配置文件的ProjectsFolder和Projects
         Config.ProjectsFolder = os.path.dirname(path)
         Config.Projects[prj.Name] = path
         # 重置NavalArt的Part的ShipsAllParts
-        Part.ShipsAllParts = []
+        NAPart.ShipsAllParts = []
         return prj
 
 
@@ -335,6 +336,11 @@ class MainWin(MainWindow):
 class GLWin(OpenGLWin):
     def __init__(self, parent=None, various_mode=False, show_statu_func=None):
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            Handler.right_widget.update_tab()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
@@ -446,43 +452,6 @@ class MainHandler:
         self.window.top_layout.setSpacing(0)
 
     # ---------------------------------------------------------------------------------------------------
-
-    def new_project(self, event=None):
-        global CurrentPrj
-        if self.LoadingProject:
-            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
-            return
-        self.LoadingProject = True
-        self.new_project_thread = ProjectLoadingNewThread()
-        self.new_project_thread.update_state.connect(show_state)
-        self.new_project_thread.finished.connect(lambda: setattr(self, "LoadingProject", False))
-        self.new_project_thread.start()
-        # 弹出对话框，获取工程名称和路径，以及其他相关信息
-        # new_project_dialog = NewProjectDialog(parent=self.window)
-        # new_project_dialog.exec_()
-        # # 如果确定新建工程
-        # if new_project_dialog.create_new_project:
-        #     if new_project_dialog.generate_mode == 'NA':
-        #         # 获取对话框返回的数据
-        #         _original_na_path = new_project_dialog.OriginalNAPath
-        #         _prj_path = new_project_dialog.ProjectPath  # name已经包含在path里了
-        #         save_current_prj()  # 保存原来的工程文件对象
-        #         clear_current_prj_on_GLWidget()  # 清空原来的所有对象
-        #         # 新建NAHull对象
-        #         _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
-        #         # 检测颜色种类，弹出对话框，选择颜色
-        #         color_dialog = ColorDialog(self.window, _na_hull)
-        #         color_dialog.exec_()
-        #         self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, True)
-        #         _na_hull.get_layers()  # 给na_hull.xzLayers和na_hull.xyLayers赋值
-        #         self.hull_design_tab.init_NaHull_partRelationMap_Layers(_na_hull, False, init_zx_layer=True)
-        #         # 生成工程文件对象
-        #         generate_project_obj(_prj_path, _original_na_path, _na_hull)
-        #         CurrentPrj = Handler.CurrentProjectData["Object"]
-        #         save_current_prj()  # 保存工程文件
-        #         # 更新配置文件
-        #         Config.Projects[Handler.CurrentProjectData["Name"]] = Handler.CurrentProjectData["Path"]
-        #         Config.save_config()  # 保存配置文件
 
     def export_file(self, event):
         ...
@@ -628,7 +597,7 @@ class RightTabWidget(QTabWidget):
         if _len == 1:  # ================================================================== 只有一个物体
             # 获取选中的物体
             selected_obj = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
-            if type(selected_obj) in (Part, AdjustableHull):
+            if type(selected_obj) in (NAPart, AdjustableHull):
                 # 更新显示的widget
                 self.tab1_mod1_widget_singlePart.show()
                 self.tab2_mod1_widget_singlePart.show()
@@ -646,11 +615,91 @@ class RightTabWidget(QTabWidget):
                 # TODO: 其他类型的物体
         elif _len > 1:  # =================================================================== 多个物体
             _type = type(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0])
-            if _type in (Part, AdjustableHull):  # 判断零件之间的关系
+            if _type in (NAPart, AdjustableHull):  # 判断零件之间的关系
+                selected_parts = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode]
+                selected_num = len(selected_parts)
                 # 随机取一个零件
                 root_node_part = ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode][0]
                 # 获取关系图
                 relation_map = root_node_part.allParts_relationMap
+                root_relation_map = relation_map.basicMap[root_node_part]
+                # 按顺序向前后左右搜寻零件
+                dir_index_map = {
+                    PRM.FRONT: 0,
+                    PRM.BACK: 0,
+                    PRM.LEFT: 0,
+                    PRM.RIGHT: 0,
+                    PRM.UP: 0,
+                    PRM.DOWN: 0,
+                }
+                # 获取整个selected_parts的上下左右范围
+                for direction, part_value_map in root_relation_map.items():
+                    # part_value_map是有序的，按照value从小到大
+                    for part, _value in part_value_map.items():
+                        if part in selected_parts:
+                            dir_index_map[direction] += 1
+                        else:
+                            break
+                # 分别统计前后，左右，上下，如果为0正好被判定为False，用作布尔值
+                front_back = dir_index_map[PRM.FRONT] + dir_index_map[PRM.BACK]
+                left_right = dir_index_map[PRM.LEFT] + dir_index_map[PRM.RIGHT]
+                up_down = dir_index_map[PRM.UP] + dir_index_map[PRM.DOWN]
+                if not front_back:  # 纵截块
+                    if not left_right:  # 竖直截块
+                        if selected_num == up_down + 1:
+                            # show_state("竖直截块", 'process')
+                            self.tab1_mod1_widget_verticalPartSet.show()
+                            self.tab2_mod1_widget_verticalPartSet.show()
+                            self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
+                            self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
+                    else:  # 纵截块
+                        # 往左右两边遍历切换根节点，搜寻上下零件
+                        for i in range(dir_index_map[PRM.LEFT]):
+                            _temp_root = list(root_relation_map[PRM.LEFT].keys())[i]
+                            _temp_root_relation_map = relation_map.basicMap[_temp_root]
+                            _temp_root_up_map = _temp_root_relation_map[PRM.UP]
+                            _temp_root_down_map = _temp_root_relation_map[PRM.DOWN]
+                            for j in range(dir_index_map[PRM.UP]):
+                                if list(_temp_root_up_map.keys())[j] not in selected_parts:
+                                    break
+                            for j in range(dir_index_map[PRM.DOWN]):
+                                if list(_temp_root_down_map.keys())[j] not in selected_parts:
+                                    break
+                            else:
+                                if selected_num == (left_right + 1) * (up_down + 1):
+                                    self.tab1_mod1_widget_verHorPartSet.show()
+                                    self.tab2_mod1_widget_verHorPartSet.show()
+                                    self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
+                                    self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
+                                    break
+                if not up_down:  # 水平截块
+                    if not left_right:
+                        if selected_num == front_back + 1:
+                            # show_state("水平截块", 'process')
+                            self.tab1_mod1_widget_horizontalPartSet.show()
+                            self.tab2_mod1_widget_horizontalPartSet.show()
+                            self.tab1_current_widget = self.tab1_mod1_widget_horizontalPartSet
+                            self.tab2_current_widget = self.tab2_mod1_widget_horizontalPartSet
+                    else:  # 水平截块
+                        # 往左右两边遍历切换根节点，搜寻前后零件
+                        for i in range(dir_index_map[PRM.LEFT]):
+                            _temp_root = list(root_relation_map[PRM.LEFT].keys())[i]
+                            _temp_root_relation_map = relation_map.basicMap[_temp_root]
+                            _temp_root_front_map = _temp_root_relation_map[PRM.FRONT]
+                            _temp_root_back_map = _temp_root_relation_map[PRM.BACK]
+                            for j in range(dir_index_map[PRM.FRONT]):
+                                if list(_temp_root_front_map.keys())[j] not in selected_parts:
+                                    break
+                            for j in range(dir_index_map[PRM.BACK]):
+                                if list(_temp_root_back_map.keys())[j] not in selected_parts:
+                                    break
+                            else:
+                                if selected_num == (left_right + 1) * (front_back + 1):
+                                    self.tab1_mod1_widget_verHorPartSet.show()
+                                    self.tab2_mod1_widget_verHorPartSet.show()
+                                    self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
+                                    self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
+                                    break
 
                 # x_list = []
                 # z_list = []
@@ -685,8 +734,8 @@ class RightTabWidget(QTabWidget):
                 #             self.tab2_mod1_widget_verticalPartSet.show()
                 #         self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
                 #         self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
-                #         self.show_tab1_mod1_grid_verticalPartSet()
-                #         self.show_tab2_mod1_grid_verticalPartSet()
+                #         self.init_tab1_mod1_grid_verticalPartSet()
+                #         self.init_tab2_mod1_grid_verticalPartSet()
                 #
                 # # 如果所有零件的x和y坐标都相同，那么就说明这是一组横向排列的船体截块
                 # elif len(set(y_list)) == 1:
@@ -707,8 +756,8 @@ class RightTabWidget(QTabWidget):
                 #             self.tab2_mod1_widget_horizontalPartSet.show()
                 #         self.tab1_current_widget = self.tab1_mod1_widget_horizontalPartSet
                 #         self.tab2_current_widget = self.tab2_mod1_widget_horizontalPartSet
-                #         self.show_tab1_mod1_grid_horizontalPartSet()
-                #         self.show_tab2_mod1_grid_horizontalPartSet()
+                #         self.init_tab1_mod1_grid_horizontalPartSet()
+                #         self.init_tab2_mod1_grid_horizontalPartSet()
                 # elif _len == len(set(y_list)) * len(set(z_list)):  # 集成块的情况：所有零件的x坐标都相同，且y坐标和z坐标构成中间不间断的矩形点阵。
                 #     """
                 #     （"x"表示零件位置，"|"表示边界，"-"表示零件的上下面相切，
@@ -748,8 +797,8 @@ class RightTabWidget(QTabWidget):
                 #             self.tab2_mod1_widget_verHorPartSet.show()
                 #         self.tab1_current_widget = self.tab1_mod1_widget_verHorPartSet
                 #         self.tab2_current_widget = self.tab2_mod1_widget_verHorPartSet
-                #         self.show_tab1_mod1_grid_verHorPartSet()
-                #         self.show_tab2_mod1_grid_verHorPartSet()
+                #         self.init_tab1_mod1_grid_verHorPartSet()
+                #         self.init_tab2_mod1_grid_verHorPartSet()
             elif _type == NaHullXZLayer:
                 self.tab1_mod2_widget_multiLayer.show()
                 self.tab2_mod2_widget_multiLayer.show()
@@ -759,57 +808,57 @@ class RightTabWidget(QTabWidget):
                 ...
                 # TODO: 其他类型的物体
 
-    def show_tab1_mod1_grid_verticalPartSet(self):
+    def init_tab1_mod1_grid_verticalPartSet(self):
         self.tab1_mod1_grid_verticalPartSet.setSpacing(7)
         self.tab1_mod1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab1_mod1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是纵向排列的船体截块
-        title = MyLabel("竖直截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("竖直截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def show_tab2_mod1_grid_verticalPartSet(self):
+    def init_tab2_mod1_grid_verticalPartSet(self):
         self.tab2_mod1_grid_verticalPartSet.setSpacing(7)
         self.tab2_mod1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab2_mod1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是纵向排列的船体截块
-        title = MyLabel("竖直截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("竖直截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab2_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def show_tab1_mod1_grid_horizontalPartSet(self):
+    def init_tab1_mod1_grid_horizontalPartSet(self):
         self.tab1_mod1_grid_horizontalPartSet.setSpacing(7)
         self.tab1_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab1_mod1_grid_horizontalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是横向排列的船体截块
-        title = MyLabel("水平截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("水平截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def show_tab2_mod1_grid_horizontalPartSet(self):
+    def init_tab2_mod1_grid_horizontalPartSet(self):
         self.tab2_mod1_grid_horizontalPartSet.setSpacing(7)
         self.tab2_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab2_mod1_grid_horizontalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是横向排列的船体截块
-        title = MyLabel("水平截块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("水平截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab2_mod1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def show_tab1_mod1_grid_verHorPartSet(self):
+    def init_tab1_mod1_grid_verHorPartSet(self):
         self.tab1_mod1_grid_verHorPartSet.setSpacing(7)
         self.tab1_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab1_mod1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是集成块
-        title = MyLabel("集成块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def show_tab2_mod1_grid_verHorPartSet(self):
+    def init_tab2_mod1_grid_verHorPartSet(self):
         self.tab2_mod1_grid_verHorPartSet.setSpacing(7)
         self.tab2_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
         self.tab2_mod1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         # 添加title，说明当前显示的是集成块
-        title = MyLabel("集成块", QFont('微软雅黑', 10), side=Qt.AlignTop | Qt.AlignVCenter)
+        title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
         title.setFixedSize(70, 25)
         self.tab2_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
 
@@ -886,6 +935,10 @@ class RightTabWidget(QTabWidget):
         self.tab1_main_layout.addWidget(self.tab1_mod1_widget_verHorPartSet)
         self.tab1_main_layout.addWidget(self.tab1_mod2_widget_singleLayer)  # mod2
         self.tab1_main_layout.addWidget(self.tab1_mod2_widget_multiLayer)
+        # 初始化控件
+        self.init_tab1_mod1_grid_verticalPartSet()
+        self.init_tab1_mod1_grid_horizontalPartSet()
+        self.init_tab1_mod1_grid_verHorPartSet()
         # 隐藏
         self.tab1_mod1_widget_verticalPartSet.hide()  # mod1
         self.tab1_mod1_widget_horizontalPartSet.hide()
@@ -907,6 +960,10 @@ class RightTabWidget(QTabWidget):
         self.tab2_main_layout.addWidget(self.tab2_mod1_widget_verHorPartSet)
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_singleLayer)  # mod2
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_multiLayer)
+        # 初始化控件
+        self.init_tab2_mod1_grid_verticalPartSet()
+        self.init_tab2_mod1_grid_horizontalPartSet()
+        self.init_tab2_mod1_grid_verHorPartSet()
         # 隐藏
         self.tab2_mod1_widget_verticalPartSet.hide()  # mod1
         self.tab2_mod1_widget_horizontalPartSet.hide()
@@ -924,7 +981,7 @@ class RightTabWidget(QTabWidget):
         tab = QWidget()
         tab.setLayout(self.tab1_main_layout)
         # 标题
-        title = MyLabel("元素检视器", QFont('微软雅黑', 11), side=Qt.AlignTop | Qt.AlignCenter)
+        title = MyLabel("元素检视器", FONT_10, side=Qt.AlignTop | Qt.AlignCenter)
         self.tab1_main_layout.addWidget(title, alignment=Qt.AlignTop | Qt.AlignCenter)
         # 添加分割线
         self.tab1_main_layout.addWidget(QFrame(  # top下方添加横线
@@ -935,7 +992,7 @@ class RightTabWidget(QTabWidget):
         tab = QWidget()
         tab.setLayout(self.tab2_main_layout)
         # 标题
-        title = MyLabel("属性编辑器", QFont('微软雅黑', 11), side=Qt.AlignCenter)
+        title = MyLabel("属性编辑器", FONT_10, side=Qt.AlignCenter)
         self.tab2_main_layout.addWidget(title)
         # 添加分割线
         self.tab2_main_layout.addWidget(QFrame(  # top下方添加横线
@@ -953,7 +1010,7 @@ class HullDesignTab(QWidget):
         super().__init__(parent)
         # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
-        self.Font = QFont('微软雅黑', 8)
+        self.Font = FONT_8
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
@@ -1225,7 +1282,7 @@ class ArmorDesignTab(QWidget):
         super().__init__(parent)
         # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
-        self.Font = QFont('微软雅黑', 8)
+        self.Font = FONT_8
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
@@ -1265,11 +1322,11 @@ class ReadPTBAdHullTab(QWidget):
         super().__init__(parent)
         # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
-        self.Font = QFont('微软雅黑', 8)
+        self.Font = FONT_8
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = OpenGLWin(Config.Sensitivity)
+        self.ThreeDFrame = OpenGLWin(Config.Sensitivity, using_various_mode=False, show_statu_func=show_state)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -1389,7 +1446,7 @@ class ReadNAHullTab(QWidget):
         super().__init__(parent)
         # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
-        self.Font = QFont('微软雅黑', 8)
+        self.Font =FONT_8
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
