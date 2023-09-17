@@ -3,6 +3,10 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/environment" />
+      <excludeFolder url="file://$MODULE_DIR$/out" />
+      <excludeFolder url="file://$MODULE_DIR$/image_sources" />
+      <excludeFolder url="file://$MODULE_DIR$/NAAssertData" />
+      <excludeFolder url="file://$MODULE_DIR$/dist" />
     </content>
     <orderEntry type="jdk" jdkName="3.8 NavalArtPlugin" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
