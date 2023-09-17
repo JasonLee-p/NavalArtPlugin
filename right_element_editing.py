@@ -1,9 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 右侧元素编辑
 """
-from PyQt5.QtGui import QMouseEvent, QCursor, QKeySequence
-from PyQt5.QtWidgets import QApplication, QFileDialog, QGridLayout, QTextEdit, QShortcut
-from GUI.basic import *
+from GUI import *
 
 
 class Mod2SingleLayerEditing(QWidget):

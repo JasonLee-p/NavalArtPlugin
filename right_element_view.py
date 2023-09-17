@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 右侧元素检视器的内容
 """
-from PyQt5.QtWidgets import QTextEdit
-from GUI.basic import *
+from GUI import *
 
 
 class Mod1SinglePartView(QWidget):
@@ -12,7 +12,7 @@ class Mod1SinglePartView(QWidget):
         """
         super().__init__()
         self.content = {
-            "类型": MyLabel("未选择物体", QFont('微软雅黑', 10), side=Qt.AlignCenter),
+            "类型": MyLabel("未选择物体", FONT_10, side=Qt.AlignCenter),
             "坐标": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
             "旋转": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
             "缩放": {"value": [1, 1, 1], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
@@ -43,7 +43,7 @@ class Mod1SinglePartView(QWidget):
         # 只添加类型的结果，并且放大一个字号占据所有列
         self.layout.addWidget(self.content["类型"], 0, 0, 1, 4)
         # 添加其他的控件
-        text_font = QFont('微软雅黑', 9)
+        text_font = FONT_9
         for i, key_ in enumerate(self.content):
             if key_ != "类型":
                 # 添加标签

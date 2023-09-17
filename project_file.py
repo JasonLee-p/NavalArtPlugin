@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-
+定义工程文件对象和配置文件对象
 """
 import json
 import os
