@@ -30,10 +30,10 @@ except FileNotFoundError or PermissionError:
 # 根据主题选择颜色，图片
 if Theme == 'Day':
     from theme_config_color.day_color import *
-    from IMG.ImgPng_day import close
+    from UI.ImgPng_day import close
 elif Theme == 'Night':
     from theme_config_color.night_color import *
-    from IMG.ImgPng_night import close
+    from UI.ImgPng_night import close
 
 # 常量
 WHITE = 'white'
