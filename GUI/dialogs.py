@@ -10,9 +10,19 @@ from ship_reader import ReadPTB
 from GUI import *
 
 
-# def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
-#     import GUI.basic.set
-#     GUI.set_button_style(button, size, font, style, active_color, icon)
+def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
+    from GUI.basic import set_button_style
+    set_button_style(button, size, font, style, active_color, icon)
+
+
+def getFG_fromBG(bg_color):
+    from GUI.basic import getFG_fromBG
+    return getFG_fromBG(bg_color)
+
+
+def front_completion(string, length, add_char):
+    from GUI.basic import front_completion
+    return front_completion(string, length, add_char)
 
 
 class NewProjectDialog(BasicDialog):
@@ -120,10 +130,10 @@ class NewProjectDialog(BasicDialog):
         self.set_widgets()
         # 设置信号槽
         self.search_prj_path_button.clicked.connect(self.check_path)
-        self.set_button_style(self.search_prj_path_button, size=(60, 26), style="圆角边框")
-        self.set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
-        self.set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
-        self.set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
+        set_button_style(self.search_prj_path_button, size=(60, 26), style="圆角边框")
+        set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
+        set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
+        set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
         super().__init__(parent, title, size, self.center_layout)
 
     def set_widgets(self):
@@ -174,11 +184,6 @@ class NewProjectDialog(BasicDialog):
         self.search_preset_button.clicked.connect(self.select_preset)
         self.show_preset_path.setPlaceholderText('请选择预设')
         self.show_preset_path.setReadOnly(True)
-
-    @staticmethod
-    def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
-        from GUI.basic import set_button_style
-        set_button_style(button, size, font, style, active_color, icon)
 
     def button0_clicked(self):
         self.select_circle0.setChecked(True)

@@ -692,22 +692,24 @@ class OpenGLWin(QOpenGLWidget):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton:  # 左键按下
-            self.select_start = event.pos() if self.operation_mode == OpenGLWin.Selectable else None
-            self.lastPos = event.pos() if self.operation_mode == OpenGLWin.UnSelectable else None
-            # 判断是否按下shift，如果没有按下，就清空选中列表
-            if QApplication.keyboardModifiers() != Qt.ShiftModifier:
-                self.selected_gl_objects[self.show_3d_obj_mode].clear()
-                add_part = self.add_selected_objects_when_click()
-                if add_part is not None:
-                    self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
-            else:  # shift按下时，判断是否点击到了已经选中的物体
-                add_part = self.add_selected_objects_when_click()
-                if add_part is not None:
-                    if add_part in self.selected_gl_objects[self.show_3d_obj_mode]:
-                        self.selected_gl_objects[self.show_3d_obj_mode].remove(add_part)
-                    else:
+            if self.operation_mode == OpenGLWin.Selectable:
+                self.select_start = event.pos()
+                self.lastPos = event.pos()
+                # 判断是否按下shift，如果没有按下，就清空选中列表
+                if QApplication.keyboardModifiers() != Qt.ShiftModifier:
+                    self.selected_gl_objects[self.show_3d_obj_mode].clear()
+                    add_part = self.add_selected_objects_when_click()
+                    if add_part is not None:
                         self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
-
+                else:  # shift按下时，判断是否点击到了已经选中的物体
+                    add_part = self.add_selected_objects_when_click()
+                    if add_part is not None:
+                        if add_part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                            self.selected_gl_objects[self.show_3d_obj_mode].remove(add_part)
+                        else:
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
+            else:
+                self.lastPos = event.pos()
         elif event.button() == Qt.RightButton:  # 右键按下
             self.rotate_start = event.pos()
             self.lastPos = event.pos()
@@ -717,21 +719,22 @@ class OpenGLWin(QOpenGLWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if event.buttons() == Qt.LeftButton:  # 左键绘制选择框
+            # 如果shift没有按下，清空选中列表
+            if QApplication.keyboardModifiers() != Qt.ShiftModifier and not self.select_end:
+                self.selected_gl_objects[self.show_3d_obj_mode].clear()
             self.select_end = event.pos() if self.operation_mode == OpenGLWin.Selectable else None
             self.lastPos = event.pos() if self.operation_mode == OpenGLWin.UnSelectable else None
-            self.update()
         elif event.buttons() == Qt.MidButton:  # 中键平移
             dx = event.x() - self.lastPos.x()
             dy = event.y() - self.lastPos.y()
             self.camera.translate(dx, dy)
             self.lastPos = event.pos()
-            self.update()
         elif event.buttons() == Qt.RightButton:  # 右键旋转
             dx = event.x() - self.lastPos.x()
             dy = event.y() - self.lastPos.y()
             self.camera.rotate(dx, dy)
             self.lastPos = event.pos()
-            self.update()
+        self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton:  # 左键释放

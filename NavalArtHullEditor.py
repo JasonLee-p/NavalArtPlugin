@@ -152,6 +152,7 @@ class ProjectOpeningThread(QThread):
         # 读取成功，开始绘制
         # 通过读取的船体设计文件，新建NaHull对象
         na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=self.update_state)
+        Handler.hull_design_tab.current_na_hull = na_hull
         Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)  # 显示船体设计
         # 显示船体设计
         global CurrentPrj
@@ -185,6 +186,7 @@ def new_project():
             Handler.hull_design_tab.clear_all_plot_obj()
             # 通过读取的船体设计文件，新建NaHull对象
             _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
+            Handler.hull_design_tab.current_na_hull = _na_hull
             # 检测颜色种类，弹出对话框，选择颜色
             color_dialog = ColorDialog(Handler.window, Handler.hull_design_tab.current_na_hull)
             color_dialog.exec_()
@@ -1446,7 +1448,7 @@ class ReadNAHullTab(QWidget):
         super().__init__(parent)
         # -----------------------------------------------------------------------------------GUI设置
         # 设置全局字体
-        self.Font =FONT_8
+        self.Font = FONT_8
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
