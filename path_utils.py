@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+寻找游戏目录
+"""
 import os
 
 
