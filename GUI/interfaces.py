@@ -6,9 +6,9 @@ from PyQt5.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
 # 本地库
 from .basic import *
 if Theme == "Day":
-    from UI.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit
+    from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit
 elif Theme == "Night":
-    from UI.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit
+    from UI_design.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit
 
 # 图标
 ICO_ = b64decode(ICO)
