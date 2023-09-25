@@ -3,9 +3,11 @@
 """
 
 import math
+from typing import Union
+
 import numpy as np
-from ship_reader.NA_design_reader import ReadNA, AdjustableHull
-from .basic import SolidObject, get_normal
+from ship_reader.NA_design_reader import ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap
+from .basic import SolidObject, DotNode, get_normal
 
 
 class NAHull(ReadNA, SolidObject):
@@ -71,58 +73,60 @@ class NAHull(ReadNA, SolidObject):
                 result[color].append(part.to_dict())
         return result
 
-    @staticmethod
-    def draw_color(gl, theme_color, material, color, part_set):
+    def draw_color(self, gl, theme_color, material, color, part_set, transparent):
+        # if transparent:
+        #     gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, (0.6, 0.6, 0.6, 0.3))
+        #     gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, (0.6, 0.6, 0.6, 0.3))
+        # else:
+        alpha = 1 if not transparent else 0.3
         # 16进制颜色转换为RGBA
         if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
             _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
         else:  # 说明是黑夜模式
             _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, 1
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
             # 减去一定的值
             difference = 0.08
-            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, 1)
+            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
             # 如果小于0，就等于0
             color_ = (color_[0] if color_[0] > 0 else 0,
                       color_[1] if color_[1] > 0 else 0,
                       color_[2] if color_[2] > 0 else 0,
                       1)
-        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, 1
+        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
         gl.glColor4f(*color_)
         for part in part_set:
             gl.glLoadName(id(part) % 4294967296)
-            # 获取part的地址
-            part_address = id(part)
-            try:
-                for draw_method, faces_dots in part.plot_faces.items():
-                    # draw_method是字符串，需要转换为OpenGL的常量
-                    for face in faces_dots:
-                        gl.glBegin(eval(f"gl.{draw_method}"))
-                        if len(face) == 3 or len(face) == 4:
-                            normal = get_normal(face[0], face[1], face[2])
-                        elif len(face) > 12:
-                            normal = get_normal(face[0], face[6], face[12])
-                        else:
-                            continue
-                        gl.glNormal3f(normal.x(), normal.y(), normal.z())
-                        for dot in face:
-                            gl.glVertex3f(dot[0], dot[1], dot[2])
-                        gl.glEnd()
-            except AttributeError as e:
-                pass
+            part.glWin = self.glWin
+            if "plot_faces" not in part.__dict__ and type(part) != AdjustableHull:
+                continue
+            for draw_method, faces_dots in part.plot_faces.items():
+                # draw_method是字符串，需要转换为OpenGL的常量
+                for face in faces_dots:
+                    gl.glBegin(eval(f"gl.{draw_method}"))
+                    if len(face) == 3 or len(face) == 4:
+                        normal = get_normal(face[0], face[1], face[2])
+                    elif len(face) > 12:
+                        normal = get_normal(face[0], face[6], face[12])
+                    else:
+                        continue
+                    gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                    for dot in face:
+                        gl.glVertex3f(dot[0], dot[1], dot[2])
+                    gl.glEnd()
 
-    def draw(self, gl, material="钢铁", theme_color=None):
+    def draw(self, gl, material="钢铁", theme_color=None, transparent=False):
         gl.glLoadName(id(self) % 4294967296)
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         # 绘制面
         for color, part_set in self.DrawMap.items():
-            # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
+            # t = Thread(target=self.draw_color, args=(gl2_0, theme_color, material, color, part_set))
             # t.start()
-            self.draw_color(gl, theme_color, material, color, part_set)
+            self.draw_color(gl, theme_color, material, color, part_set, transparent)
 
 
 class NaHullXZLayer(SolidObject):
@@ -283,3 +287,46 @@ class NaHullXYLayer(SolidObject):
             for dot in dots:
                 gl.glVertex3f(*dot)
             gl.glEnd()
+
+
+class NaHullLeftView:
+    id_map = {}
+
+    def __init__(self):
+        NaHullLeftView.id_map[id(self) % 4294967296] = self
+
+    def draw(self):
+        ...
+
+
+class NAXZLayerNode(DotNode):
+    id_map = {}
+
+    def __init__(self):
+        super().__init__()
+        NAXZLayerNode.id_map[id(self) % 4294967296] = self
+
+    def draw(self):
+        ...
+
+
+class NAXYLayerNode(DotNode):
+    id_map = {}
+
+    def __init__(self):
+        super().__init__()
+        NAXYLayerNode.id_map[id(self) % 4294967296] = self
+
+    def draw(self):
+        ...
+
+
+class NALeftViewNode(DotNode):
+    id_map = {}
+
+    def __init__(self):
+        super().__init__()
+        NALeftViewNode.id_map[id(self) % 4294967296] = self
+
+    def draw(self):
+        ...

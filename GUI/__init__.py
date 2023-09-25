@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QPoint
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QKeyEvent, QCursor, QKeySequence, QIcon, QPixmap, QImage
 from PyQt5.QtGui import QMatrix4x4, QVector3D, QColor
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QPushButton, QToolBar, QMessageBox, QTabWidget, QAction
-from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QToolButton, QMenu, QCheckBox, QSlider, QTextEdit
+from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QToolButton, QMenu, QCheckBox, QSlider, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 
 # 颜色
@@ -37,7 +37,7 @@ __all__ = [
     "QMouseEvent", "QWheelEvent", "QKeyEvent", "QCursor", "QKeySequence", "QIcon", "QPixmap", "QImage",
     "QMatrix4x4", "QVector3D", "QColor",
     "QWidget", "QLabel", "QFrame", "QPushButton", "QToolBar", "QMessageBox", "QTabWidget", "QAction",
-    "QApplication", "QFileDialog", "QShortcut", "QToolButton", "QMenu", "QCheckBox", "QSlider", "QTextEdit",
+    "QApplication", "QFileDialog", "QShortcut", "QToolButton", "QMenu", "QCheckBox", "QSlider", "QTextEdit", "QLineEdit",
     "QVBoxLayout", "QHBoxLayout", "QGridLayout",
 
     # 颜色

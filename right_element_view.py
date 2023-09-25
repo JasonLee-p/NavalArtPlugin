@@ -13,22 +13,22 @@ class Mod1SinglePartView(QWidget):
         super().__init__()
         self.content = {
             "类型": MyLabel("未选择物体", FONT_10, side=Qt.AlignCenter),
-            "坐标": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
-            "旋转": {"value": [0, 0, 0], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
-            "缩放": {"value": [1, 1, 1], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
-            "颜色": {"value": [0.5, 0.5, 0.5], "QTextEdit": [QTextEdit(), QTextEdit(), QTextEdit()]},
-            "装甲": {"value": [0], "QTextEdit": [QTextEdit()]},
+            "坐标": {"value": [0, 0, 0], "QLineEdit": [QLineEdit(), QLineEdit(), QLineEdit()]},
+            "旋转": {"value": [0, 0, 0], "QLineEdit": [QLineEdit(), QLineEdit(), QLineEdit()]},
+            "缩放": {"value": [1, 1, 1], "QLineEdit": [QLineEdit(), QLineEdit(), QLineEdit()]},
+            "颜色": {"value": [0.5, 0.5, 0.5], "QLineEdit": [QLineEdit(), QLineEdit(), QLineEdit()]},
+            "装甲": {"value": [0], "QLineEdit": [QLineEdit()]},
             # 可调节零件模型信息
-            "原长度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "原高度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "前宽度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "后宽度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "前扩散": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "后扩散": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "上弧度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "下弧度": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "高缩放": {"value": [0], "QTextEdit": [QTextEdit()]},
-            "高偏移": {"value": [0], "QTextEdit": [QTextEdit()]}
+            "原长度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "原高度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "前宽度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "后宽度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "前扩散": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "后扩散": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "上弧度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "下弧度": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "高缩放": {"value": [0], "QLineEdit": [QLineEdit()]},
+            "高偏移": {"value": [0], "QLineEdit": [QLineEdit()]}
         }
         # grid
         self.layout = QGridLayout()
@@ -51,11 +51,10 @@ class Mod1SinglePartView(QWidget):
                 label.setFixedSize(70, 25)
                 self.layout.addWidget(label, i, 0)
                 # 添加输入框，并设置样式
-                for j, textEdit in enumerate(self.content[key_]["QTextEdit"]):
+                for j, textEdit in enumerate(self.content[key_]["QLineEdit"]):
                     textEdit.setFont(text_font)
                     textEdit.setFixedWidth(60)
                     textEdit.setFixedHeight(25)
-                    textEdit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # 不显示滚动条
                     textEdit.setReadOnly(True)
                     textEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
                                            f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
@@ -66,7 +65,7 @@ class Mod1SinglePartView(QWidget):
         active_textEdit = None
         for key in self.content:
             if key != "类型":
-                for qte in self.content[key]["QTextEdit"]:
+                for qte in self.content[key]["QLineEdit"]:
                     if qte.hasFocus():
                         active_textEdit = qte
                         break
@@ -91,20 +90,21 @@ class Mod1SinglePartView(QWidget):
             # 修改颜色格式：从无井号16进制转换为0-255
             col_txt = selected_obj.Col[i * 2: i * 2 + 2]
             col = int(col_txt, 16)
-            self.content["坐标"]["QTextEdit"][i].setText(str(selected_obj.Pos[i]))
-            self.content["旋转"]["QTextEdit"][i].setText(str(selected_obj.Rot[i]))
-            self.content["缩放"]["QTextEdit"][i].setText(str(selected_obj.Scl[i]))
-            self.content["颜色"]["QTextEdit"][i].setText(str(col))
-        self.content["装甲"]["QTextEdit"][0].setText(str(selected_obj.Amr))
+            self.content["坐标"]["QLineEdit"][i].setText(str(selected_obj.Pos[i]))
+            self.content["旋转"]["QLineEdit"][i].setText(str(selected_obj.Rot[i]))
+            self.content["缩放"]["QLineEdit"][i].setText(str(selected_obj.Scl[i]))
+            self.content["颜色"]["QLineEdit"][i].setText(str(col))
+        self.content["装甲"]["QLineEdit"][0].setText(str(selected_obj.Amr))
         if obj_type_text == "可调节船体":
             # 更新可调节零件模型信息
-            self.content["原长度"]["QTextEdit"][0].setText(str(selected_obj.Len))
-            self.content["原高度"]["QTextEdit"][0].setText(str(selected_obj.Hei))
-            self.content["前宽度"]["QTextEdit"][0].setText(str(selected_obj.FWid))
-            self.content["后宽度"]["QTextEdit"][0].setText(str(selected_obj.BWid))
-            self.content["前扩散"]["QTextEdit"][0].setText(str(selected_obj.FSpr))
-            self.content["后扩散"]["QTextEdit"][0].setText(str(selected_obj.BSpr))
-            self.content["上弧度"]["QTextEdit"][0].setText(str(selected_obj.UCur))
-            self.content["下弧度"]["QTextEdit"][0].setText(str(selected_obj.DCur))
-            self.content["高缩放"]["QTextEdit"][0].setText(str(selected_obj.HScl))
-            self.content["高偏移"]["QTextEdit"][0].setText(str(selected_obj.HOff))
+            self.content["原长度"]["QLineEdit"][0].setText(str(selected_obj.Len))
+            self.content["原高度"]["QLineEdit"][0].setText(str(selected_obj.Hei))
+            self.content["前宽度"]["QLineEdit"][0].setText(str(selected_obj.FWid))
+            self.content["后宽度"]["QLineEdit"][0].setText(str(selected_obj.BWid))
+            self.content["前扩散"]["QLineEdit"][0].setText(str(selected_obj.FSpr))
+            self.content["后扩散"]["QLineEdit"][0].setText(str(selected_obj.BSpr))
+            self.content["上弧度"]["QLineEdit"][0].setText(str(selected_obj.UCur))
+            self.content["下弧度"]["QLineEdit"][0].setText(str(selected_obj.DCur))
+            self.content["高缩放"]["QLineEdit"][0].setText(str(selected_obj.HScl))
+            self.content["高偏移"]["QLineEdit"][0].setText(str(selected_obj.HOff))
+

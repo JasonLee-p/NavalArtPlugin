@@ -596,6 +596,10 @@ class ColorDialog(BasicDialog):
         self.center_grid_layout.setContentsMargins(50, 30, 50, 0)
         # 居中
 
+    def close(self) -> bool:
+        self.color_selected.emit()
+        return super().close()
+
     def ensure(self):
         draw_map = {}
         for color, choose_box in self.color_choose_map.items():

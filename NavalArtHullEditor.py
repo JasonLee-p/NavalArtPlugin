@@ -12,24 +12,26 @@ import os.path
 import sys
 import webbrowser
 
-try:
-    # 第三方库
-    from typing import Union
-    from ctypes import util
-    # 本地库
-    from ship_reader import *
-    from GUI import *
-    from GL_plot import *
-    from path_utils import find_ptb_path, find_na_root_path
-    from OpenGLWindow import Camera, OpenGLWin, DesignTabGLWinMenu
-    from right_element_view import Mod1SinglePartView
-    from project_file import ConfigFile
-    from project_file import ProjectFile as PF
 
-except Exception as e:
-    print(e)
-    input("无法正确导入库！请按回车键退出")
-    sys.exit(0)
+# try:
+# 第三方库
+from typing import Union
+from ctypes import util
+# 本地库
+from ship_reader import *
+from GUI import *
+from GL_plot import *
+from path_utils import find_ptb_path, find_na_root_path
+from OpenGLWindow import Camera, OpenGLWin, DesignTabGLWinMenu
+from right_element_view import Mod1SinglePartView
+from right_element_editing import Mod1SinglePartEditing
+from project_file import ConfigFile
+from project_file import ProjectFile as PF
+
+# except Exception as e:
+#     print(e)
+#     input("无法正确导入库！请按回车键退出")
+#     sys.exit(0)
 
 
 def is_admin():
@@ -84,8 +86,18 @@ def save_current_prj():
         Handler.CurrentProjectData["Object"].save()
         time = Handler.CurrentProjectData["Object"].SaveTime
         show_state(f"{time} {Handler.CurrentProjectData['Path']}已保存", 'success')
-    except AttributeError:
-        pass
+    except:
+        return
+
+
+def del_plot_obj():
+    NAPart.id_map = {}
+    NaHullXYLayer.id_map = {}
+    NaHullXZLayer.id_map = {}
+    NaHullLeftView.id_map = {}
+    # 清空NAPartNode的id_map
+    NAPartNode.id_map = {}
+    NAPartNode.all_dots = []
 
 
 # noinspection PyUnresolvedReferences
@@ -339,6 +351,16 @@ class GLWin(OpenGLWin):
     def __init__(self, parent=None, various_mode=False, show_statu_func=None):
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        super().keyPressEvent(event)
+        # Ctrl+Enter
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
+            show_state("进入编辑模式", 'success')
+            # right_widget的tab切换到第二个
+            Handler.right_widget.setCurrentIndex(1)
+            # 更新right_widget的ActiveTab
+            Handler.right_widget.update_tab()
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
@@ -379,12 +401,12 @@ class MainHandler:
                 "另存为": self.save_as_file,
             },
             " 编辑": {
-                "撤销": self.undo,
-                "重做": self.redo,
-                "剪切": self.cut,
-                "复制": self.copy,
-                "粘贴": self.paste,
-                "删除": self.delete,
+                # "撤销": self.undo,
+                # "重做": self.redo,
+                # "剪切": self.cut,
+                # "复制": self.copy,
+                # "粘贴": self.paste,
+                # "删除": self.delete,
                 "全选": self.select_all
             },
             " 设置": {
@@ -398,7 +420,10 @@ class MainHandler:
                 "还原": self.zoom_reset,
                 "全屏": self.full_screen
             },
-            " 帮助": {"关于我们": self.about}
+            " 帮助": {
+                "查看教程": user_guide,
+                "关于我们": self.about
+            }
         }
         self.MainTabWidget = self.window.MainTabWidget
         self.window.add_top_bar(self.MenuMap)
@@ -485,7 +510,18 @@ class MainHandler:
         ...
 
     def select_all(self, event):
-        ...
+        ThreeDF = self.hull_design_tab.ThreeDFrame
+        if type(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode]) == list:
+            ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].extend(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode].copy())
+        elif type(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode]) == dict:
+            for mt, objs in ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode].items():
+                for obj in objs:
+                    if type(obj) != NAHull:
+                        continue
+                    ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].clear()
+                    for _col, parts in obj.DrawMap.items():
+                        ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].extend(parts)
+        ThreeDF.update()
 
     def set_theme(self, event):
         theme_dialog = ThemeDialog(config=Config, show_state_func=show_state, parent=self.window)
@@ -548,7 +584,7 @@ class RightTabWidget(QTabWidget):
         self.ICO = QIcon(QPixmap.fromImage(QImage.fromData(ICO_)))  # 把图片编码转换成QIcon
         self.tab1_main_layout = QVBoxLayout()
         self.tab2_main_layout = QVBoxLayout()
-        # ============================================================================tab1_mod1的三种界面
+        # ======================================================================查看模式tab1_mod1的三种界面
         self.tab1_mod1_widget_singlePart = Mod1SinglePartView()
         self.tab1_mod1_widget_verticalPartSet = QWidget()
         self.tab1_mod1_widget_horizontalPartSet = QWidget()
@@ -562,8 +598,8 @@ class RightTabWidget(QTabWidget):
         self.tab1_mod2_widget_multiLayer = QWidget()
         self.tab1_mod2_grid_singleLayer = QGridLayout()
         self.tab1_mod2_grid_multiLayer = QGridLayout()
-        # ============================================================================tab2_mod1的三种界面
-        self.tab2_mod1_widget_singlePart = QWidget()
+        # =====================================================================编辑模式tab2_mod1的三种界面
+        self.tab2_mod1_widget_singlePart = Mod1SinglePartEditing()
         self.tab2_mod1_widget_verticalPartSet = QWidget()
         self.tab2_mod1_widget_horizontalPartSet = QWidget()
         self.tab2_mod1_widget_verHorPartSet = QWidget()
@@ -606,7 +642,7 @@ class RightTabWidget(QTabWidget):
                 self.tab1_current_widget = self.tab1_mod1_widget_singlePart
                 self.tab2_current_widget = self.tab2_mod1_widget_singlePart
                 self.tab1_mod1_widget_singlePart.update_context(selected_obj)
-                # self.tab2_mod1_widget_singlePart.update_context(selected_obj)
+                self.tab2_mod1_widget_singlePart.update_context(selected_obj)
             elif type(selected_obj) == NaHullXZLayer:
                 self.tab1_mod2_widget_singleLayer.show()  # TODO: 显示tab1_mod2_grid_singleLayer
                 self.tab2_mod2_widget_singleLayer.show()  # TODO: 显示tab2_mod2_grid_singleLayer
@@ -1045,6 +1081,8 @@ class HullDesignTab(QWidget):
 
     def bind_shortcut(self):
         # 快捷键绑定
+        expand_ = QShortcut(QKeySequence("Ctrl+E"), self)
+        edit_ = QShortcut(QKeySequence("Ctrl+Enter"), self)
         undo_ = QShortcut(QKeySequence("Ctrl+Z"), self)
         redo_ = QShortcut(QKeySequence("Ctrl+Shift+Z"), self)
         copy_ = QShortcut(QKeySequence("Ctrl+C"), self)
@@ -1053,6 +1091,8 @@ class HullDesignTab(QWidget):
         add_ = QShortcut(QKeySequence("Ctrl+Shift+A"), self)
         import_ = QShortcut(QKeySequence("I"), self)
         export_ = QShortcut(QKeySequence("O"), self)
+        expand_.activated.connect(self.expand)
+        edit_.activated.connect(self.edit)
         undo_.activated.connect(self.undo)
         redo_.activated.connect(self.redo)
         copy_.activated.connect(self.copy)
@@ -1061,6 +1101,16 @@ class HullDesignTab(QWidget):
         add_.activated.connect(self.add)
         import_.activated.connect(self.import_)
         export_.activated.connect(self.export)
+
+    def expand(self):
+        # 检查当前被选中的物体的数量和形式
+        ...
+
+    def edit(self):
+        show_state(f"编辑选区", 'success')
+        # 右边栏切换到属性编辑器（第二个标签，索引为1）
+        Handler.right_widget.setCurrentIndex(1)
+        Handler.right_widget.update_tab()
 
     def undo(self):
         show_state(f"撤销", 'success')
@@ -1175,16 +1225,21 @@ class HullDesignTab(QWidget):
         show_state(f"{_original_na_p}读取成功", 'success')
         # 获取用户选择的工程路径 ==========================================================================
         chosen_path = find_na_root_path() if Config.Projects == {} else os.path.dirname(Config.ProjectsFolder)
-        save_dialog = QFileDialog(self, "选择工程保存路径", chosen_path)
-        save_dialog.setFileMode(QFileDialog.AnyFile)
-        save_dialog.setAcceptMode(QFileDialog.AcceptSave)
-        save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
-        save_dialog.exec_()
+        try:
+            save_dialog = QFileDialog(self, "选择工程保存路径", chosen_path)
+            save_dialog.setFileMode(QFileDialog.AnyFile)
+            save_dialog.setAcceptMode(QFileDialog.AcceptSave)
+            save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+            save_dialog.exec_()
+        except Exception as e:
+            show_state(f"保存工程失败：{e}", 'error')
+            MyMessageBox().information(None, "提示", f"保存工程失败：{e}", MyMessageBox.Ok)
+            return
         # 获取选择的文件路径
         try:
             _prj_path = save_dialog.selectedFiles()[0]
         except IndexError:
-            return
+            show_state(f"保存工程失败：未选择文件", 'error')
         # 保存上一个工程文件，清空当前所有被绘制的对象
         save_current_prj()
         Handler.hull_design_tab.clear_all_plot_obj()
@@ -1273,6 +1328,7 @@ class HullDesignTab(QWidget):
         self.xz_layer_obj.clear()
         self.xy_layer_obj.clear()
         self.left_view_obj.clear()
+        del_plot_obj()
 
 
 class ArmorDesignTab(QWidget):
@@ -1562,6 +1618,13 @@ class ReadNAHullTab(QWidget):
                 self.ThreeDFrame.prj_all_parts = gl_plot_obj.Parts
 
 
+def user_guide():
+    """
+    用户引导程序
+    """
+    ...
+
+
 if __name__ == '__main__':
     """
     if is_admin():
@@ -1587,12 +1650,20 @@ if __name__ == '__main__':
     Handler = MainHandler(QtWindow)
     # 其他初始化
     Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
+    if "Guided" not in Config.Config:
+        # 运行引导程序
+        user_guide()
     if Config.Projects != {}:
-        Handler.LoadingProject = True
-        project_loading_thread = ProjectLoadingConfigThread()
-        project_loading_thread.update_state.connect(show_state)
-        project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
-        project_loading_thread.start()
+        try:
+            Handler.LoadingProject = True
+            project_loading_thread = ProjectLoadingConfigThread()
+            project_loading_thread.update_state.connect(show_state)
+            project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+            project_loading_thread.start()
+        except Exception as e:
+            show_state(f"读取配置文件失败：{e}", 'error')
+            MyMessageBox().information(None, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
+            CurrentPrj = None
     else:
         CurrentPrj = None
     QtWindow.showMaximized()

@@ -36,7 +36,7 @@ def find_na_ship_path():
 
 
 def find_na_root_path():
-    # 将PTB_path初始化为桌面位置
+    # 将NA_path初始化为桌面位置
     NA_path = os.path.join(os.path.expanduser("~"), 'Desktop')
     # 从C盘开始寻找：
     # 优先在用户目录下寻找，先遍历所有账户名：
@@ -47,5 +47,5 @@ def find_na_root_path():
             NA_path = os.path.join(
                 'C:\\Users', user, 'AppData', 'LocalLow', 'RZEntertainment', 'NavalArt')
             break
-    # 如果在用户目录下没有找到，就返回None
+    # 如果在用户目录下没有找到，就返回桌面位置
     return NA_path

@@ -41,6 +41,8 @@ def rotate_quaternion2(dot_dict, rot):
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
+    if rot == [0, 0, 0]:
+        return dot_dict
     # 转换为弧度
     rot = np.radians(rot)
     # 计算旋转的四元数
@@ -84,7 +86,56 @@ def rotate_quaternion2(dot_dict, rot):
     return rotated_dot_dict
 
 
-def rotate_quaternion(dot_dict, rot):
+def rotate_quaternion0(face_list, rot):
+    """
+    对点集进行四元数旋转
+    :param face_list: 列表，元素是含有多个点的列表，格式为 [[array([x1, y1, z1]), array([x2, y2, z2]), ...], [...], ...]
+    :param rot:
+    :return:
+    """
+    if rot == [0, 0, 0]:
+        return face_list
+    # 转换为弧度
+    rot = np.radians(rot)
+    # 计算旋转的四元数
+    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
+    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
+    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
+
+    # 合并三个旋转四元数
+    q = quaternion(1, 0, 0, 0)
+    if RotateOrder == "XYZ":
+        q = q * quaternion(*q_x) * quaternion(*q_y) * quaternion(*q_z)
+    elif RotateOrder == "XZY":
+        q = q * quaternion(*q_x) * quaternion(*q_z) * quaternion(*q_y)
+    elif RotateOrder == "YXZ":
+        q = q * quaternion(*q_y) * quaternion(*q_x) * quaternion(*q_z)
+    elif RotateOrder == "YZX":
+        q = q * quaternion(*q_y) * quaternion(*q_z) * quaternion(*q_x)
+    elif RotateOrder == "ZXY":
+        q = q * quaternion(*q_z) * quaternion(*q_x) * quaternion(*q_y)
+    elif RotateOrder == "ZYX":
+        q = q * quaternion(*q_z) * quaternion(*q_y) * quaternion(*q_x)
+    else:
+        raise ValueError("Invalid RotateOrder!")
+    # 遍历点集进行旋转
+    rotated_face_list = []
+    for face in face_list:
+        rotated_face = []
+        for point in face:
+            # 将点坐标转换为四元数
+            point_quat = np.quaternion(0, *point)
+            # 进行四元数旋转
+            rotated_point_quat = q * point_quat * np.conj(q)
+            # 提取旋转后的点坐标
+            rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
+            # 将结果保存到列表中
+            rotated_face.append(rotated_point)
+        rotated_face_list.append(rotated_face)
+    return rotated_face_list
+
+
+def rotate_quaternion1(dot_dict, rot):
     """
     对点集进行四元数旋转
 
@@ -92,52 +143,13 @@ def rotate_quaternion(dot_dict, rot):
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
+    if rot == [0, 0, 0]:
+        # 仅转换为np.array类型
+        for key, point in dot_dict.items():
+            dot_dict[key] = np.array(point)
+        return dot_dict
     # 将角度转换为弧度
     rot = np.radians(rot)
-    # # 计算旋转矩阵
-    # R_x = np.array([[1, 0, 0],
-    #                 [0, np.cos(rot[0]), -np.sin(rot[0])],
-    #                 [0, np.sin(rot[0]), np.cos(rot[0])]])
-    #
-    # R_y = np.array([[np.cos(rot[1]), 0, np.sin(rot[1])],
-    #                 [0, 1, 0],
-    #                 [-np.sin(rot[1]), 0, np.cos(rot[1])]])
-    #
-    # R_z = np.array([[np.cos(rot[2]), -np.sin(rot[2]), 0],
-    #                 [np.sin(rot[2]), np.cos(rot[2]), 0],
-    #                 [0, 0, 1]])
-    # # 计算每个轴的旋转角度
-    # theta_x = np.arctan2(R_y[2, 1], R_y[2, 2])
-    # theta_y = np.arctan2(-R_x[2, 0], np.sqrt(R_x[2, 1] ** 2 + R_x[2, 2] ** 2))
-    # theta_z = np.arctan2(R_x[1, 0], R_x[0, 0])
-    # # 判断是否存在万向锁现象
-    # if np.abs(theta_x) == np.pi / 2:
-    #     locked_axes = "YZ"
-    #     if RotateOrder == "XYZ":
-    #         rot[0] = 0
-    # elif np.abs(theta_y) == np.pi / 2:
-    #     locked_axes = "XZ"
-    #     if RotateOrder == "XYZ":
-    #         rot[1] = 0
-    # elif np.abs(theta_z) == np.pi / 2:
-    #     locked_axes = "XY"
-    #     if RotateOrder == "XYZ":
-    #         rot[2] = 0
-    # # 合并旋转矩阵
-    # if RotateOrder == "XYZ":
-    #     rotation_matrix = np.dot(R_z, np.dot(R_y, R_x))
-    # elif RotateOrder == "XZY":
-    #     rotation_matrix = np.dot(R_y, np.dot(R_z, R_x))
-    # elif RotateOrder == "YXZ":
-    #     rotation_matrix = np.dot(R_z, np.dot(R_x, R_y))
-    # elif RotateOrder == "YZX":
-    #     rotation_matrix = np.dot(R_x, np.dot(R_z, R_y))
-    # elif RotateOrder == "ZXY":
-    #     rotation_matrix = np.dot(R_y, np.dot(R_x, R_z))
-    # elif RotateOrder == "ZYX":
-    #     rotation_matrix = np.dot(R_x, np.dot(R_y, R_z))
-    # else:
-    #     raise ValueError("Invalid RotateOrder!")
     # 计算旋转的四元数
     q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
     q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
@@ -175,11 +187,44 @@ def rotate_quaternion(dot_dict, rot):
     return rotated_dot_dict
 
 
+class NAPartNode:
+    id_map = {}
+    all_dots = []  # 不储存对象，储存所有点的坐标列表
+
+    def __init__(self, pos: list):
+        self.pos = pos
+        self.glWin = None
+        self.near_parts = {  # 八个卦限
+            PartRelationMap.FRONT_UP_LEFT: None,
+            PartRelationMap.FRONT_UP_RIGHT: None,
+            PartRelationMap.FRONT_DOWN_LEFT: None,
+            PartRelationMap.FRONT_DOWN_RIGHT: None,
+            PartRelationMap.BACK_UP_LEFT: None,
+            PartRelationMap.BACK_UP_RIGHT: None,
+            PartRelationMap.BACK_DOWN_LEFT: None,
+            PartRelationMap.BACK_DOWN_RIGHT: None
+        }
+        NAPartNode.id_map[id(self) % 4294967296] = self
+        NAPartNode.all_dots.append(self.pos)
+
+    def draw(self, gl, material="节点", theme_color=None, point_size=5):
+        gl.glLoadName(id(self) % 4294967296)
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        gl.glPointSize(point_size)
+        gl.glBegin(gl.GL_POINTS)
+        gl.glVertex3f(*self.pos)
+        gl.glEnd()
+
+
 class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
+        self.glWin = None  # 用于绘制的窗口
         self.read_na_obj = read_na
         self.allParts_relationMap = read_na.partRelationMap
         self.Id = Id
@@ -190,6 +235,12 @@ class NAPart:
         self.Amr = armor
         NAPart.ShipsAllParts.append(self)
         NAPart.id_map[id(self) % 4294967296] = self
+
+    def set_basic_attributes(self, armor):
+        self.Amr = armor
+
+    def delete(self):
+        del NAPart.id_map[id(self) % 4294967296]
 
     def __str__(self):
         part_type = "NAPart"
@@ -278,22 +329,10 @@ class AdjustableHull(NAPart):
         self.back_down_x = self.BWid / 2
         self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
         self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
-        self.front_mid_y = (self.front_up_y + self.front_down_y) / 2  # 初始化中间坐标
-        self.back_mid_y = (self.back_up_y + self.back_down_y) / 2  # 初始化中间坐标
-        self.front_mid_x = (self.front_up_x + self.front_down_x) / 2
-        self.back_mid_x = (self.back_up_x + self.back_down_x) / 2
-        # 计算中间坐标
-        if self.front_mid_y > self.front_up_y:
-            self.front_mid_y = self.front_up_y
-        elif self.front_mid_y < self.front_down_y:
-            self.front_mid_y = self.front_down_y
-        if self.back_mid_y > self.back_up_y:
-            self.back_mid_y = self.back_up_y
-        elif self.back_mid_y < self.back_down_y:
-            self.back_mid_y = self.back_down_y
         # ==============================================================================计算绘图所需的数据
         self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
         self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
 
     def get_plot_faces(self):
@@ -308,7 +347,7 @@ class AdjustableHull(NAPart):
         }
         if self.UCur < 0.005 and self.DCur <= 0.005:
             # 旋转
-            dots = rotate_quaternion(self.vertex_coordinates, self.Rot)
+            dots = rotate_quaternion1(self.vertex_coordinates, self.Rot)
             for key in dots.keys():
                 dots[key] *= self.Scl  # 缩放
                 dots[key] += self.Pos  # 平移
@@ -339,18 +378,6 @@ class AdjustableHull(NAPart):
                     result["GL_QUADS"].append(face)
         else:  # TODO: 有曲率的零件的绘制方法
             front_part_curved_circle_dots, back_part_curved_circle_dots = self.get_initial_Curve_face_dots()
-            # 旋转
-            front_part_curved_circle_dots = rotate_quaternion2(front_part_curved_circle_dots, self.Rot)
-            back_part_curved_circle_dots = rotate_quaternion2(back_part_curved_circle_dots, self.Rot)
-            # 缩放和平移
-            for dot_set in front_part_curved_circle_dots.values():
-                for dot in dot_set:
-                    dot *= self.Scl
-                    dot += self.Pos
-            for dot_set in back_part_curved_circle_dots.values():
-                for dot in dot_set:
-                    dot *= self.Scl
-                    dot += self.Pos
             # 翻转顺序
             reversed_b_up = back_part_curved_circle_dots["up"][::-1]
             reversed_b_down = back_part_curved_circle_dots["down"][::-1]
@@ -382,7 +409,15 @@ class AdjustableHull(NAPart):
             for i in range(23):
                 result["GL_QUADS"].append([front_set[i], back_set[i], back_set[i + 1], front_set[i + 1]])
             result["GL_QUADS"].append([front_set[-1], back_set[-1], back_set[0], front_set[0]])
-            self.plot_all_dots = front_set + back_set
+            # 旋转
+            for method, face_set in result.items():
+                result[method] = rotate_quaternion0(face_set, self.Rot)
+                # 缩放和平移
+                for face in result[method]:
+                    for dot in face:
+                        dot *= self.Scl
+                        dot += self.Pos
+            self.plot_all_dots = result["GL_POLYGON"][0] + result["GL_POLYGON"][1]
         return result
 
     def get_initial_Curve_face_dots(self):
@@ -458,6 +493,26 @@ class AdjustableHull(NAPart):
         else:
             return ((self.back_up_x - self.back_down_x) * y + (self.back_up_x + self.back_down_x)) / 2
 
+    def get_plot_lines(self):
+        result = {
+            "1": [self.vertex_coordinates["front_up_left"], self.vertex_coordinates["front_up_right"],
+                  self.vertex_coordinates["front_down_right"], self.vertex_coordinates["front_down_left"],
+                  self.vertex_coordinates["front_up_left"], self.vertex_coordinates["back_up_left"],
+                  self.vertex_coordinates["back_up_right"], self.vertex_coordinates["front_up_right"]],
+            "2": [self.vertex_coordinates["front_down_left"], self.vertex_coordinates["back_down_left"],
+                  self.vertex_coordinates["back_down_right"], self.vertex_coordinates["front_down_right"]],
+            "3": [self.vertex_coordinates["back_up_left"], self.vertex_coordinates["back_down_left"]],
+            "4": [self.vertex_coordinates["back_up_right"], self.vertex_coordinates["back_down_right"]]
+        }
+        # 进行旋转，平移，缩放
+        result = rotate_quaternion2(result, self.Rot)
+        for key in result.keys():
+            for i in range(len(result[key])):
+                result[key][i] *= self.Scl
+                result[key][i] += self.Pos
+
+        return result
+
     def get_initial_vertex_coordinates(self):
         return {
             "front_up_left": np.array([self.front_up_x, self.front_up_y, self.front_z]),
@@ -469,6 +524,201 @@ class AdjustableHull(NAPart):
             "back_down_left": np.array([self.back_down_x, self.back_down_y, self.back_z]),
             "back_down_right": np.array([-self.back_down_x, self.back_down_y, self.back_z]),
         }
+
+    def change_attrs(self, position, armor,
+                     length, height, frontWidth, backWidth, frontSpread, backSpread,
+                     upCurve, downCurve, heightScale, heightOffset,
+                     update=False):
+        # ==============================================================================更新零件的各个属性
+        try:
+            self.Pos = [round(float(i), 3) for i in position]
+            self.Amr = int(armor)
+            self.Len = float(length)
+            self.Hei = float(height)
+            self.FWid = float(frontWidth)
+            self.BWid = float(backWidth)
+            self.FSpr = float(frontSpread)
+            self.BSpr = float(backSpread)
+            self.UCur = float(upCurve)
+            self.DCur = float(downCurve)
+            self.HScl = float(heightScale)  # 高度缩放
+            self.HOff = float(heightOffset)  # 高度偏移
+            self._y_limit = [-self.Hei / 2, self.Hei / 2]
+        except ValueError:
+            return False
+        # ==============================================================================初始化零件的各个坐标
+        self.front_z = self.Len / 2  # 零件前端的z坐标
+        self.back_z = -self.Len / 2  # 零件后端的z坐标
+        self.half_height_scale = self.Hei * self.HScl / 2  # 高度缩放的一半
+        self.center_height_offset = self.HOff * self.Hei  # 高度偏移
+        self.front_down_y = self.center_height_offset - self.half_height_scale  # 零件前端下端的y坐标
+        self.front_up_y = self.center_height_offset + self.half_height_scale  # 零件前端上端的y坐标
+        if self.front_down_y < self._y_limit[0]:
+            self.front_down_y = self._y_limit[0]
+        elif self.front_down_y > self._y_limit[1]:
+            self.front_down_y = self._y_limit[1]
+        if self.front_up_y > self._y_limit[1]:
+            self.front_up_y = self._y_limit[1]
+        elif self.front_up_y < self._y_limit[0]:
+            self.front_up_y = self._y_limit[0]
+        self.back_down_y = - self.Hei / 2
+        self.back_up_y = self.Hei / 2
+        self.front_down_x = self.FWid / 2
+        self.back_down_x = self.BWid / 2
+        self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
+        self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
+        # ==============================================================================计算绘图所需的数据
+        self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
+        self.plot_faces = self.get_plot_faces()
+        if update:
+            self.glWin.update()
+        return True
+
+    def change_attrs_with_relative_parts(self, position, armor,
+                                         length, height, frontWidth, backWidth, frontSpread, backSpread,
+                                         upCurve, downCurve, heightScale, heightOffset,
+                                         with_vertical_change=True, with_horizontal_change=True):
+        original_position = self.Pos
+        original_height = self.Hei
+        original_front_width = self.FWid
+        original_back_width = self.BWid
+        original_front_spread = self.FSpr
+        original_back_spread = self.BSpr
+        original_up_curve = self.UCur
+        original_down_curve = self.DCur
+        original_height_scale = self.HScl
+        original_height_offset = self.HOff
+        # 计算差值
+        pos_diff = np.array([float(i) for i in position]) - np.array(original_position)
+        height_diff = float(height) - original_height
+        front_down_width_diff = float(frontWidth) - original_front_width
+        front_up_width_diff = float(frontSpread) - original_front_spread + front_down_width_diff
+        back_down_width_diff = float(backWidth) - original_back_width
+        back_up_width_diff = float(backSpread) - original_back_spread + back_down_width_diff
+        up_curve_diff = float(upCurve) - original_up_curve
+        down_curve_diff = float(downCurve) - original_down_curve
+        height_scale_diff = float(heightScale) - original_height_scale
+        height_offset_diff = float(heightOffset) - original_height_offset
+        # 更新零件的属性
+        self.change_attrs(position, armor,
+                          length, height, frontWidth, backWidth, frontSpread, backSpread,
+                          upCurve, downCurve, heightScale, heightOffset)
+        front_part, back_part, left_part, right_part, up_part, down_part = None, None, None, None, None, None
+        front_parts, back_parts, left_parts, right_parts, up_parts, down_parts = [], [], [], [], [], []
+        # 对前后左右的可能需要修改的对象进行同步修改
+        relation_map = self.allParts_relationMap.basicMap[self]
+        # 对方向关系映射进行遍历
+        for direction in [PartRelationMap.FRONT, PartRelationMap.BACK, PartRelationMap.LEFT, PartRelationMap.RIGHT,
+                          PartRelationMap.UP, PartRelationMap.DOWN]:
+            if relation_map[direction] == {}:  # 该方向没有零件，跳过
+                continue
+            # 零件移动的情况（目前仅考虑所有零件x=0的情况）
+            if direction in (PartRelationMap.FRONT, PartRelationMap.BACK  # 只有y轴变化
+                             ) and pos_diff[1] != 0 and pos_diff[0] == pos_diff[2] == 0:
+                for part in relation_map[direction].keys():
+                    part.change_attrs(
+                        (part.Pos[0], part.Pos[1] + pos_diff[1], part.Pos[2]), part.Amr,
+                        part.Len, part.Hei, part.FWid, part.BWid, part.FSpr,
+                        part.BSpr, part.UCur, part.DCur, part.HScl,
+                        part.HOff)
+            if direction in (PartRelationMap.LEFT, PartRelationMap.RIGHT  # 只有x轴变化
+                             ) and pos_diff[0] != 0 and pos_diff[1] == pos_diff[2] == 0:
+                pass
+            if direction in (PartRelationMap.UP, PartRelationMap.DOWN  # 只有z轴变化
+                             ) and pos_diff[2] != 0 and pos_diff[0] == pos_diff[1] == 0:
+                for part in relation_map[direction].keys():
+                    part.change_attrs(
+                        (part.Pos[0], part.Pos[1], part.Pos[2] + pos_diff[2]), part.Amr,
+                        part.Len, part.Hei, part.FWid, part.BWid, part.FSpr,
+                        part.BSpr, part.UCur, part.DCur, part.HScl,
+                        part.HOff)
+            # 改变高度的情况
+            if direction in (PartRelationMap.FRONT, PartRelationMap.BACK) and height_diff != 0:
+                if tuple(self.Pos) in ((0, 0, 0), (0, 180, 0)):
+                    for part in relation_map[direction].keys():
+                        if tuple(part.Pos) in ((0, 0, 0), (0, 180, 0)):
+                            part.change_attrs(
+                                part.Pos, part.Amr,
+                                part.Len, part.Hei + height_diff, part.FWid, part.BWid, part.FSpr,
+                                part.BSpr, part.UCur, part.DCur, part.HScl,
+                                part.HOff)
+
+            # 改变宽度的情况（需要判断当前零件角度）
+            if tuple(self.Pos) == (0, 0, 0):
+                t_front_up_width_diff = front_up_width_diff
+                t_front_down_width_diff = front_down_width_diff
+                t_back_up_width_diff = back_up_width_diff
+                t_back_down_width_diff = back_down_width_diff
+            elif tuple(self.Pos) == (0, 180, 0):
+                t_front_up_width_diff = back_up_width_diff
+                t_front_down_width_diff = back_down_width_diff
+                t_back_up_width_diff = front_up_width_diff
+                t_back_down_width_diff = front_down_width_diff
+            elif tuple(self.Pos) == (0, 90, 0):
+                # TODO: 旋转90度的情况
+                pass
+            elif tuple(self.Pos) == (0, 270, 0):
+                # TODO: 旋转270度的情况
+                pass
+
+            # 修正完方向后，开始进行宽度变化
+
+            # if (front_down_width_diff and tuple(self.Rot) == (0, 0, 0)) or (
+            #         back_down_width_diff and tuple(self.Rot) == (0, 180, 0)):  # 零件前底部宽度变化
+            #     t_front_down_width_diff = front_down_width_diff if tuple(self.Rot) == (0, 0, 0) else back_down_width_diff
+            #     # if direction == PartRelationMap.UP:
+            #     #     # 上方零件前方底部宽度变化，扩散反向变化以保持前方顶部宽度不变
+            #     #     up_part = list(relation_map[direction].keys())[0]
+            #     #     if tuple(up_part.Rot) == (0, 0, 0):
+            #     #         up_part.change_attrs(
+            #     #             up_part.Pos, up_part.Amr, up_part.Len, up_part.Hei,
+            #     #             up_part.FWid + front_up_width_diff, up_part.BWid,
+            #     #             up_part.FSpr - front_down_width_diff, up_part.BSpr,
+            #     #             up_part.UCur, up_part.DCur, up_part.HScl, up_part.HOff)
+            #     #     # 上前方零件的后底部宽度随着本零件的前上宽度变化而变化，后扩散反向变化以保持后顶部宽度不变
+            #     #     up_front_part = list(self.allParts_relationMap.basicMap[up_part][PartRelationMap.FRONT].keys())[0]
+            #     #     if tuple(up_front_part.Rot) == (0, 0, 0):
+            #     #         up_front_part.change_attrs(
+            #     #             up_front_part.Pos, up_front_part.Amr, up_front_part.Len, up_front_part.Hei,
+            #     #             up_front_part.FWid, up_front_part.BWid + front_up_width_diff,
+            #     #             up_front_part.FSpr, up_front_part.BSpr - front_down_width_diff,
+            #     #             up_front_part.UCur, up_front_part.DCur, up_front_part.HScl, up_front_part.HOff)
+            #     if direction == PartRelationMap.DOWN and with_vertical_change:
+            #         # 下方零件仅随着零件宽度改变而改变扩散
+            #         down_part = list(relation_map[direction].keys())[0]
+            #         if tuple(down_part.Rot) == (0, 0, 0):
+            #             down_part.change_attrs(
+            #                 down_part.Pos, down_part.Amr, down_part.Len, down_part.Hei,
+            #                 down_part.FWid, down_part.BWid,
+            #                 down_part.FSpr + t_front_down_width_diff, down_part.BSpr,
+            #                 down_part.UCur, down_part.DCur, down_part.HScl, down_part.HOff)
+            #         if tuple(down_part.Rot) == (0, 180, 0):  # 前后反转
+            #             down_part.change_attrs(
+            #                 down_part.Pos, down_part.Amr, down_part.Len, down_part.Hei,
+            #                 down_part.FWid, down_part.BWid,
+            #                 down_part.FSpr, down_part.BSpr + t_front_down_width_diff,
+            #                 down_part.UCur, down_part.DCur, down_part.HScl, down_part.HOff)
+            #         # 下前方零件的后顶部宽度（扩散）随着本零件的前下宽度变化而变化
+            #         if with_horizontal_change:
+            #             down_front_part = list(self.allParts_relationMap.basicMap[down_part][PartRelationMap.FRONT].keys())[0]
+            #             if tuple(down_front_part.Rot) == (0, 0, 0):
+            #                 down_front_part.change_attrs(
+            #                     down_front_part.Pos, down_front_part.Amr, down_front_part.Len, down_front_part.Hei,
+            #                     down_front_part.FWid, down_front_part.BWid,
+            #                     down_front_part.FSpr, down_front_part.BSpr + t_front_down_width_diff,
+            #                     down_front_part.UCur, down_front_part.DCur, down_front_part.HScl, down_front_part.HOff)
+            #     elif direction == PartRelationMap.FRONT and with_horizontal_change:
+            #         # 前方零件的后方和本零件的前方同步变化
+            #         front_part = list(relation_map[direction].keys())[0]
+            #         if tuple(front_part.Rot) == (0, 0, 0):
+            #             front_part.change_attrs(
+            #                 front_part.Pos, front_part.Amr, front_part.Len, front_part.Hei,
+            #                 front_part.FWid, front_part.BWid + t_front_down_width_diff,
+            #                 front_part.FSpr, front_part.BSpr - t_front_down_width_diff,
+            #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
+            self.glWin.update()
 
     def __str__(self):
         part_type = str(self.__class__.__name__)
@@ -583,7 +833,7 @@ class ReadNA:
                         obj = NAPart(
                             self,
                             part["Id"],
-                            tuple(part["Pos"]), tuple(part["Rot"]), tuple(part["Scl"]),
+                            tuple(part["Pos"]), tuple(part["Rot"]), tuple(abs(i) for i in part["Scl"]),
                             str(part["Col"]), int(part["Amr"])
                         )
                     elif part["Typ"] == "MainWeapon":
@@ -600,7 +850,7 @@ class ReadNA:
                             Id=part["Id"],
                             pos=tuple(part["Pos"]),
                             rot=tuple(part["Rot"]),
-                            scale=tuple(part["Scl"]),
+                            scale=tuple(abs(i) for i in part["Scl"]),
                             color=str(part["Col"]),
                             armor=int(part["Amr"]),
                             manual_control=manual_control,
@@ -610,7 +860,7 @@ class ReadNA:
                         obj = AdjustableHull(
                             self,
                             part["Id"],
-                            tuple(part["Pos"]), tuple(part["Rot"]), tuple(part["Scl"]),
+                            tuple(part["Pos"]), tuple(part["Rot"]), tuple(abs(i) for i in part["Scl"]),
                             str(part["Col"]), int(part["Amr"]),
                             float(part["Len"]), float(part["Hei"]),
                             float(part["FWid"]), float(part["BWid"]),
@@ -663,6 +913,7 @@ class ReadNA:
                 _pos = (float(_pos['x']), float(_pos['y']), float(_pos['z']))
                 _rot = (float(_rot['x']), float(_rot['y']), float(_rot['z']))
                 _scl = (float(_scl['x']), float(_scl['y']), float(_scl['z']))
+                _scl = tuple(abs(i) for i in _scl)
                 _col = str(part.find('color').attrib['hex'])
                 _amr = int(part.find('armor').attrib['value'])
                 # 如果ID为0，就添加到可调节船体
@@ -704,6 +955,7 @@ class ReadNA:
 
 
 class PartRelationMap:
+    # 具体方位
     FRONT = "front"
     BACK = "back"
     UP = "up"
@@ -712,9 +964,20 @@ class PartRelationMap:
     RIGHT = "right"
     SAME = "same"
 
+    # 方位组合
     FRONT_BACK = "front_back"
     UP_DOWN = "up_down"
     LEFT_RIGHT = "left_right"
+
+    # 八个卦限
+    FRONT_UP_LEFT = "front_up_left"
+    FRONT_UP_RIGHT = "front_up_right"
+    FRONT_DOWN_LEFT = "front_down_left"
+    FRONT_DOWN_RIGHT = "front_down_right"
+    BACK_UP_LEFT = "back_up_left"
+    BACK_UP_RIGHT = "back_up_right"
+    BACK_DOWN_LEFT = "back_down_left"
+    BACK_DOWN_RIGHT = "back_down_right"
 
     def __init__(self, read_na, show_statu_func):
         """
@@ -834,6 +1097,8 @@ class PartRelationMap:
                 _x = float(dot[0])
                 _y = float(dot[1])
                 _z = float(dot[2])
+                if [_x, _y, _z] not in NAPartNode.all_dots:
+                    node = NAPartNode([_x, _y, _z])
                 if _x not in self.yzDotsLayerMap.keys():
                     self.yzDotsLayerMap[_x] = [newPart]
                 else:

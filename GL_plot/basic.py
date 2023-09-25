@@ -34,7 +34,14 @@ class GLObject:
 
     def __init__(self, gl):
         self.gl = gl
+        self.glWin = None
         self.faces = {}
+
+
+class DotNode(GLObject):
+    def __init__(self, gl=None):
+        super(DotNode, self).__init__(gl)
+        ...
 
 
 class LineGroupObject(GLObject):

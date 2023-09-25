@@ -425,10 +425,10 @@ class ShortCutWidget(QWidget):
             MyLabel("横剖面模式 2", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
             MyLabel("纵剖面模式 3", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
             MyLabel("左视图模式 4", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
-            MyLabel("选区上移 ↑", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
-            MyLabel("选区下移 ↓", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
-            MyLabel("选区左移 ←", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
-            MyLabel("选区右移 →", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区上移 Alt+ ↑", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区下移 Alt+ ↓", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区左移 Alt+←", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
+            MyLabel("选区右移 Alt+→", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
         ]
         super().__init__()
         self.layout = QGridLayout()

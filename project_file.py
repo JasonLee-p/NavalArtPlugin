@@ -26,10 +26,12 @@ class ConfigFile:
             self.Config = data['Config']
             self.UsingTheme = self.Config['Theme']
             self.Sensitivity = self.Config['Sensitivity']
+            self.AutoSave = True if self.Config['AutoSave'] == 'True' else False
+            self.Guided = True if self.Config['Guided'] == 'True' else False
             self.Projects = data['Projects']
             self.ProjectsFolder = data['ProjectsFolder']
-        except FileNotFoundError:
-            self.UsingTheme = "Day"
+        except FileNotFoundError and KeyError:
+            self.UsingTheme = "Night"
             self.Sensitivity = {
                 '缩放': 0.5,
                 '旋转': 0.5,
@@ -41,6 +43,7 @@ class ConfigFile:
                 'AutoSave': True,
                 'AutoSaveInterval': 5,
                 'Sensitivity': self.Sensitivity,
+                'Guided': False,
             }
             self.Projects = {}
             self.ProjectsFolder = ''
