@@ -18,9 +18,9 @@ class ConfigFile:
         1. 用户配置
         2. 船体节点数据
         """
-        # 寻找naval_art目录的上级目录
-        _path = os.path.join(find_na_root_path(), 'plugin_config.json')
         try:
+            # 寻找naval_art目录的上级目录
+            _path = os.path.join(find_na_root_path(), 'plugin_config.json')
             with open(_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             self.Config = data['Config']
@@ -30,7 +30,7 @@ class ConfigFile:
             self.Guided = True if self.Config['Guided'] == 'True' else False
             self.Projects = data['Projects']
             self.ProjectsFolder = data['ProjectsFolder']
-        except FileNotFoundError and KeyError:
+        except:
             self.UsingTheme = "Night"
             self.Sensitivity = {
                 '缩放': 0.5,

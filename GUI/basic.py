@@ -24,8 +24,8 @@ try:
     with open(_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     Theme = data['Config']['Theme']
-except FileNotFoundError or PermissionError:
-    Theme = 'Day'
+except:
+    Theme = 'Night'
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':
