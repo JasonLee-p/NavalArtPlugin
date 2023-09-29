@@ -1,10 +1,12 @@
 """
 读取NA设计文件的模块
 """
+import time
 import xml.etree.ElementTree as ET
 from typing import Union, List, Dict, Callable
 
 import numpy as np
+from PyQt5.QtGui import QVector3D
 from quaternion import quaternion
 
 """
@@ -30,6 +32,29 @@ from quaternion import quaternion
 """
 orders = ["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
 RotateOrder = orders[2]
+
+
+def get_normal(dot1, dot2, dot3, center=None):
+    """
+    计算三角形的法向量，输入为元组
+    :param dot1: 元组，三角形的第一个点
+    :param dot2: 元组，三角形的第二个点
+    :param dot3: 元组，三角形的第三个点
+    :param center: QVector3D，三角形的中心点
+    :return: QVector3D
+    """
+    if type(center) == tuple:
+        center = QVector3D(*center)
+    v1 = QVector3D(*dot2) - QVector3D(*dot1)
+    v2 = QVector3D(*dot3) - QVector3D(*dot1)
+    if center is None:
+        return QVector3D.crossProduct(v1, v2).normalized()
+    triangle_center = QVector3D(*dot1) + QVector3D(*dot2) + QVector3D(*dot3)
+    # 如果法向量与视线夹角大于90度，翻转法向量
+    if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
+        return QVector3D.crossProduct(v1, v2).normalized()
+    else:
+        return QVector3D.crossProduct(v1, v2).normalized()
 
 
 def rotate_quaternion2(dot_dict, rot):
@@ -222,6 +247,7 @@ class NAPartNode:
 class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
+    hull_design_tab_id_map = {}
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.glWin = None  # 用于绘制的窗口
@@ -231,7 +257,7 @@ class NAPart:
         self.Pos = pos
         self.Rot = rot
         self.Scl = scale
-        self.Col = color
+        self.Col = color  # "#975740"
         self.Amr = armor
         NAPart.ShipsAllParts.append(self)
         NAPart.id_map[id(self) % 4294967296] = self
@@ -330,7 +356,8 @@ class AdjustableHull(NAPart):
         self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
         self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
         # ==============================================================================计算绘图所需的数据
-        self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
+        self.operation_dot_nodes = []  # 位置变换后，曲面变换前的所有点
+        self.plot_all_dots = []  # 曲面变换，位置变换后的所有点
         self.vertex_coordinates = self.get_initial_vertex_coordinates()
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
@@ -345,23 +372,24 @@ class AdjustableHull(NAPart):
             "GL_QUAD_STRIP": [],
             "GL_POLYGON": [],
         }
-        if self.UCur < 0.005 and self.DCur <= 0.005:
-            # 旋转
-            dots = rotate_quaternion1(self.vertex_coordinates, self.Rot)
-            for key in dots.keys():
-                dots[key] *= self.Scl  # 缩放
-                dots[key] += self.Pos  # 平移
-            faces = [
-                [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
-                [dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]],
-                [dots["front_up_left"], dots["back_up_left"], dots["back_up_right"], dots["front_up_right"]],
-                [dots["front_down_left"], dots["front_down_right"], dots["back_down_right"], dots["back_down_left"]],
-                [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
-                [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
-            ]
-            self.plot_all_dots = [
+        # 旋转
+        dots = rotate_quaternion1(self.vertex_coordinates, self.Rot)
+        for key in dots.keys():
+            dots[key] *= self.Scl  # 缩放
+            dots[key] += self.Pos  # 平移
+        faces = [
+            [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
+            [dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]],
+            [dots["front_up_left"], dots["back_up_left"], dots["back_up_right"], dots["front_up_right"]],
+            [dots["front_down_left"], dots["front_down_right"], dots["back_down_right"], dots["back_down_left"]],
+            [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
+            [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
+        ]
+        self.operation_dot_nodes = [
                 dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
                 dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
+        if self.UCur < 0.005 and self.DCur <= 0.005:
+            self.plot_all_dots = self.operation_dot_nodes
             # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
             for face in faces:
                 use_triangles = False
@@ -764,6 +792,48 @@ class AdjustableHull(NAPart):
             "HOff": self.HOff,
         }
 
+    def draw(self, gl, material, theme_color):
+        alpha = 1
+        color = "#" + self.Col
+        # 16进制颜色转换为RGBA
+        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+        else:  # 说明是黑夜模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+            # 减去一定的值
+            difference = 0.08
+            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
+            # 如果小于0，就等于0
+            color_ = (color_[0] if color_[0] > 0 else 0,
+                      color_[1] if color_[1] > 0 else 0,
+                      color_[2] if color_[2] > 0 else 0,
+                      1)
+        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, light_color_)
+        gl.glColor4f(*color_)
+        try:
+            self.plot_faces = self.plot_faces
+        except AttributeError:
+            return
+        for draw_method, faces_dots in self.plot_faces.items():
+            # draw_method是字符串，需要转换为OpenGL的常量
+            for face in faces_dots:
+                gl.glBegin(eval(f"gl.{draw_method}"))
+                if len(face) == 3 or len(face) == 4:
+                    normal = get_normal(face[0], face[1], face[2])
+                elif len(face) > 12:
+                    normal = get_normal(face[0], face[6], face[12])
+                else:
+                    continue
+                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                for dot in face:
+                    gl.glVertex3f(dot[0], dot[1], dot[2])
+                gl.glEnd()
+
 
 class MainWeapon(NAPart):
     All = []
@@ -793,13 +863,15 @@ class ReadNA:
     NaPathMode = "path"
     NaDataMode = "data"
 
-    def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None):
+    def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None, glWin=None, design_tab=False):
         """
 
         :param filepath:
         :param data: 字典，键是颜色的十六进制表示，值是零件的列表，但是尚未实例化，是字典形式的数据
         :param show_statu_func:
         """
+        self.glWin = glWin  # 用于绘制的窗口
+
         self.filename: str  # 文件名
         self.filepath: str  # 文件路径
         self.ShipName: str  # 船名
@@ -818,17 +890,18 @@ class ReadNA:
         self.Parts = []
         self.partRelationMap = PartRelationMap(self, self.show_statu_func)  # 零件关系图，包含零件的上下左右前后关系
         if filepath is False:
+            total_layer_time = 0
+            total_relation_time = 0
+            total_dot_time = 0
             self.Mode = ReadNA.NaDataMode
             # ===================================================================== 实例化data中的零件
             self.ColorPartsMap = {}
             total_parts_num = sum([len(parts) for parts in data.values()])
             i = 0
+            st = time.time()
+            self.show_statu_func(f"正在实例化零件，进度：0 %", "process")
             for color, parts in data.items():
                 for part in parts:
-                    if i % 123 == 0:
-                        process = round(i / total_parts_num * 100, 2)
-                        self.show_statu_func(f"正在实例化第{i}个零件，进度：{process} %", "process")
-                    i += 1
                     if part["Typ"] == "NAPart" or part["Typ"] == "Part":  # TODO: Part名称已经被弃用
                         obj = NAPart(
                             self,
@@ -876,8 +949,33 @@ class ReadNA:
                         self.ColorPartsMap[_color] = []
                     self.ColorPartsMap[_color].append(obj)
                     self.Parts.append(obj)
+                    NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj if design_tab else None
                     # 初始化零件关系图
-                    self.partRelationMap.add_part(obj)
+                    layer_t, relation_t, dot_t = self.partRelationMap.add_part(obj)
+                    total_layer_time += layer_t
+                    total_relation_time += relation_t
+                    total_dot_time += dot_t
+                    average_layer_time = round(total_layer_time / (i + 1), 4)
+                    average_relation_time = round(total_relation_time / (i + 1), 4)
+                    average_dot_time = round(total_dot_time / (i + 1), 4)
+                    # 标准化（填补0）
+                    layer_t = str(layer_t).ljust(6, '0')
+                    relation_t = str(relation_t).ljust(6, '0')
+                    dot_t = str(dot_t).ljust(6, '0')
+                    average_layer_time = str(average_layer_time).ljust(6, '0')
+                    average_relation_time = str(average_relation_time).ljust(6, '0')
+                    average_dot_time = str(average_dot_time).ljust(6, '0')
+                    if i % 3 == 0:
+                        process = round(i / total_parts_num * 100, 2)
+                        self.show_statu_func(
+                            f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
+                            f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s"
+                            f"\t\t平均耗时：     截面对象  {average_layer_time} s     零件关系  {average_relation_time} s     节点集合  {average_dot_time} s",
+                            "process")
+                    if self.glWin and self.glWin.initialized and i % (total_parts_num / 200) == 0:
+                        self.glWin.paintGL()
+                    i += 1
+            self.show_statu_func(f"零件实例化完成，耗时：{round(time.time() - st, 2)} s", "success")
             self.partRelationMap.sort()
             self.partRelationMap.init(drawMap=None, init=False)  # 上方已经初始化了drawMap。
         else:  # =========================================================================== 读取na文件
@@ -950,6 +1048,7 @@ class ReadNA:
                 # print("正在读取文件：", self.filename)
                 # print(self.ColorPartsMap)
                 self.Parts.append(obj)
+                NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj if design_tab else None
                 # 注意，这里没有对partRelationMap进行初始化，因为这里只是读取零件，还没有选颜色，所以要等到用户选颜色之后才能初始化
         self.show_statu_func("零件读取完成!", "success")
 
@@ -1089,37 +1188,18 @@ class PartRelationMap:
         """
         添加零件
         :param newPart:
-        :return:
+        :return: layer_t, relation_t, dot_t
         """
-        # 点集
-        if type(newPart) == AdjustableHull:
-            for dot in newPart.plot_all_dots:
-                _x = float(dot[0])
-                _y = float(dot[1])
-                _z = float(dot[2])
-                if [_x, _y, _z] not in NAPartNode.all_dots:
-                    node = NAPartNode([_x, _y, _z])
-                if _x not in self.yzDotsLayerMap.keys():
-                    self.yzDotsLayerMap[_x] = [newPart]
-                else:
-                    self.yzDotsLayerMap[_x].append(newPart)
-                if _y not in self.xzDotsLayerMap.keys():
-                    self.xzDotsLayerMap[_y] = [newPart]
-                else:
-                    self.xzDotsLayerMap[_y].append(newPart)
-                if _z not in self.xyDotsLayerMap.keys():
-                    self.xyDotsLayerMap[_z] = [newPart]
-                else:
-                    self.xyDotsLayerMap[_z].append(newPart)
+        st = time.time()
         # 初始化零件的上下左右前后零件
         newPart_relation = {self.FRONT: {}, self.BACK: {},
                             self.UP: {}, self.DOWN: {},
                             self.LEFT: {}, self.RIGHT: {},
                             self.SAME: {}}
         # 零件集
-        x_exist = []
-        y_exist = []
-        z_exist = []
+        x_exist = []  # x相同的零件
+        y_exist = []  # y相同的零件
+        z_exist = []  # z相同的零件
         if newPart.Pos[0] not in self.yzPartsLayerMap.keys():
             self.yzPartsLayerMap[newPart.Pos[0]] = [newPart]
         else:
@@ -1135,17 +1215,19 @@ class PartRelationMap:
         else:
             z_exist = self.xyPartsLayerMap[newPart.Pos[2]]
             self.xyPartsLayerMap[newPart.Pos[2]].append(newPart)
-
+        layer_t = round(time.time() - st, 4)
+        st = time.time()
         # 先检查是否有有位置关系的other_part，如果有，就添加到new_part的上下左右前后零件中
         # 然后新零件new_part根据other_part的关系扩充自己的关系
         if len(self.basicMap) == 0:  # 如果basicMap为空，就直接添加
             self.basicMap[newPart] = newPart_relation
-            return
+            return layer_t, 0, 0
         # if newPart.Pos[0] not in self.xzPartsLayerMap.keys():  # 如果xzLayerMap中没有该层，就添加
         xy_exist = set(x_exist) & set(y_exist)
         xz_exist = set(x_exist) & set(z_exist)
         yz_exist = set(y_exist) & set(z_exist)
         for otherPart, others_direction_relation in self.basicMap.items():
+            # 遍历点集，往NAPartNode中添加点
             # xy相同，前后关系
             if otherPart in xy_exist:
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.FRONT_BACK)
@@ -1159,6 +1241,32 @@ class PartRelationMap:
                 self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.SAME)
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
+        relation_t = round(time.time() - st, 4)
+        # 点集
+        st = time.time()
+        if type(newPart) == AdjustableHull:
+            for dot in newPart.operation_dot_nodes:
+                # dot是np.ndarray类型
+                _x = round(float(dot[0]), 3)
+                _y = round(float(dot[1]), 3)
+                _z = round(float(dot[2]), 3)
+                if [_x, _y, _z] not in NAPartNode.all_dots:
+                    node = NAPartNode([_x, _y, _z])
+                # DotsLayerMap
+                if _x not in self.yzDotsLayerMap.keys():
+                    self.yzDotsLayerMap[_x] = [newPart]
+                else:
+                    self.yzDotsLayerMap[_x].append(newPart)
+                if _y not in self.xzDotsLayerMap.keys():
+                    self.xzDotsLayerMap[_y] = [newPart]
+                else:
+                    self.xzDotsLayerMap[_y].append(newPart)
+                if _z not in self.xyDotsLayerMap.keys():
+                    self.xyDotsLayerMap[_z] = [newPart]
+                else:
+                    self.xyDotsLayerMap[_z].append(newPart)
+        dot_t = round(time.time() - st, 4)
+        return layer_t, relation_t, dot_t
 
     def del_part(self, part):
         """
@@ -1181,22 +1289,26 @@ class PartRelationMap:
         """
         if not init:
             return
-        # st = time.time()
+        st = time.time()
         total_parts_num = sum([len(parts) for parts in drawMap.values()])
         i = 1
         for _color, parts in drawMap.items():
             for part in parts:
-                if i % 123 == 0:
+                layer_t, relation_t, dot_t = self.add_part(part)
+                # 标准化（填补0）
+                layer_t = str(layer_t).ljust(6, '0')
+                relation_t = str(relation_t).ljust(6, '0')
+                dot_t = str(dot_t).ljust(6, '0')
+                if i % 3 == 0:
                     process = round(i / total_parts_num * 100, 2)
-                    self.show_statu_func(f"正在初始化第{i}个零件，进度：{process} %", "process")
-                    # print(f"正在初始化零件关系图第{i}个零件，进度：{i / total_parts_num * 100}%")
+                    self.show_statu_func(
+                        f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
+                        f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s", "process")
                 i += 1
-                self.add_part(part)
-        self.show_statu_func("零件关系图初始化完成!", "success")
-        # print(f"零件关系图零件添加完成，耗时：{time.time() - st}秒")
-        # st = time.time()
+        self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
+        st = time.time()
         self.sort()
-        # print(f"零件关系图零件排序完成，耗时：{time.time() - st}秒")
+        self.show_statu_func(f"零件关系图排序完成! 耗时：{time.time() - st}s", "success")
 
     def sort(self):
         self.show_statu_func("正在加载LayerMaps", "process")
@@ -1211,7 +1323,7 @@ class PartRelationMap:
         for part, part_relation in self.basicMap.items():
             # 按照value（relation的值）对relation字典从小到大排序：
             for direction, others_direction_relation in part_relation.items():
-                if i % 4567 == 0:
+                if i % 123 == 0:
                     process = round(i / total_parts_num * 100, 2)
                     self.show_statu_func(f"正在排序第{i}个零件，进度：{process} %", "process")
                 i += 1

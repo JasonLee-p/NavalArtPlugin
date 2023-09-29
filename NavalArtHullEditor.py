@@ -22,7 +22,7 @@ from ship_reader import *
 from GUI import *
 from GL_plot import *
 from path_utils import find_ptb_path, find_na_root_path
-from OpenGLWindow import Camera, OpenGLWin, DesignTabGLWinMenu
+from OpenGLWindow import Camera, OpenGLWin, DesignTabGLWinMenu, OpenGLWin2
 from right_element_view import Mod1SinglePartView
 from right_element_editing import Mod1SinglePartEditing
 from project_file import ConfigFile
@@ -92,6 +92,7 @@ def save_current_prj():
 
 def del_plot_obj():
     NAPart.id_map = {}
+    NAPart.hull_design_tab_id_map = {}
     NaHullXYLayer.id_map = {}
     NaHullXZLayer.id_map = {}
     NaHullLeftView.id_map = {}
@@ -163,7 +164,10 @@ class ProjectOpeningThread(QThread):
 
         # 读取成功，开始绘制
         # 通过读取的船体设计文件，新建NaHull对象
-        na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=self.update_state)
+        na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData,
+                         show_statu_func=self.update_state,
+                         glWin=Handler.hull_design_tab.ThreeDFrame,
+                         design_tab=True)
         Handler.hull_design_tab.current_na_hull = na_hull
         Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)  # 显示船体设计
         # 显示船体设计
@@ -197,7 +201,7 @@ def new_project():
             save_current_prj()
             Handler.hull_design_tab.clear_all_plot_obj()
             # 通过读取的船体设计文件，新建NaHull对象
-            _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state)
+            _na_hull = NAHull(path=_original_na_path, show_statu_func=show_state, design_tab=True)
             Handler.hull_design_tab.current_na_hull = _na_hull
             # 检测颜色种类，弹出对话框，选择颜色
             color_dialog = ColorDialog(Handler.window, Handler.hull_design_tab.current_na_hull)
@@ -270,7 +274,10 @@ class ProjectLoadingConfigThread(QThread):
             Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
 
             # 读取成功，开始绘制
-            na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData, show_statu_func=self.update_state)
+            na_hull = NAHull(data=Handler.CurrentProjectData["Object"].NAPartsData,
+                             show_statu_func=self.update_state,
+                             glWin=Handler.hull_design_tab.ThreeDFrame,
+                             design_tab=True)
             Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)
             global CurrentPrj
             CurrentPrj = Handler.CurrentProjectData["Object"]
@@ -1212,7 +1219,7 @@ class HullDesignTab(QWidget):
         except IndexError:
             return
         try:
-            _na_hull = NAHull(path=_original_na_p, show_statu_func=show_state)
+            _na_hull = NAHull(path=_original_na_p, show_statu_func=show_state, design_tab=True)
         except AttributeError:
             _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
             # 白色背景的提示框
@@ -1297,12 +1304,13 @@ class HullDesignTab(QWidget):
         #     self.convertAdhull_button_pressed()
         #     return
 
-    def init_NaHull_partRelationMap_Layers(self, na_hull):
+    def init_NaHull_partRelationMap_Layers(self, na_hull: NAHull):
         """
         当用户完成了颜色选择后，初始化船体需要绘制的对象DrawMap，同时初始化零件关系图，初始化绘图所需的所有对象
         :param na_hull:
         :return:
         """
+        na_hull.glWin = self.ThreeDFrame
         if na_hull.Mode == NAHull.NaPathMode:
             # 此时用户显然已经选取了颜色，要根据绘图的DrawMap对需要绘制的零件关系图进行初始化
             na_hull.partRelationMap.init(na_hull.DrawMap)
@@ -1344,7 +1352,7 @@ class ArmorDesignTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = GLWin(Config.Sensitivity)
+        self.ThreeDFrame = OpenGLWin2(Config.Sensitivity, using_various_mode=True, show_statu_func=show_state)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -1626,47 +1634,51 @@ def user_guide():
 
 
 if __name__ == '__main__':
-    """
-    if is_admin():
-        print("程序已获取管理员身份")
-    else:
-        print("程序非管理员身份启动，正在获取管理员权限")
-    c = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-    if c != 0:
-        print("获取管理员权限成功")
-        # sys.exit(0)
-    else:
-        print("获取管理员权限失败")
-        # os.system("pause")
-    """
-    # 初始化路径
-    PTBPath = find_ptb_path()
-    NAPath = os.path.join(find_na_root_path(), "ShipSaves")
-    # 读取配置
-    Config = ConfigFile()
-    # 初始化界面和事件处理器
-    QApp = QApplication(sys.argv)
-    QtWindow = MainWin(Config)
-    Handler = MainHandler(QtWindow)
-    # 其他初始化
-    Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
-    if "Guided" not in Config.Config:
-        # 运行引导程序
-        user_guide()
-    if Config.Projects != {}:
-        try:
-            Handler.LoadingProject = True
-            project_loading_thread = ProjectLoadingConfigThread()
-            project_loading_thread.update_state.connect(show_state)
-            project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
-            project_loading_thread.start()
-        except Exception as e:
-            show_state(f"读取配置文件失败：{e}", 'error')
-            MyMessageBox().information(None, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
+    try:
+        """
+        if is_admin():
+            print("程序已获取管理员身份")
+        else:
+            print("程序非管理员身份启动，正在获取管理员权限")
+        c = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+        if c != 0:
+            print("获取管理员权限成功")
+            # sys.exit(0)
+        else:
+            print("获取管理员权限失败")
+            # os.system("pause")
+        """
+        # 初始化路径
+        PTBPath = find_ptb_path()
+        NAPath = os.path.join(find_na_root_path(), "ShipSaves")
+        # 读取配置
+        Config = ConfigFile()
+        # 初始化界面和事件处理器
+        QApp = QApplication(sys.argv)
+        QtWindow = MainWin(Config)
+        Handler = MainHandler(QtWindow)
+        # 其他初始化
+        Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
+        if "Guided" not in Config.Config:
+            # 运行引导程序
+            user_guide()
+        if Config.Projects != {}:
+            try:
+                Handler.LoadingProject = True
+                project_loading_thread = ProjectLoadingConfigThread()
+                project_loading_thread.update_state.connect(show_state)
+                project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+                project_loading_thread.start()
+            except Exception as e:
+                show_state(f"读取配置文件失败：{e}", 'error')
+                MyMessageBox().information(None, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
+                CurrentPrj = None
+        else:
             CurrentPrj = None
-    else:
-        CurrentPrj = None
-    QtWindow.showMaximized()
-    QtWindow.show()  # 显示被隐藏的窗口
-    # 主循环
-    sys.exit(QApp.exec_())
+        QtWindow.showMaximized()
+        QtWindow.show()  # 显示被隐藏的窗口
+        # 主循环
+        sys.exit(QApp.exec_())
+    except Exception as e:
+        MyMessageBox().information(None, "提示", f"Fatal Error：{e}", MyMessageBox.Ok)
+        raise e

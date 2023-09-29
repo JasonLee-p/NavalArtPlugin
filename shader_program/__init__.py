@@ -1,3 +1,3 @@
-from . import fragment_shader
+from . import shader_program
 
-__all__ = ['fragment_shader']
+__all__ = ['shader_program.py']

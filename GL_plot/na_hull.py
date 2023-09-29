@@ -6,12 +6,14 @@ import math
 from typing import Union
 
 import numpy as np
+from PyQt5.QtCore import QThread
+
 from ship_reader.NA_design_reader import ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap
 from .basic import SolidObject, DotNode, get_normal
 
 
 class NAHull(ReadNA, SolidObject):
-    def __init__(self, path=False, data=None, show_statu_func=None):
+    def __init__(self, path=False, data=None, show_statu_func=None, glWin=None, design_tab=False):
         """
         NAHull一定要在用户选完颜色之后调用，因为需要根据颜色来初始化DrawMap。
         注意，self.DrawMap不会在ReadNA和SolidObject中初始化，会在其他地方初始化。
@@ -25,7 +27,7 @@ class NAHull(ReadNA, SolidObject):
         except AttributeError:
             self.show_statu_func = show_statu_func
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
-        ReadNA.__init__(self, path, data, self.show_statu_func)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
+        ReadNA.__init__(self, path, data, self.show_statu_func, glWin, design_tab)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
         self.DrawMap = self.ColorPartsMap.copy()
         self.xzLayers = []  # 所有xz截面
@@ -42,26 +44,28 @@ class NAHull(ReadNA, SolidObject):
         i = 0
         for y, parts in self.partRelationMap.xzDotsLayerMap.items():
             i += 1
-            if i % 4567 == 0:
+            if i % 123 == 0:
                 self.show_statu_func(f"正在生成xz截面第{i}/{total_y_num}层", "process")
             if len(parts) < 4:
                 continue
             self.xzLayers.append(NaHullXZLayer(self, y, parts))
+        self.show_statu_func("xz截面生成完毕", "process")
 
     def get_xy_layers(self):
         total_z_num = len(self.partRelationMap.xyDotsLayerMap)
         i = 0
         for z, parts in self.partRelationMap.xyDotsLayerMap.items():
             i += 1
-            if i % 4567 == 0:
+            if i % 123 == 0:
                 self.show_statu_func(f"正在生成xy截面第{i}/{total_z_num}层", "process")
             if len(parts) < 3:
                 continue
             self.xyLayers.append(NaHullXYLayer(self, z, parts))
+        self.show_statu_func("xy截面生成完毕", "process")
 
     def get_left_views(self):
         # TODO: 生成左视图
-        pass
+        self.show_statu_func("左视图生成完毕", "process")
 
     @staticmethod
     def toJson(data):
@@ -122,11 +126,78 @@ class NAHull(ReadNA, SolidObject):
         gl.glLoadName(id(self) % 4294967296)
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
-        # 绘制面
-        for color, part_set in self.DrawMap.items():
-            # t = Thread(target=self.draw_color, args=(gl2_0, theme_color, material, color, part_set))
-            # t.start()
-            self.draw_color(gl, theme_color, material, color, part_set, transparent)
+        total_part_num = sum([len(part_set) for part_set in self.DrawMap.values()])
+        if total_part_num > 100:  # 大于1000个零件时，多线程绘制（用QThread）
+            # 根据颜色分线程，所有线程结束后主线程再继续
+            threads = []
+            for color, part_set in self.DrawMap.items():
+                t = DrawThread(gl, self.glWin, theme_color, material, color, part_set, transparent)
+                threads.append(t)
+                t.start()
+            for t in threads:
+                t.wait()
+        else:
+            # 绘制面
+            for color, part_set in self.DrawMap.items():
+                # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
+                # t.start()
+                self.draw_color(gl, theme_color, material, color, part_set, transparent)
+
+
+class DrawThread(QThread):
+    def __init__(self, gl, glWin, theme_color, material, color, part_set, transparent):
+        super().__init__()
+        self.gl = gl
+        self.glWin = glWin
+        self.theme_color = theme_color
+        self.material = material
+        self.color = color
+        self.part_set = part_set
+        self.transparent = transparent
+
+    def run(self):
+        self.draw_color(self.gl, self.theme_color, self.material, self.color, self.part_set, self.transparent)
+
+    def draw_color(self, gl, theme_color, material, color, part_set, transparent):
+        alpha = 1 if not transparent else 0.3
+        # 16进制颜色转换为RGBA
+        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+        else:  # 说明是黑夜模式
+            _rate = 600
+            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+            # 减去一定的值
+            difference = 0.08
+            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
+            # 如果小于0，就等于0
+            color_ = (color_[0] if color_[0] > 0 else 0,
+                      color_[1] if color_[1] > 0 else 0,
+                      color_[2] if color_[2] > 0 else 0,
+                      1)
+        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
+        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
+        gl.glColor4f(*color_)
+        for part in part_set:
+            gl.glLoadName(id(part) % 4294967296)
+            part.glWin = self.glWin
+            if "plot_faces" not in part.__dict__ and type(part) != AdjustableHull:
+                continue
+            for draw_method, faces_dots in part.plot_faces.items():
+                # draw_method是字符串，需要转换为OpenGL的常量
+                for face in faces_dots:
+                    gl.glBegin(eval(f"gl.{draw_method}"))
+                    if len(face) == 3 or len(face) == 4:
+                        normal = get_normal(face[0], face[1], face[2])
+                    elif len(face) > 12:
+                        normal = get_normal(face[0], face[6], face[12])
+                    else:
+                        continue
+                    gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                    for dot in face:
+                        gl.glVertex3f(dot[0], dot[1], dot[2])
+                    gl.glEnd()
 
 
 class NaHullXZLayer(SolidObject):

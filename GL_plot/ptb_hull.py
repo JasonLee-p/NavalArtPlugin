@@ -68,7 +68,7 @@ class AdHull(ReadPTB, SolidObject):
         gl.glLoadName(id(self) % 4294967296)
         super(AdHull, self).draw(gl, "钢铁", theme_color)
         self.draw_deck(gl, theme_color)  # 绘制甲板
-        # self.draw_water_line(gl2_0, theme_color)  # 绘制水线
+        # self.draw_water_line(gl, theme_color)  # 绘制水线
 
     def draw_water_line(self, gl, theme_color=None):
         water_line = self.obj.get_xz_from_y(self.WaterLineHeight * self.height / 3)
