@@ -1008,7 +1008,7 @@ class ReadNA:
             self.ColorPartsMap = {}
             part_num = len(self._xml_all_parts)
             for i, part in enumerate(self._xml_all_parts):
-                if i % 123 == 0:
+                if i % 3 == 0:
                     process = round(i / part_num * 100, 2)
                     self.show_statu_func(f"正在读取第{i}个零件，进度：{process} %", "process")
                 _id = str(part.attrib['id'])
@@ -1197,12 +1197,6 @@ class PartRelationMap:
         :param newPart:
         :return: layer_t, relation_t, dot_t
         """
-        st = time.time()
-        # 初始化零件的上下左右前后零件
-        newPart_relation = {self.FRONT: {}, self.BACK: {},
-                            self.UP: {}, self.DOWN: {},
-                            self.LEFT: {}, self.RIGHT: {},
-                            self.SAME: {}}
         # 点集
         st = time.time()
         if type(newPart) == AdjustableHull:
@@ -1228,6 +1222,12 @@ class PartRelationMap:
                     self.xyDotsLayerMap[_z].append(newPart)
         dot_t = round(time.time() - st, 4)
         # 零件集
+        st = time.time()
+        # 初始化零件的上下左右前后零件
+        newPart_relation = {self.FRONT: {}, self.BACK: {},
+                            self.UP: {}, self.DOWN: {},
+                            self.LEFT: {}, self.RIGHT: {},
+                            self.SAME: {}}
         x_exist = []  # x相同的零件
         y_exist = []  # y相同的零件
         z_exist = []  # z相同的零件

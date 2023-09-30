@@ -880,9 +880,9 @@ class OpenGLWin(QOpenGLWidget):
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
                     self.selected_gl_objects[self.show_3d_obj_mode].pop(index)
                     self.show_statu_func(f"删除选区(Alt+{event.key()})", "success")
-                self.update_selected_list = True
-                self.paintGL()
-                self.update_selected_list = False
+            self.update_selected_list = True
+            self.paintGL()
+            self.update_selected_list = False
         self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:

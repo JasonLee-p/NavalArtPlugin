@@ -223,8 +223,17 @@ def new_project():
             # noinspection PyUnresolvedReferences
             Handler.window.new_project_thread.update_state.connect(show_state)
             # noinspection PyUnresolvedReferences
-            Handler.window.new_project_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+            Handler.window.new_project_thread.finished.connect(new_finish)
             Handler.window.new_project_thread.start()
+
+
+def new_finish():
+    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
+        _l[1] = True
+    Handler.hull_design_tab.ThreeDFrame.paintGL()
+    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
+        _l[1] = False
+    Handler.LoadingProject = False
 
 
 class ProjectLoadingNewThread(QThread):
