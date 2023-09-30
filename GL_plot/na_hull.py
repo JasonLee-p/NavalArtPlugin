@@ -27,6 +27,7 @@ class NAHull(ReadNA, SolidObject):
         except AttributeError:
             self.show_statu_func = show_statu_func
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
+        NAPart.hull_design_tab_id_map = {}
         ReadNA.__init__(self, path, data, self.show_statu_func, glWin, design_tab)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
         self.DrawMap = self.ColorPartsMap.copy()

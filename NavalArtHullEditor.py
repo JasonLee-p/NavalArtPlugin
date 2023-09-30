@@ -92,7 +92,6 @@ def save_current_prj():
 
 def del_plot_obj():
     NAPart.id_map = {}
-    NAPart.hull_design_tab_id_map = {}
     NaHullXYLayer.id_map = {}
     NaHullXZLayer.id_map = {}
     NaHullLeftView.id_map = {}

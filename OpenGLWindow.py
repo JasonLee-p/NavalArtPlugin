@@ -332,10 +332,10 @@ class OpenGLWin(QOpenGLWidget):
             [obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color) for obj in objs]
         # ==================================================================================加载时的绘制
         if not self.all_3d_obj["钢铁"] and self.using_various_mode:  # 如果没有钢铁物体，就绘制船体
-            for part in AdjustableHull.hull_design_tab_id_map.copy().values():
-                if type(part) != AdjustableHull:
-                    continue
-                part.draw(self.gl2_0)
+            parts = AdjustableHull.hull_design_tab_id_map.copy().values()
+            # for part in parts:  # TODO: 优化绘制
+            #     if type(part) == AdjustableHull:
+            #         part.draw(self.gl2_0)
             if time.time() - st != 0:
                 self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
             self.update()
@@ -459,36 +459,7 @@ class OpenGLWin(QOpenGLWidget):
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                 if type(obj) != AdjustableHull:
                     continue  # TODO: 未来要加入Part类的绘制方法，而不是只能绘制AdjustableHull
-                if obj.selected_genList and not obj.update_selectedList:
-                    self.gl2_0.glCallList(obj.selected_genList)
-                    continue
-                obj.selected_genList = glGenLists(1)
-                self.gl2_0.glNewList(obj.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
-                # 材料设置
-                self.gl2_0.glColor4f(*self.theme_color["被选中"][0])
-                for draw_method, faces_dots in obj.plot_faces.items():
-                    # draw_method是字符串，需要转换为OpenGL的常量
-                    for face in faces_dots:
-                        self.gl2_0.glBegin(eval(f"self.gl2_0.{draw_method}"))
-                        if len(face) == 3 or len(face) == 4:
-                            normal = get_normal(face[0], face[1], face[2])
-                        elif len(face) > 12:
-                            normal = get_normal(face[0], face[6], face[12])
-                        else:
-                            continue
-                        self.gl2_0.glNormal3f(normal.x(), normal.y(), normal.z())
-                        for dot in face:
-                            self.gl2_0.glVertex3f(dot[0], dot[1], dot[2])
-                        self.gl2_0.glEnd()
-                self.gl2_0.glColor4f(*self.theme_color["橙色"][0])
-                for _line_name, line in obj.plot_lines.items():
-                    self.gl2_0.glLineWidth(2)
-                    # 首尾不相连
-                    self.gl2_0.glBegin(self.gl2_0.GL_LINE_STRIP)
-                    for dot in line:
-                        self.gl2_0.glVertex3f(dot[0], dot[1], dot[2])
-                    self.gl2_0.glEnd()
-                self.gl2_0.glEndList()
+                obj.draw_selected(self.gl2_0, theme_color=self.theme_color)
         elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
             for node in self.selected_gl_objects[self.show_3d_obj_mode]:
                 if type(node) != NAPartNode:
@@ -617,7 +588,10 @@ class OpenGLWin(QOpenGLWidget):
             hits = glRenderMode(GL_RENDER)
             # self.show_statu_func(f"{len(hits)}个零件被选中", "success")
             # 在hits中找到深度最小的零件
-            id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map
+            if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+                id_map = NAPart.hull_design_tab_id_map
+            else:
+                id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map
             min_depth = 100000
             min_depth_part = None
             for hit in hits:
@@ -704,7 +678,10 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0.glMatrixMode(GL_MODELVIEW)
         # 获取选择框内的物体
         hits = glRenderMode(GL_RENDER)
-        id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map
+        if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+            id_map = NAPart.hull_design_tab_id_map
+        else:
+            id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map
         for hit in hits:  # TODO: 如果不舍弃最后一个，会把一个其他零件也选中，原因未知
             _name = hit.names[0]
             if _name in id_map:

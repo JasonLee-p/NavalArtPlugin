@@ -57,12 +57,12 @@ def get_normal(dot1, dot2, dot3, center=None):
         return QVector3D.crossProduct(v1, v2).normalized()
 
 
-def rotate_quaternion2(dot_dict, rot):
+def rotate_quaternion2(dot_dict, scl, rot):
     """
     对点集进行四元数旋转
 
     :param dot_dict: 字典，值是零件的各个点的坐标，格式为 {'pointset1': [[x1, y1, z1], [x2, y2, z2], ...], 'pointset2': [[x1, y1, z1], [x2, y2, z2], ...], ...}
-
+    :param scl: 缩放比例，三个值分别为x,y,z轴的缩放比例
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
@@ -96,6 +96,8 @@ def rotate_quaternion2(dot_dict, rot):
     rotated_dot_dict = {}
     for key, pointset in dot_dict.items():
         for i, point in enumerate(pointset):
+            # 进行缩放
+            point = np.array(point) * scl
             # 将点坐标转换为四元数
             point_quat = np.quaternion(0, *point)
             # 进行四元数旋转
@@ -111,10 +113,11 @@ def rotate_quaternion2(dot_dict, rot):
     return rotated_dot_dict
 
 
-def rotate_quaternion0(face_list, rot):
+def rotate_quaternion0(face_list, scl, rot):
     """
     对点集进行四元数旋转
     :param face_list: 列表，元素是含有多个点的列表，格式为 [[array([x1, y1, z1]), array([x2, y2, z2]), ...], [...], ...]
+    :param scl:
     :param rot:
     :return:
     """
@@ -148,6 +151,8 @@ def rotate_quaternion0(face_list, rot):
     for face in face_list:
         rotated_face = []
         for point in face:
+            # 进行缩放
+            point = np.array(point) * scl
             # 将点坐标转换为四元数
             point_quat = np.quaternion(0, *point)
             # 进行四元数旋转
@@ -160,11 +165,12 @@ def rotate_quaternion0(face_list, rot):
     return rotated_face_list
 
 
-def rotate_quaternion1(dot_dict, rot):
+def rotate_quaternion1(dot_dict, scl, rot):
     """
-    对点集进行四元数旋转
+    对点集进行缩放，四元数旋转
 
     :param dot_dict: 字典，值是零件的各个点的坐标，格式为 {'point1': [x1, y1, z1], 'point2': [x2, y2, z2], ...}
+    :param scl: 缩放比例，三个值分别为x,y,z轴的缩放比例
     :param rot: 角度值，三个值分别为x,y,z轴的旋转角度，单位为度
     :return: 旋转后的点集，格式与输入点集相同，但值为np.array类型
     """
@@ -197,9 +203,11 @@ def rotate_quaternion1(dot_dict, rot):
     else:
         raise ValueError("Invalid RotateOrder!")
 
-    # 遍历点集进行旋转
+    # 遍历点集进行缩放，旋转
     rotated_dot_dict = {}
     for key, point in dot_dict.items():
+        # 进行缩放
+        point = np.array(point) * scl
         # 将点坐标转换为四元数
         point_quat = np.quaternion(0, *point)
         # 进行四元数旋转
@@ -255,7 +263,7 @@ class NAPartNode:
 class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
-    hull_design_tab_id_map = {}
+    hull_design_tab_id_map = {}  # 在na_hull中清空和初始化
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.glWin = None  # 用于绘制的窗口
@@ -387,10 +395,9 @@ class AdjustableHull(NAPart):
             "GL_QUAD_STRIP": [],
             "GL_POLYGON": [],
         }
-        # 旋转
-        dots = rotate_quaternion1(self.vertex_coordinates, self.Rot)
+        # 缩放并旋转
+        dots = rotate_quaternion1(self.vertex_coordinates, self.Scl, self.Rot)
         for key in dots.keys():
-            dots[key] *= self.Scl  # 缩放
             dots[key] += self.Pos  # 平移
         faces = [
             [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
@@ -454,11 +461,10 @@ class AdjustableHull(NAPart):
             result["GL_QUADS"].append([front_set[-1], back_set[-1], back_set[0], front_set[0]])
             # 旋转
             for method, face_set in result.items():
-                result[method] = rotate_quaternion0(face_set, self.Rot)
+                result[method] = rotate_quaternion0(face_set, self.Scl, self.Rot)
                 # 缩放和平移
                 for face in result[method]:
                     for dot in face:
-                        dot *= self.Scl
                         dot += self.Pos
             self.plot_all_dots = result["GL_POLYGON"][0] + result["GL_POLYGON"][1]
         return result
@@ -548,10 +554,9 @@ class AdjustableHull(NAPart):
             "4": [self.vertex_coordinates["back_up_right"], self.vertex_coordinates["back_down_right"]]
         }
         # 进行旋转，平移，缩放
-        result = rotate_quaternion2(result, self.Rot)
+        result = rotate_quaternion2(result, self.Scl, self.Rot)
         for key in result.keys():
             for i in range(len(result[key])):
-                result[key][i] *= self.Scl
                 result[key][i] += self.Pos
 
         return result
@@ -856,6 +861,38 @@ class AdjustableHull(NAPart):
                 gl.glEnd()
         gl.glEndList()
 
+    def draw_selected(self, gl, theme_color):
+        # 材料设置
+        gl.glColor4f(*theme_color["被选中"][0])
+        if self.selected_genList and self.update_selectedList is False:
+            gl.glCallList(self.selected_genList)
+            return
+        self.selected_genList = gl.glGenLists(1)
+        gl.glNewList(self.selected_genList, gl.GL_COMPILE_AND_EXECUTE)
+        for draw_method, faces_dots in self.plot_faces.items():
+            # draw_method是字符串，需要转换为OpenGL的常量
+            for face in faces_dots:
+                gl.glBegin(eval(f"gl.{draw_method}"))
+                if len(face) == 3 or len(face) == 4:
+                    normal = get_normal(face[0], face[1], face[2])
+                elif len(face) > 12:
+                    normal = get_normal(face[0], face[6], face[12])
+                else:
+                    continue
+                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                for dot in face:
+                    gl.glVertex3f(dot[0], dot[1], dot[2])
+                gl.glEnd()
+        gl.glColor4f(*theme_color["橙色"][0])
+        for _line_name, line in self.plot_lines.items():
+            gl.glLineWidth(2)
+            # 首尾不相连
+            gl.glBegin(gl.GL_LINE_STRIP)
+            for dot in line:
+                gl.glVertex3f(dot[0], dot[1], dot[2])
+            gl.glEnd()
+        gl.glEndList()
+
 
 class MainWeapon(NAPart):
     All = []
@@ -971,7 +1008,8 @@ class ReadNA:
                         self.ColorPartsMap[_color] = []
                     self.ColorPartsMap[_color].append(obj)
                     self.Parts.append(obj)
-                    NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj if design_tab else None
+                    if design_tab:
+                        NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj
                     # 初始化零件关系图
                     layer_t, relation_t, dot_t = self.partRelationMap.add_part(obj)
                     total_layer_time += layer_t
@@ -1070,7 +1108,8 @@ class ReadNA:
                 # print("正在读取文件：", self.filename)
                 # print(self.ColorPartsMap)
                 self.Parts.append(obj)
-                NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj if design_tab else None
+                if design_tab:
+                    NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj
                 # 注意，这里没有对partRelationMap进行初始化，因为这里只是读取零件，还没有选颜色，所以要等到用户选颜色之后才能初始化
         self.show_statu_func("零件读取完成!", "success")
 
