@@ -6,8 +6,10 @@ import struct
 import sys
 import time
 
+import glfw
 import numpy as np
 from OpenGL import GL
+from OpenGL.raw.GL.NV.multisample_filter_hint import GL_MULTISAMPLE_FILTER_HINT_NV
 from PyQt5.QtCore import QTimer, QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
@@ -296,7 +298,7 @@ class OpenGLWin(QOpenGLWidget):
         glClearColor(*self.theme_color["背景"])
         # 基础物体
         self.environment_obj["海面"].append(GridLine(
-            self.gl2_0, scale=10, num=50, central=(0, 0, 0), color=(0.1, 0.2, 0.5, 1)))
+            self.gl2_0, scale=10, num=50, central=(0, 0, 0), color=self.theme_color["海面"][0]))
         self.environment_obj["光源"].append(LightSphere(
             self.gl2_0, central=self.light_pos, radius=20))
         # ===============================================================================绘制
@@ -332,46 +334,51 @@ class OpenGLWin(QOpenGLWidget):
         if self.select_start and self.select_end:  # 绘制选择框
             # 颜色
             self.gl2_0.glColor4f(*self.theme_color["选择框"][0])
-            # 重设材质
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_AMBIENT, self.theme_color["选择框"][0])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_DIFFUSE, self.theme_color["选择框"][1])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SPECULAR, self.theme_color["选择框"][2])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SHININESS, self.theme_color["选择框"][3])
             self.draw_select_box()
         # 设置相机
         self.gl2_0.glLoadIdentity()  # 重置矩阵
         self.gl2_0.glDisable(GL_LINE_STIPPLE)  # 禁用虚线模式
         self.set_camera() if self.camera_movable else None
-        # # 使用VBO
-        # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        # glBindVertexArray(self.vao)
 
-        # 绘制物体
+        # =====================================================================================绘制物体
         for mt, objs in self.environment_obj.items():  # 绘制环境物体
             [obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color) for obj in objs]
+        # ==================================================================================加载时的绘制
         if not self.all_3d_obj["钢铁"] and self.using_various_mode:  # 如果没有钢铁物体，就绘制船体
             for part in AdjustableHull.hull_design_tab_id_map.copy().values():
                 if type(part) != AdjustableHull:
                     continue
-                part.draw(self.gl2_0, material="钢铁", theme_color=self.theme_color)
-            if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
-                [node.draw(self.gl2_0, theme_color=self.theme_color) for node in NAPartNode.id_map.copy().values()]
+                part.draw(self.gl2_0)
+            # if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):  # 如果是节点模式
+            #     self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)  # 启用光源1
+            #     for node in NAPartNode.id_map.copy().values():
+            #
+            #         if node.genList and not node.updateList:
+            #             glCallList(node.genList)
+            #             continue
+            #         node.genList = glGenLists(1)
+            #         glNewList(node.genList, GL_COMPILE_AND_EXECUTE)
+            #         node.draw(self.gl2_0, theme_color=self.theme_color)
+            #         glEndList()
+            #     self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)  # 禁用光源1
             if time.time() - st != 0:
                 self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
-            # self.update()
+            self.update()
             return
+        # =====================================================================================全视图部件模式
         elif self.show_3d_obj_mode[0] == OpenGLWin.ShowAll:  # 如果有钢铁物体，就绘制钢铁物体
-            if not self.gl_commands[self.show_3d_obj_mode][1] and \
-                    self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
-                glCallList(self.gl_commands[self.show_3d_obj_mode][0])
-                self.draw_selected_objs()  # 绘制被选中的物体
-                if time.time() - st != 0:
-                    self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
-                self.update()
-                return  # 如果有显示列表，就直接调用显示列表
+            # if not self.gl_commands[self.show_3d_obj_mode][1] and self.gl_commands[self.show_3d_obj_mode][0] and \
+            #         self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:
+            #     # 如果有显示列表，就直接调用显示列表
+            #     glCallList(self.gl_commands[self.show_3d_obj_mode][0])
+            #     self.draw_selected_objs()  # 绘制被选中的物体
+            #     if time.time() - st != 0:
+            #         self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
+            #     # self.update()
+            #     return  # 如果有显示列表，就直接调用显示列表
             # 如果更新显示列表，就创建显示列表
-            self.gl_commands[self.show_3d_obj_mode][0] = glGenLists(1)
-            glNewList(self.gl_commands[self.show_3d_obj_mode][0], GL_COMPILE_AND_EXECUTE)  # Excute表示创建后立即执行
+            # self.gl_commands[self.show_3d_obj_mode][0] = glGenLists(1)
+            # glNewList(self.gl_commands[self.show_3d_obj_mode][0], GL_COMPILE_AND_EXECUTE)  # Excute表示创建后立即执行
             if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是部件模式
                 for mt, objs in self.all_3d_obj.items():
                     for obj in objs:
@@ -382,14 +389,14 @@ class OpenGLWin(QOpenGLWidget):
                     for obj in objs:
                         obj.glWin = self
                         obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color, transparent=True)
-                try:
-                    [node.draw(self.gl2_0, theme_color=self.theme_color) for node in NAPartNode.id_map.copy().values()]
-                    # for _id, node in NAPartNode.id_map.items():
-                    #     node.draw(self.gl2_0, theme_color=self.theme_color)
-                except RuntimeError:
-                    pass
+                self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)  # 启用光源1
+                for node in NAPartNode.id_map.copy().values():
+                    node.draw(self.gl2_0, theme_color=self.theme_color)
+                self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
             self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
-            glEndList()
+            # glEndList()
+            self.draw_selected_objs()
+        # ========================================================================================其他模式
         elif self.using_various_mode and self.show_3d_obj_mode[0] != OpenGLWin.ShowAll:  # 如果是其他模式
             if self.gl_commands[self.show_3d_obj_mode][1] and \
                     self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
@@ -493,25 +500,22 @@ class OpenGLWin(QOpenGLWidget):
         self.update()
 
     def draw_selected_objs(self):
-        # print(self.selected_gl_objects)
-        if self.list_id_selected and not self.update_selected_list and \
-                self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
-            glCallList(self.list_id_selected)
-            return  # 如果有显示列表，就直接调用显示列表
-        self.list_id_selected = glGenLists(1)
-        glNewList(self.list_id_selected, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
-
-        if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+        # 开启辅助光
+        self.gl2_0.glEnable(GL_LIGHT1)
+        if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是模式1的部件模式
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                 if type(obj) != AdjustableHull:
                     continue  # TODO: 未来要加入Part类的绘制方法，而不是只能绘制AdjustableHull
+                if obj.selected_genList and not obj.update_selectedList:
+                    # error_code = glGetError()
+                    # if error_code != GL_NO_ERROR:
+                    #     print(f"OpenGL Error: {error_code}")
+                    glCallList(obj.selected_genList)
+                    continue
+                obj.selected_genList = glGenLists(1)
+                glNewList(obj.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
                 # 材料设置
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_AMBIENT, self.theme_color["被选中"][0])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_DIFFUSE, self.theme_color["被选中"][1])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SPECULAR,
-                                        self.theme_color["被选中"][2])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SHININESS,
-                                        self.theme_color["被选中"][3])
+                self.gl2_0.glColor4f(*self.theme_color["被选中"][0])
                 for draw_method, faces_dots in obj.plot_faces.items():
                     # draw_method是字符串，需要转换为OpenGL的常量
                     for face in faces_dots:
@@ -526,11 +530,7 @@ class OpenGLWin(QOpenGLWidget):
                         for dot in face:
                             self.gl2_0.glVertex3f(dot[0], dot[1], dot[2])
                         self.gl2_0.glEnd()
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_AMBIENT, self.theme_color["橙色"][0])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_DIFFUSE, self.theme_color["橙色"][1])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SPECULAR, self.theme_color["橙色"][2])
-                self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SHININESS,
-                                        self.theme_color["橙色"][3])
+                self.gl2_0.glColor4f(*self.theme_color["橙色"][0])
                 for _line_name, line in obj.plot_lines.items():
                     self.gl2_0.glLineWidth(2)
                     # 首尾不相连
@@ -538,16 +538,30 @@ class OpenGLWin(QOpenGLWidget):
                     for dot in line:
                         self.gl2_0.glVertex3f(dot[0], dot[1], dot[2])
                     self.gl2_0.glEnd()
+                glEndList()
         elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
+            # 开启辅助光
+            self.gl2_0.glEnable(GL_LIGHT1)
             for node in self.selected_gl_objects[self.show_3d_obj_mode]:
+                if type(node) != NAPartNode:
+                    continue
+                if node.selected_genList and not node.update_selectedList:
+                    self.gl2_0.glCallList(node.selected_genList)
+                    continue
+                node.selected_genList = glGenLists(1)
+                glNewList(node.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
                 node.draw(self.gl2_0, material="橙色", theme_color=self.theme_color, point_size=7)
+                glEndList()
+            self.gl2_0.glDisable(GL_LIGHT1)
 
         elif self.show_3d_obj_mode[0] in (OpenGLWin.ShowXZ, OpenGLWin.ShowXY, OpenGLWin.ShowLeft):
-            # 材料设置
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_AMBIENT, self.theme_color["橙色"][0])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_DIFFUSE, self.theme_color["橙色"][1])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SPECULAR, self.theme_color["橙色"][2])
-            self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SHININESS, self.theme_color["橙色"][3])
+            # print(self.selected_gl_objects)
+            if self.list_id_selected and not self.update_selected_list and \
+                    self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
+                glCallList(self.list_id_selected)
+                return  # 如果有显示列表，就直接调用显示列表
+            self.list_id_selected = glGenLists(1)
+            glNewList(self.list_id_selected, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                 for part, dots in obj.PartsDotsMap.items():
                     # self.gl.glNormal3f(0, 1, 0)
@@ -561,15 +575,17 @@ class OpenGLWin(QOpenGLWidget):
                     #     self.gl.glVertex3f(dot[0], dot[1], dot[2])
                     # self.gl.glEnd()
 
-                    self.gl2_0.glLineWidth(1.3)
-                    color = self.theme_color["选择框"][0]
+                    self.gl2_0.glLineWidth(2)
+                    color = self.theme_color["橙色"][0]
                     self.gl2_0.glColor4f(*color)
                     self.gl2_0.glBegin(self.gl2_0.GL_LINE_LOOP)
                     for dot in dots[::-1]:
                         self.gl2_0.glVertex3f(*dot)
                     self.gl2_0.glEnd()
-        glEndList()
-        self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
+            glEndList()
+            self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
+        # 关闭辅助光
+        self.gl2_0.glDisable(GL_LIGHT1)
 
     def draw_select_box(self):
         """
@@ -584,6 +600,7 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0.glPushMatrix()
         self.gl2_0.glLoadIdentity()
         # 画虚线框
+        self.gl2_0.glColor4f(*self.theme_color["选择框"][0])
         self.gl2_0.glEnable(GL_LINE_STIPPLE)  # 启用虚线模式
         self.gl2_0.glLineStipple(0, 0x00FF)  # 设置虚线的样式
         self.gl2_0.glBegin(self.gl2_0.GL_LINE_LOOP)
@@ -595,11 +612,6 @@ class OpenGLWin(QOpenGLWidget):
         # # 画中间的半透明框
         # self.gl2_0.glColor4f(1, 1, 1, 0.2)
         # self.gl2_0.glBegin(self.gl2_0.GL_QUADS)
-        # # 重设材质
-        # self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_AMBIENT, (1.0, 1.0, 1.0, 0.1))
-        # self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_DIFFUSE, (1.0, 1.0, 1.0, 0.1))
-        # self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SPECULAR, (1.0, 1.0, 1.0, 0.1))
-        # self.gl2_0.glMaterialfv(self.gl2_0.GL_FRONT_AND_BACK, self.gl2_0.GL_SHININESS, (0,))
         # # 画四边形
         # self.gl2_0.glVertex2f(self.select_start.x(), self.select_start.y())
         # self.gl2_0.glVertex2f(self.select_start.x(), self.select_end.y())
@@ -611,6 +623,7 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0.glPopMatrix()
         self.gl2_0.glMatrixMode(GL_MODELVIEW)
         self.gl2_0.glPopMatrix()
+
         # # 获取选择框的坐标和尺寸
         # x1, y1 = self.select_start.x(), self.select_start.y()
         # x2, y2 = self.select_end.x(), self.select_end.y()
@@ -987,15 +1000,29 @@ class OpenGLWin(QOpenGLWidget):
         # 添加光源
         self.gl2_0.glEnable(self.gl2_0.GL_LIGHTING)
         self.gl2_0.glEnable(self.gl2_0.GL_LIGHT0)
+        # 主光源
         self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_POSITION, (
             self.light_pos.x(), self.light_pos.y(), self.light_pos.z(),  # 光源位置
             100.0))
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_AMBIENT, (1.0, 1.0, 1.0, 1.0))  # 设置环境光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_DIFFUSE, (1.0, 1.0, 1.0, 1.0))  # 设置漫反射光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPECULAR, (1.0, 1.0, 1.0, 1.0))  # 设置镜面光
-        # 设置光照模型
-        self.gl2_0.glLightModelfv(self.gl2_0.GL_LIGHT_MODEL_AMBIENT, (1.0, 1.0, 1.0, 1.0))  # 设置全局环境光
-        self.gl2_0.glLightModelf(self.gl2_0.GL_LIGHT_MODEL_TWO_SIDE, 0.0)  # Q: 这个参数如果我写1会怎样？
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_AMBIENT, self.theme_color["主光源"][0])  # 设置环境光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_DIFFUSE, self.theme_color["主光源"][1])  # 设置漫反射光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPECULAR, self.theme_color["主光源"][2])  # 设置镜面光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
+        # 辅助光源
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_POSITION, (
+            self.light_pos.x(), self.light_pos.y(), self.light_pos.z(),  # 光源位置
+            100.0))
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_AMBIENT, self.theme_color["辅助光"][0])  # 设置环境光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_DIFFUSE, self.theme_color["辅助光"][1])  # 设置漫反射光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPECULAR, self.theme_color["辅助光"][1])  # 设置镜面光
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
+        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
+
 
     def init_view(self):
         # 适应窗口大小
@@ -1022,6 +1049,25 @@ class OpenGLWin(QOpenGLWidget):
         glHint(GL_POINT_SMOOTH_HINT, GL_NICEST)  # 设置点平滑提示
         glEnable(GL_LINE_SMOOTH)  # 启用线条平滑
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)  # 设置线条平滑提示
+        # glEnable(GL_POLYGON_SMOOTH)  # 启用多边形平滑
+        # glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)  # 设置多边形平滑提示
+        # 抗锯齿
+        glEnable(GL_MULTISAMPLE)  # 启用多重采样
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE)  # 启用alpha值对多重采样的影响
+        glSampleCoverage(1, GL_TRUE)  # 设置多重采样的抗锯齿比例
+        # 线性差值
+        glEnable(GL_TEXTURE_2D)  # 启用纹理
+        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)  # 设置纹理映射的透视修正
+        glHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST)  # 设置纹理压缩提示
+        glHint(GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_NICEST)  # 设置片段着色器的提示
+        #
+        glEnable(GL_COLOR_MATERIAL)  # 启用颜色材质
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)  # 设置颜色材质的面和材质
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, (0.5, 0.5, 0.5, 0.5))  # 设置环境光反射光
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, (0.5, 0.5, 0.5, 0.5))  # 设置漫反射光
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (0.5, 0.5, 0.5, 0.5))  # 设置镜面反射光
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, (10.0,))  # 设置镜面反射指数
+        #
         # 背面剔除
         glEnable(GL_CULL_FACE)  # 启用背面剔除
         glCullFace(GL_BACK)  # 剔除背面
@@ -1056,7 +1102,7 @@ class DesignTabGLWinMenu(QMenu):
         self.setStyleSheet(self.style)
         # 右键菜单
         self.expand_select_area_A = QAction("选区扩展 Ctrl+E", self)
-        self.edit_select_area_A = QAction("编辑选区 Ctrl+Enter", self)
+        self.edit_select_area_A = QAction("编辑选区 Shift+E", self)
         self.undo_A = QAction("撤销 Ctrl+Z", self)
         self.redo_A = QAction("重做 Ctrl+Shift+Z", self)
         self.delete_selected_objects_A = QAction("删除 Delete", self)
@@ -1473,7 +1519,7 @@ class OpenGLWin2(QOpenGLWidget):
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, [0.2, 0.2, 0.2, 1.0])
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, [0.5, 0.5, 0.5, 1.0])
         glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 32.0)
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, 32.0)
 
     def add_selected_objects_when_click(self):
         pos = self.select_start

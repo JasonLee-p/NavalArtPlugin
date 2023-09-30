@@ -57,10 +57,10 @@ class LineGroupObject(GLObject):
 
     def draw(self, gl, theme_color, material):
         gl.glLoadName(id(self) % 4294967296)
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[material][3])
+        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
+        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
+        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
+        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[material][3])
         for num, line in self.lines.items():
             gl.glLineWidth(line[1])
             gl.glColor4f(*line[0])
@@ -85,11 +85,6 @@ class SolidObject(GLObject):
 
     def draw(self, gl, material, theme_color):
         gl.glLoadName(id(self) % 4294967296)
-        # 四个参数分别是：环境光，漫反射光，镜面反射光，镜面反射光的高光指数
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         gl.glColor4f(*self.faces["color"])
         for normal, face in zip(self.faces["normal"], self.faces["faces"]):
             gl.glBegin(gl.GL_POLYGON)
@@ -131,7 +126,7 @@ class SolidObject(GLObject):
 
 
 class GridLine(LineGroupObject):
-    def __init__(self, gl, num=50, scale=10, normal=(0, 1, 0), central=(0.0, 0.0, 0.0), color=(0.2, 0.3, 0.7, 1)):
+    def __init__(self, gl, num=50, scale=10, normal=(0, 1, 0), central=(0.0, 0.0, 0.0), color=(0.4, 0.6, 0.7, 1)):
         self.num = num
         self.normal = normal
         self.central = central

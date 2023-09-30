@@ -379,7 +379,7 @@ class GLWin(OpenGLWin):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         super().keyPressEvent(event)
         # Ctrl+Enter
-        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Return:
+        if event.modifiers() == Qt.ShiftModifier and event.key() == Qt.Key_E:
             show_state("进入编辑模式", 'success')
             # right_widget的tab切换到第二个
             Handler.right_widget.setCurrentIndex(1)

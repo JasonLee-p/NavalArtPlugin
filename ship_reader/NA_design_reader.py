@@ -231,17 +231,25 @@ class NAPartNode:
         }
         NAPartNode.id_map[id(self) % 4294967296] = self
         NAPartNode.all_dots.append(self.pos)
+        # 绘图指令集初始化
+        self.genList = None
+        self.updateList = False
+        self.selected_genList = None
+        self.update_selectedList = False
 
     def draw(self, gl, material="节点", theme_color=None, point_size=5):
+        if self.genList and not self.updateList:
+            gl.glCallList(self.genList)
+            return
+        self.genList = gl.glGenLists(1)
+        gl.glNewList(self.genList, gl.GL_COMPILE_AND_EXECUTE)
         gl.glLoadName(id(self) % 4294967296)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        gl.glColor4f(*theme_color[material][0])
         gl.glPointSize(point_size)
         gl.glBegin(gl.GL_POINTS)
         gl.glVertex3f(*self.pos)
         gl.glEnd()
+        gl.glEndList()
 
 
 class NAPart:
@@ -261,6 +269,11 @@ class NAPart:
         self.Amr = armor
         NAPart.ShipsAllParts.append(self)
         NAPart.id_map[id(self) % 4294967296] = self
+        # 绘图指令集初始化
+        self.genList = None
+        self.updateList = False
+        self.selected_genList = None
+        self.update_selectedList = False
 
     def set_basic_attributes(self, armor):
         self.Amr = armor
@@ -601,14 +614,23 @@ class AdjustableHull(NAPart):
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
         if update:
+            # 修改glWin的genList状态
             for mode in self.glWin.gl_commands.keys():
                 self.glWin.gl_commands[mode][1] = True
             self.glWin.update_selected_list = True
+            self.glWin.list_id_selected = None
+            # 修改零件本身的genList状态
+            self.updateList = True
+            self.update_selectedList = True
             self.glWin.paintGL()
             self.glWin.update()
+            # 修改glWin的genList状态
             for mode in self.glWin.gl_commands.keys():
                 self.glWin.gl_commands[mode][1] = False
             self.glWin.update_selected_list = False
+            # 修改零件本身的genList状态
+            self.updateList = False
+            self.update_selectedList = False
         return True
 
     def change_attrs_with_relative_parts(self, position, armor,
@@ -799,29 +821,19 @@ class AdjustableHull(NAPart):
             "HOff": self.HOff,
         }
 
-    def draw(self, gl, material, theme_color):
+    def draw(self, gl):
         alpha = 1
         color = "#" + self.Col
         # 16进制颜色转换为RGBA
-        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        else:  # 说明是黑夜模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-            # 减去一定的值
-            difference = 0.08
-            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
-            # 如果小于0，就等于0
-            color_ = (color_[0] if color_[0] > 0 else 0,
-                      color_[1] if color_[1] > 0 else 0,
-                      color_[2] if color_[2] > 0 else 0,
-                      1)
-        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, light_color_)
+        _rate = 255
+        color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
         gl.glColor4f(*color_)
+        if self.genList and self.updateList is False:
+            gl.glCallList(self.genList)
+            return
+        self.genList = gl.glGenLists(1)
+        gl.glNewList(self.genList, gl.GL_COMPILE_AND_EXECUTE)
+
         try:
             self.plot_faces = self.plot_faces
         except AttributeError:
@@ -840,6 +852,7 @@ class AdjustableHull(NAPart):
                 for dot in face:
                     gl.glVertex3f(dot[0], dot[1], dot[2])
                 gl.glEnd()
+        gl.glEndList()
 
 
 class MainWeapon(NAPart):
@@ -979,7 +992,7 @@ class ReadNA:
                             f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s"
                             f"\t\t平均耗时：     截面对象  {average_layer_time} s     零件关系  {average_relation_time} s     节点集合  {average_dot_time} s",
                             "process")
-                    if self.glWin and self.glWin.initialized and i % (total_parts_num / 200) == 0:
+                    if self.glWin and self.glWin.initialized and i % (total_parts_num / 400) == 0:
                         self.glWin.paintGL()
                     i += 1
             self.show_statu_func(f"零件实例化完成，耗时：{round(time.time() - st, 2)} s", "success")

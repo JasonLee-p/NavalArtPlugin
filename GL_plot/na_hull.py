@@ -78,31 +78,18 @@ class NAHull(ReadNA, SolidObject):
         return result
 
     def draw_color(self, gl, theme_color, material, color, part_set, transparent):
-        # if transparent:
-        #     gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, (0.6, 0.6, 0.6, 0.3))
-        #     gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, (0.6, 0.6, 0.6, 0.3))
         # else:
         alpha = 1 if not transparent else 0.3
         # 16进制颜色转换为RGBA
-        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        else:  # 说明是黑夜模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-            # 减去一定的值
-            difference = 0.08
-            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
-            # 如果小于0，就等于0
-            color_ = (color_[0] if color_[0] > 0 else 0,
-                      color_[1] if color_[1] > 0 else 0,
-                      color_[2] if color_[2] > 0 else 0,
-                      1)
-        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
+        _rate = 255
+        color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
         gl.glColor4f(*color_)
         for part in part_set:
+            if not part.updateList and part.genList:
+                gl.glCallList(part.genList)
+                continue
+            part.genList = gl.glGenLists(1)
+            gl.glNewList(part.genList, gl.GL_COMPILE_AND_EXECUTE)
             gl.glLoadName(id(part) % 4294967296)
             part.glWin = self.glWin
             if type(part) != AdjustableHull:
@@ -122,11 +109,10 @@ class NAHull(ReadNA, SolidObject):
                     for dot in face:
                         gl.glVertex3f(dot[0], dot[1], dot[2])
                     gl.glEnd()
+            gl.glEndList()
 
     def draw(self, gl, material="钢铁", theme_color=None, transparent=False):
         gl.glLoadName(id(self) % 4294967296)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
         # total_part_num = sum([len(part_set) for part_set in self.DrawMap.values()])
         # if total_part_num > 100:  # 大于1000个零件时，多线程绘制（用QThread）
         #     # 根据颜色分线程，所有线程结束后主线程再继续
@@ -162,23 +148,21 @@ class DrawThread(QThread):
     def draw_color(self, gl, theme_color, material, color, part_set, transparent):
         alpha = 1 if not transparent else 0.3
         # 16进制颜色转换为RGBA
-        if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        else:  # 说明是黑夜模式
-            _rate = 600
-            color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-            # 减去一定的值
-            difference = 0.08
-            color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
-            # 如果小于0，就等于0
-            color_ = (color_[0] if color_[0] > 0 else 0,
-                      color_[1] if color_[1] > 0 else 0,
-                      color_[2] if color_[2] > 0 else 0,
-                      1)
-        light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, color_)
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, light_color_)
+        # if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
+        _rate = 600
+        color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+        # else:  # 说明是黑夜模式
+        #     _rate = 600
+        #     color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+        #     # 减去一定的值
+        #     difference = 0.08
+        #     color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
+        #     # 如果小于0，就等于0
+        #     color_ = (color_[0] if color_[0] > 0 else 0,
+        #               color_[1] if color_[1] > 0 else 0,
+        #               color_[2] if color_[2] > 0 else 0,
+        #               1)
+        # light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
         gl.glColor4f(*color_)
         for part in part_set:
             gl.glLoadName(id(part) % 4294967296)
@@ -264,10 +248,7 @@ class NaHullXZLayer(SolidObject):
         if not self.PlotAvailable:
             return
         # 绘制面
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        gl.glColor4f(*theme_color[material][0])
         for part, dots in self.PartsDotsMap.items():
             gl.glNormal3f(0, 1, 0)
             gl.glBegin(gl.GL_POLYGON)
@@ -344,10 +325,7 @@ class NaHullXYLayer(SolidObject):
         if not self.PlotAvailable:
             return
         # 绘制面
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[material][0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[material][1])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
+        gl.glColor4f(*theme_color[material][0])
         for part, dots in self.PartsDotsMap.items():
             gl.glNormal3f(0, 0, 1)
             gl.glBegin(gl.GL_POLYGON)
