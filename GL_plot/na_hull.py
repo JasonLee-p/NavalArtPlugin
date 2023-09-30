@@ -105,11 +105,12 @@ class NAHull(ReadNA, SolidObject):
         for part in part_set:
             gl.glLoadName(id(part) % 4294967296)
             part.glWin = self.glWin
-            if "plot_faces" not in part.__dict__ and type(part) != AdjustableHull:
+            if type(part) != AdjustableHull:
                 continue
             for draw_method, faces_dots in part.plot_faces.items():
                 # draw_method是字符串，需要转换为OpenGL的常量
                 for face in faces_dots:
+                    gl.glDrawArrays(eval(f"gl.{draw_method}"), 0, len(face))
                     gl.glBegin(eval(f"gl.{draw_method}"))
                     if len(face) == 3 or len(face) == 4:
                         normal = get_normal(face[0], face[1], face[2])
@@ -126,22 +127,22 @@ class NAHull(ReadNA, SolidObject):
         gl.glLoadName(id(self) % 4294967296)
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[material][2])
         gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[material][3])
-        total_part_num = sum([len(part_set) for part_set in self.DrawMap.values()])
-        if total_part_num > 100:  # 大于1000个零件时，多线程绘制（用QThread）
-            # 根据颜色分线程，所有线程结束后主线程再继续
-            threads = []
-            for color, part_set in self.DrawMap.items():
-                t = DrawThread(gl, self.glWin, theme_color, material, color, part_set, transparent)
-                threads.append(t)
-                t.start()
-            for t in threads:
-                t.wait()
-        else:
-            # 绘制面
-            for color, part_set in self.DrawMap.items():
-                # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
-                # t.start()
-                self.draw_color(gl, theme_color, material, color, part_set, transparent)
+        # total_part_num = sum([len(part_set) for part_set in self.DrawMap.values()])
+        # if total_part_num > 100:  # 大于1000个零件时，多线程绘制（用QThread）
+        #     # 根据颜色分线程，所有线程结束后主线程再继续
+        #     threads = []
+        #     for color, part_set in self.DrawMap.items():
+        #         t = DrawThread(gl, self.glWin, theme_color, material, color, part_set, transparent)
+        #         threads.append(t)
+        #         t.start()
+        #     for t in threads:
+        #         t.wait()
+        # else:
+        # 绘制面
+        for color, part_set in self.DrawMap.items():
+            # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
+            # t.start()
+            self.draw_color(gl, theme_color, material, color, part_set, transparent)
 
 
 class DrawThread(QThread):

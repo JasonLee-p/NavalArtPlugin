@@ -114,8 +114,17 @@ def open_project():
     Handler.window.open_project_thread = ProjectOpeningThread()
     Handler.window.open_project_thread.update_state.connect(show_state)
     # noinspection PyUnresolvedReferences
-    Handler.window.open_project_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+    Handler.window.open_project_thread.finished.connect(open_finish)
     Handler.window.open_project_thread.start()
+
+
+def open_finish():
+    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
+        _l[1] = True
+    Handler.hull_design_tab.ThreeDFrame.paintGL()
+    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
+        _l[1] = False
+    Handler.LoadingProject = False
 
 
 class ProjectOpeningThread(QThread):
@@ -1336,6 +1345,10 @@ class HullDesignTab(QWidget):
         self.xz_layer_obj.clear()
         self.xy_layer_obj.clear()
         self.left_view_obj.clear()
+        for _l in self.ThreeDFrame.gl_commands.values():
+            _l = [None, False]
+        self.ThreeDFrame.list_id_selected = None
+        self.ThreeDFrame.update_selected_list = False
         del_plot_obj()
 
 

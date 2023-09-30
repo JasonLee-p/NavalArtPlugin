@@ -601,7 +601,14 @@ class AdjustableHull(NAPart):
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
         if update:
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = True
+            self.glWin.update_selected_list = True
+            self.glWin.paintGL()
             self.glWin.update()
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = False
+            self.glWin.update_selected_list = False
         return True
 
     def change_attrs_with_relative_parts(self, position, armor,
@@ -1196,6 +1203,30 @@ class PartRelationMap:
                             self.UP: {}, self.DOWN: {},
                             self.LEFT: {}, self.RIGHT: {},
                             self.SAME: {}}
+        # 点集
+        st = time.time()
+        if type(newPart) == AdjustableHull:
+            for dot in newPart.operation_dot_nodes:
+                # dot是np.ndarray类型
+                _x = round(float(dot[0]), 3)
+                _y = round(float(dot[1]), 3)
+                _z = round(float(dot[2]), 3)
+                if [_x, _y, _z] not in NAPartNode.all_dots:
+                    node = NAPartNode([_x, _y, _z])
+                # DotsLayerMap
+                if _x not in self.yzDotsLayerMap.keys():
+                    self.yzDotsLayerMap[_x] = [newPart]
+                else:
+                    self.yzDotsLayerMap[_x].append(newPart)
+                if _y not in self.xzDotsLayerMap.keys():
+                    self.xzDotsLayerMap[_y] = [newPart]
+                else:
+                    self.xzDotsLayerMap[_y].append(newPart)
+                if _z not in self.xyDotsLayerMap.keys():
+                    self.xyDotsLayerMap[_z] = [newPart]
+                else:
+                    self.xyDotsLayerMap[_z].append(newPart)
+        dot_t = round(time.time() - st, 4)
         # 零件集
         x_exist = []  # x相同的零件
         y_exist = []  # y相同的零件
@@ -1242,30 +1273,6 @@ class PartRelationMap:
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
         relation_t = round(time.time() - st, 4)
-        # 点集
-        st = time.time()
-        if type(newPart) == AdjustableHull:
-            for dot in newPart.operation_dot_nodes:
-                # dot是np.ndarray类型
-                _x = round(float(dot[0]), 3)
-                _y = round(float(dot[1]), 3)
-                _z = round(float(dot[2]), 3)
-                if [_x, _y, _z] not in NAPartNode.all_dots:
-                    node = NAPartNode([_x, _y, _z])
-                # DotsLayerMap
-                if _x not in self.yzDotsLayerMap.keys():
-                    self.yzDotsLayerMap[_x] = [newPart]
-                else:
-                    self.yzDotsLayerMap[_x].append(newPart)
-                if _y not in self.xzDotsLayerMap.keys():
-                    self.xzDotsLayerMap[_y] = [newPart]
-                else:
-                    self.xzDotsLayerMap[_y].append(newPart)
-                if _z not in self.xyDotsLayerMap.keys():
-                    self.xyDotsLayerMap[_z] = [newPart]
-                else:
-                    self.xyDotsLayerMap[_z].append(newPart)
-        dot_t = round(time.time() - st, 4)
         return layer_t, relation_t, dot_t
 
     def del_part(self, part):
