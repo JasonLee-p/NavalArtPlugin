@@ -272,6 +272,8 @@ class NAPart:
         # 绘图指令集初始化
         self.genList = None
         self.updateList = False
+        self.transparent_genList = None
+        self.update_transparentList = False
         self.selected_genList = None
         self.update_selectedList = False
 

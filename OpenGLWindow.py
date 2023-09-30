@@ -178,7 +178,7 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0 = None
         self.texture = None
         self.shaderProgram = None
-        self.last_mode_when_store_gl_commands = None
+        # self.last_mode_when_store_gl_commands = None
         self.gl_commands = {
             (OpenGLWin.ShowAll, OpenGLWin.ShowObj): [None, False],
             (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): [None, False],
@@ -189,18 +189,6 @@ class OpenGLWin(QOpenGLWidget):
             (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): [None, False],
             (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): [None, False]
         }
-        self.list_id_selected = None
-        self.update_selected_list = False
-        # self.list_id_part = None
-        # self.update_part_list = False
-        # self.list_id_xz = None
-        # self.update_xz_list = False
-        # self.list_id_xy = None
-        # self.update_xy_list = False
-        # self.list_id_left = None
-        # self.update_left_list = False
-        # self.list_id_selected = None
-        # self.update_selected_list = False
         self.vbo = None
         self.vao = None
         # ========================================================================================3D物体
@@ -339,7 +327,6 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0.glLoadIdentity()  # 重置矩阵
         self.gl2_0.glDisable(GL_LINE_STIPPLE)  # 禁用虚线模式
         self.set_camera() if self.camera_movable else None
-
         # =====================================================================================绘制物体
         for mt, objs in self.environment_obj.items():  # 绘制环境物体
             [obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color) for obj in objs]
@@ -349,36 +336,12 @@ class OpenGLWin(QOpenGLWidget):
                 if type(part) != AdjustableHull:
                     continue
                 part.draw(self.gl2_0)
-            # if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):  # 如果是节点模式
-            #     self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)  # 启用光源1
-            #     for node in NAPartNode.id_map.copy().values():
-            #
-            #         if node.genList and not node.updateList:
-            #             glCallList(node.genList)
-            #             continue
-            #         node.genList = glGenLists(1)
-            #         glNewList(node.genList, GL_COMPILE_AND_EXECUTE)
-            #         node.draw(self.gl2_0, theme_color=self.theme_color)
-            #         glEndList()
-            #     self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)  # 禁用光源1
             if time.time() - st != 0:
                 self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
             self.update()
             return
         # =====================================================================================全视图部件模式
         elif self.show_3d_obj_mode[0] == OpenGLWin.ShowAll:  # 如果有钢铁物体，就绘制钢铁物体
-            # if not self.gl_commands[self.show_3d_obj_mode][1] and self.gl_commands[self.show_3d_obj_mode][0] and \
-            #         self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:
-            #     # 如果有显示列表，就直接调用显示列表
-            #     glCallList(self.gl_commands[self.show_3d_obj_mode][0])
-            #     self.draw_selected_objs()  # 绘制被选中的物体
-            #     if time.time() - st != 0:
-            #         self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
-            #     # self.update()
-            #     return  # 如果有显示列表，就直接调用显示列表
-            # 如果更新显示列表，就创建显示列表
-            # self.gl_commands[self.show_3d_obj_mode][0] = glGenLists(1)
-            # glNewList(self.gl_commands[self.show_3d_obj_mode][0], GL_COMPILE_AND_EXECUTE)  # Excute表示创建后立即执行
             if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是部件模式
                 for mt, objs in self.all_3d_obj.items():
                     for obj in objs:
@@ -393,23 +356,13 @@ class OpenGLWin(QOpenGLWidget):
                 for node in NAPartNode.id_map.copy().values():
                     node.draw(self.gl2_0, theme_color=self.theme_color)
                 self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
-            self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
-            # glEndList()
-            self.draw_selected_objs()
         # ========================================================================================其他模式
         elif self.using_various_mode and self.show_3d_obj_mode[0] != OpenGLWin.ShowAll:  # 如果是其他模式
-            if self.gl_commands[self.show_3d_obj_mode][1] and \
-                    self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
-                glCallList(self.gl_commands[self.show_3d_obj_mode][0])
-            else:  # 如果更新显示列表，就创建显示列表
-                self.gl_commands[self.show_3d_obj_mode][0] = glGenLists(1)
-                glNewList(self.gl_commands[self.show_3d_obj_mode][0], GL_COMPILE_AND_EXECUTE)  # Excute表示创建后立即执行
-                for obj in self.showMode_showSet_map[self.show_3d_obj_mode]:
-                    obj.glWin = self
-                    obj.draw(self.gl2_0, theme_color=self.theme_color)
-                self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
-                glEndList()
-            self.draw_selected_objs()  # 绘制被选中的物体
+            for obj in self.showMode_showSet_map[self.show_3d_obj_mode]:
+                obj.glWin = self
+                obj.draw(self.gl2_0, theme_color=self.theme_color)
+        # ===================================================================================绘制被选物体
+        self.draw_selected_objs()
         if time.time() - st != 0:
             self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
 
@@ -507,13 +460,10 @@ class OpenGLWin(QOpenGLWidget):
                 if type(obj) != AdjustableHull:
                     continue  # TODO: 未来要加入Part类的绘制方法，而不是只能绘制AdjustableHull
                 if obj.selected_genList and not obj.update_selectedList:
-                    # error_code = glGetError()
-                    # if error_code != GL_NO_ERROR:
-                    #     print(f"OpenGL Error: {error_code}")
-                    glCallList(obj.selected_genList)
+                    self.gl2_0.glCallList(obj.selected_genList)
                     continue
                 obj.selected_genList = glGenLists(1)
-                glNewList(obj.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
+                self.gl2_0.glNewList(obj.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
                 # 材料设置
                 self.gl2_0.glColor4f(*self.theme_color["被选中"][0])
                 for draw_method, faces_dots in obj.plot_faces.items():
@@ -538,10 +488,8 @@ class OpenGLWin(QOpenGLWidget):
                     for dot in line:
                         self.gl2_0.glVertex3f(dot[0], dot[1], dot[2])
                     self.gl2_0.glEnd()
-                glEndList()
+                self.gl2_0.glEndList()
         elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
-            # 开启辅助光
-            self.gl2_0.glEnable(GL_LIGHT1)
             for node in self.selected_gl_objects[self.show_3d_obj_mode]:
                 if type(node) != NAPartNode:
                     continue
@@ -549,19 +497,15 @@ class OpenGLWin(QOpenGLWidget):
                     self.gl2_0.glCallList(node.selected_genList)
                     continue
                 node.selected_genList = glGenLists(1)
-                glNewList(node.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
-                node.draw(self.gl2_0, material="橙色", theme_color=self.theme_color, point_size=7)
-                glEndList()
-            self.gl2_0.glDisable(GL_LIGHT1)
+                self.gl2_0.glNewList(node.selected_genList, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
+                self.gl2_0.glColor4f(*self.theme_color["橙色"][0])
+                self.gl2_0.glPointSize(6)
+                self.gl2_0.glBegin(self.gl2_0.GL_POINTS)
+                self.gl2_0.glVertex3f(*node.pos)
+                self.gl2_0.glEnd()
+                self.gl2_0.glEndList()
 
         elif self.show_3d_obj_mode[0] in (OpenGLWin.ShowXZ, OpenGLWin.ShowXY, OpenGLWin.ShowLeft):
-            # print(self.selected_gl_objects)
-            if self.list_id_selected and not self.update_selected_list and \
-                    self.show_3d_obj_mode == self.last_mode_when_store_gl_commands:  # 如果有显示列表，就直接调用显示列表
-                glCallList(self.list_id_selected)
-                return  # 如果有显示列表，就直接调用显示列表
-            self.list_id_selected = glGenLists(1)
-            glNewList(self.list_id_selected, GL_COMPILE_AND_EXECUTE)  # Execute表示创建后立即执行
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                 for part, dots in obj.PartsDotsMap.items():
                     # self.gl.glNormal3f(0, 1, 0)
@@ -582,8 +526,6 @@ class OpenGLWin(QOpenGLWidget):
                     for dot in dots[::-1]:
                         self.gl2_0.glVertex3f(*dot)
                     self.gl2_0.glEnd()
-            glEndList()
-            self.last_mode_when_store_gl_commands = self.show_3d_obj_mode
         # 关闭辅助光
         self.gl2_0.glDisable(GL_LIGHT1)
 
@@ -893,9 +835,7 @@ class OpenGLWin(QOpenGLWidget):
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
                     self.selected_gl_objects[self.show_3d_obj_mode].pop(index)
                     self.show_statu_func(f"删除选区(Alt+{event.key()})", "success")
-            self.update_selected_list = True
             self.paintGL()
-            self.update_selected_list = False
         self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
@@ -927,9 +867,7 @@ class OpenGLWin(QOpenGLWidget):
                             self.selected_gl_objects[self.show_3d_obj_mode].remove(add_part)
                         else:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
-                self.update_selected_list = True
                 self.paintGL()
-                self.update_selected_list = False
             else:
                 self.lastPos = event.pos()
         elif event.button() == Qt.RightButton:  # 右键按下
@@ -946,9 +884,7 @@ class OpenGLWin(QOpenGLWidget):
             # 如果shift没有按下，清空选中列表
             if QApplication.keyboardModifiers() != Qt.ShiftModifier and not self.select_end:
                 self.selected_gl_objects[self.show_3d_obj_mode].clear()
-                self.update_selected_list = True
                 self.paintGL()
-                self.update_selected_list = False
             self.select_end = event.pos() if self.operation_mode == OpenGLWin.Selectable else None
             self.lastPos = event.pos() if self.operation_mode == OpenGLWin.UnSelectable else None
         elif event.buttons() == Qt.MidButton:  # 中键平移
@@ -976,9 +912,7 @@ class OpenGLWin(QOpenGLWidget):
                             self.selected_gl_objects[self.show_3d_obj_mode].remove(add_obj)
                         else:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
-                    self.update_selected_list = True
                     self.paintGL()
-                    self.update_selected_list = False
                 self.select_start = None
                 self.select_end = None
         self.update()

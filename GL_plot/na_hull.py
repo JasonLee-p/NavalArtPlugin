@@ -77,7 +77,7 @@ class NAHull(ReadNA, SolidObject):
                 result[color].append(part.to_dict())
         return result
 
-    def draw_color(self, gl, theme_color, material, color, part_set, transparent):
+    def draw_color(self, gl, color, part_set, transparent):
         # else:
         alpha = 1 if not transparent else 0.3
         # 16进制颜色转换为RGBA
@@ -85,11 +85,20 @@ class NAHull(ReadNA, SolidObject):
         color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
         gl.glColor4f(*color_)
         for part in part_set:
+            if type(part) != AdjustableHull:
+                continue
             if not part.updateList and part.genList:
                 gl.glCallList(part.genList)
                 continue
-            part.genList = gl.glGenLists(1)
-            gl.glNewList(part.genList, gl.GL_COMPILE_AND_EXECUTE)
+            elif not part.update_transparentList and part.transparent_genList:
+                gl.glCallList(part.transparent_genList)
+                continue
+            if transparent:
+                part.transparent_genList = gl.glGenLists(1)
+                gl.glNewList(part.transparent_genList, gl.GL_COMPILE_AND_EXECUTE)
+            else:
+                part.genList = gl.glGenLists(1)
+                gl.glNewList(part.genList, gl.GL_COMPILE_AND_EXECUTE)
             gl.glLoadName(id(part) % 4294967296)
             part.glWin = self.glWin
             if type(part) != AdjustableHull:
@@ -128,7 +137,7 @@ class NAHull(ReadNA, SolidObject):
         for color, part_set in self.DrawMap.items():
             # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
             # t.start()
-            self.draw_color(gl, theme_color, material, color, part_set, transparent)
+            self.draw_color(gl, color, part_set, transparent)
 
 
 class DrawThread(QThread):
