@@ -12,12 +12,13 @@ import os.path
 import sys
 import webbrowser
 
-
 # try:
 # 第三方库
 from typing import Union
 from ctypes import util
 # 本地库
+from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
+
 from ship_reader import *
 from GUI import *
 from GL_plot import *
@@ -28,10 +29,15 @@ from right_element_editing import Mod1SinglePartEditing
 from project_file import ConfigFile
 from project_file import ProjectFile as PF
 
+
 # except Exception as e:
 #     print(e)
 #     input("无法正确导入库！请按回车键退出")
 #     sys.exit(0)
+
+
+def empty_func(*args, **kwargs):
+    pass
 
 
 def is_admin():
@@ -81,8 +87,11 @@ def generate_project_obj(_prj_path, _original_na_path, _na_hull):
     )
 
 
-def save_current_prj():
+def save_current_prj(ignore_loading=False):
     try:  # 保存
+        if Handler.LoadingProject and not ignore_loading:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
         Handler.CurrentProjectData["Object"].save()
         time = Handler.CurrentProjectData["Object"].SaveTime
         show_state(f"{time} {Handler.CurrentProjectData['Path']}已保存", 'success')
@@ -167,7 +176,7 @@ class ProjectOpeningThread(QThread):
         Handler.CurrentProjectData["PartsData"] = Handler.CurrentProjectData["Object"].NAPartsData
 
         # 清空原来的所有对象，保存原来的工程文件对象
-        save_current_prj()
+        save_current_prj(ignore_loading=True)
         Handler.hull_design_tab.clear_all_plot_obj()
 
         # 读取成功，开始绘制
@@ -281,6 +290,7 @@ class ProjectLoadingConfigThread(QThread):
         if obj is None:
             self.finished.emit()
             Handler.LoadingProject = False
+            self.update_state.emit(f"未找到工程文件{path}", "error")  # 发射更新状态信息信号
             return  # 如果读取失败，直接返回
 
         try:
@@ -328,6 +338,25 @@ class Operation:
         self.operation_type = operation_type
         self.operation_data = operation_data
         Operation.history.append(self)
+        Operation.index += 1
+
+    @classmethod
+    def undo(cls):
+        if cls.index > 0:
+            cls.index -= 1
+            cls.history[cls.index].undo()
+            return True
+        else:
+            return False
+
+    @classmethod
+    def redo(cls):
+        if cls.index < len(cls.history):
+            cls.history[cls.index].redo()
+            cls.index += 1
+            return True
+        else:
+            return False
 
 
 class CurrentProject(PF):
@@ -373,30 +402,204 @@ class MainWin(MainWindow):
 
 class GLWin(OpenGLWin):
     def __init__(self, parent=None, various_mode=False, show_statu_func=None):
+        self.sub_menu_start = None
+        self.sub_menu_end = None
+        self.b0 = QPushButton("扩选到xy平面")
+        self.b1 = QPushButton("扩选到xz平面")
+        self.b2 = QPushButton("元素检视器")
+        self.b3 = QPushButton("属性编辑器")
+        self.b4 = QPushButton("全视图")
+        self.b5 = QPushButton("横剖面")
+        self.b6 = QPushButton("纵剖面")
+        self.b7 = QPushButton("左视图")
+        self.button_pos_map = {  # 按钮中心位置映射
+            self.b0: (200, -40), self.b1: (90, -110),
+            self.b2: (-75, 26), self.b3: (75, 26),
+            self.b4: (-100, -20), self.b5: (45, -60),
+            self.b6: (100, -20), self.b7: (-45, -60)
+        }
+        self.button_size_map = {
+            self.b0: (110, 28), self.b1: (110, 28),
+            self.b2: (90, 28), self.b3: (90, 28),
+            self.b4: (60, 28), self.b5: (60, 28),
+            self.b6: (60, 28), self.b7: (60, 28)
+        }
+        self.button_func_map = {  # 按钮功能映射
+            self.b0: self.singlePart_add2xyLayer,
+            self.b1: self.singlePart_add2xzLayer,
+            self.b2: empty_func, self.b3: empty_func,  # 后期初始化
+            self.b4: lambda x: self.set_show_3d_obj_mode(self.ShowAll),
+            self.b5: lambda x: self.set_show_3d_obj_mode(self.ShowXZ),
+            self.b6: lambda x: self.set_show_3d_obj_mode(self.ShowXY),
+            self.b7: lambda x: self.set_show_3d_obj_mode(self.ShowLeft)
+        }
+        for b in self.button_pos_map.keys():
+            set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         super().keyPressEvent(event)
-        # Ctrl+Enter
-        if event.modifiers() == Qt.ShiftModifier and event.key() == Qt.Key_E:
-            show_state("进入编辑模式", 'success')
-            # right_widget的tab切换到第二个
-            Handler.right_widget.setCurrentIndex(1)
-            # 更新right_widget的ActiveTab
-            Handler.right_widget.update_tab()
+        if event.key() == Qt.Key_Alt:
+            show_state("Alt快捷键指南：\t上下左右： 选区移动\t右键拖动： 快捷菜单", "warning")
+
+    def keyReleaseEvent(self, a0: QKeyEvent) -> None:
+        super().keyReleaseEvent(a0)
+        if a0.key() == Qt.Key_Alt:
+            show_state("")
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             Handler.right_widget.update_tab()
+        # 右键和Alt，记录快捷子菜单的起始点
+        elif event.button() == Qt.RightButton:
+            if event.modifiers() == Qt.AltModifier:
+                # 直接利用button制作便捷环绕式菜单
+                self.sub_menu_start = event.pos()
+                # 绘制按钮
+                for b in self.button_pos_map.keys():
+                    b.setParent(self)
+                    b.move(
+                        self.sub_menu_start + QPoint(*self.button_pos_map[b]) - QPoint(b.width() // 2, b.height() // 2))
+                    b.show()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if Qt.RightButton & event.buttons() and event.modifiers() == Qt.AltModifier:
+            self.sub_menu_end = event.pos()
+            self.paintGL()
+            self.update()
+            # 获取当鼠标释放的时候所在的按钮区域
+            pos = event.pos()
+            min_dis = (pos - self.sub_menu_start).manhattanLength()
+            min_b = None
+            for b in self.button_pos_map.keys():
+                dis = (b.geometry().center() - pos).manhattanLength()
+                if dis < min_dis:
+                    min_dis = dis
+                    min_b = b
+            if min_b is not None:
+                # 按钮高亮
+                for b in self.button_pos_map.keys():
+                    if b == min_b:
+                        b.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR2};font-size:15px;'
+                                        f'color:{FG_COLOR2};'
+                                        f'font-family:{YAHEI};}}'
+                                        f'QPushButton:hover{{background-color:{GRAY};}}')
+                        b.setFont(FONT_11)
+                    else:
+                        set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
+            else:
+                for b in self.button_pos_map.keys():
+                    set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
+        elif event.modifiers() != Qt.AltModifier and self.sub_menu_start is not None:
+            self.lastPos = event.pos()
+            self.sub_menu_start = None
+            self.sub_menu_end = None
+            # 按钮清除
+            for b in self.button_pos_map.keys():
+                b.setParent(None)
+                b.hide()
+            show_state("")
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
         if event.button() == Qt.LeftButton:
             Handler.right_widget.update_tab()
+        elif event.button() == Qt.RightButton and event.modifiers() == Qt.AltModifier:
+            # 获取当鼠标释放的时候所在的按钮区域
+            pos = event.pos()
+            # 检查离哪一个按钮最近
+            min_dis = (pos - self.sub_menu_start).manhattanLength()
+            min_b = None
+            for b in self.button_pos_map.keys():
+                dis = (b.geometry().center() - pos).manhattanLength()
+                if dis < min_dis:
+                    min_dis = dis
+                    min_b = b
+            if min_b is not None:
+                if min_b in [self.b0, self.b1]:
+                    self.button_func_map[min_b]()
+                elif min_b == self.b2:
+                    self.button_func_map[self.b2](0)
+                elif min_b == self.b3:
+                    self.button_func_map[self.b3](1)
+                elif min_b in [self.b4, self.b5, self.b6, self.b7]:
+                    self.button_func_map[min_b](0)
+            # if self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) \
+            #         and len(self.selected_gl_objects[self.show_3d_obj_mode]) == 1:
+            #     if self.b0.geometry().contains(pos):
+            #         self.button_func_map[self.b0][0]()
+            #     elif self.b1.geometry().contains(pos):
+            #         self.button_func_map[self.b1][0]()
+            # if self.b2.geometry().contains(pos):
+            #     self.button_func_map[self.b2](0)
+            # elif self.b3.geometry().contains(pos):
+            #     self.button_func_map[self.b3](1)
+            # for i in range(4, 8):
+            #     b = list(self.button_pos_map.keys())[i]
+            #     if b.geometry().contains(pos):
+            #         self.button_func_map[b](0)
+            self.paintGL()
+            self.update()
+            self.sub_menu_start = None
+            self.sub_menu_end = None
+            # 按钮清除
+            for b in self.button_pos_map.keys():
+                b.setParent(None)
+                b.hide()
+            show_state("")
         elif event.button() == Qt.RightButton and Handler.right_widget.ActiveTab == "船体设计":
             if Handler.hull_design_tab.ThreeDFrame.rotate_start == Handler.hull_design_tab.ThreeDFrame.lastPos:
                 Handler.hull_design_tab.menu.exec_(QCursor.pos())
+
+    def paintGL(self) -> None:
+        super().paintGL()
+        if self.sub_menu_start is not None and self.sub_menu_end is not None:
+            # 保存原来的矩阵
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPushMatrix()
+            self.gl2_0.glLoadIdentity()
+            self.gl2_0.glOrtho(0, self.width, self.height, 0, -1, 1)
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.gl2_0.glPushMatrix()
+            self.gl2_0.glLoadIdentity()
+            # 画线
+            self.gl2_0.glLineWidth(8)
+            self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)
+            self.gl2_0.glBegin(self.gl2_0.GL_LINES)
+            if self.theme_color["背景"][0] == (0.9, 0.95, 1.0, 1.0):  # 白天
+                self.gl2_0.glColor4f(0.9, 0.9, 0.9, 0.5)
+            else:  # 黑夜
+                self.gl2_0.glColor4f(1, 1, 1, 0.5)
+            self.gl2_0.glVertex2f(self.sub_menu_start.x(), self.sub_menu_start.y())
+            self.gl2_0.glVertex2f(self.sub_menu_end.x(), self.sub_menu_end.y())
+            self.gl2_0.glEnd()
+            # 画点
+            self.gl2_0.glPointSize(11)
+            self.gl2_0.glBegin(self.gl2_0.GL_POINTS)
+            if self.theme_color["背景"][0] == (0.9, 0.95, 1.0, 1.0):  # 白天
+                self.gl2_0.glColor4f(0.1, 0.1, 0.1, 0.7)
+            else:
+                self.gl2_0.glColor4f(0.9, 0.9, 0.9, 0.7)
+            self.gl2_0.glVertex2f(self.sub_menu_start.x(), self.sub_menu_start.y())
+            self.gl2_0.glVertex2f(self.sub_menu_end.x(), self.sub_menu_end.y())
+            self.gl2_0.glEnd()
+            self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
+            # 恢复原来的矩阵
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPopMatrix()
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.gl2_0.glPopMatrix()
+            self.update()
+
+    def singlePart_add2xyLayer(self):
+        super(GLWin, self).singlePart_add2xyLayer()
+        Handler.right_widget.update_tab()
+
+    def singlePart_add2xzLayer(self):
+        super(GLWin, self).singlePart_add2xzLayer()
+        Handler.right_widget.update_tab()
 
 
 class MainHandler:
@@ -439,10 +642,7 @@ class MainHandler:
                 "框线显示": self.set_lines,
             },
             " 视图": {
-                "3D视图": self.thd_view,
-                "缩小": self.zoom_out,
-                "还原": self.zoom_reset,
-                "全屏": self.full_screen
+                "切换视图": self.switch_view,
             },
             " 帮助": {
                 "查看教程": user_guide,
@@ -478,6 +678,11 @@ class MainHandler:
         # 计算屏幕宽度5/6
         self.window.down_splitter.setSizes([self.window.width(), 1])
         show_state("初始化事件管理器完成", 'process', self.window.statu_label)  # 显示状态
+        # 其他设置
+        self.hull_design_tab.ThreeDFrame.button_func_map[
+            self.hull_design_tab.ThreeDFrame.b2] = self.right_widget.change_tab
+        self.hull_design_tab.ThreeDFrame.button_func_map[
+            self.hull_design_tab.ThreeDFrame.b3] = self.right_widget.change_tab
 
     def tab_changed(self):
         """
@@ -505,15 +710,56 @@ class MainHandler:
     # ---------------------------------------------------------------------------------------------------
 
     def export_file(self, event):
-        ...
+        if Handler.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
+        # 打开ExportDialog
+        export_dialog = ExportDialog(parent=self.window)
+        export_dialog.exec_()
+        # 如果确定导出
+        path = export_dialog.export_path
+        if export_dialog.export2na:
+            show_state("正在导出为NA文件...", 'process')
+            # TODO: 导出为NA文件
+            show_state(f"{Handler.CurrentProjectData['Name']}  已导出到  {path}", 'success')
+        elif export_dialog.export2obj:
+            show_state("正在导出为OBJ文件...", 'process')
+            # TODO: 导出为OBJ文件
+            show_state(f"{Handler.CurrentProjectData['Name']}  已导出到  {path}", 'success')
 
     def save_project(self, event):
+        if Handler.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
+        c = self.hull_design_tab.ThreeDFrame.camera
+        # self.CurrentProjectData["Object"].Camera = c.save_data
         self.CurrentProjectData["Object"].save()
         time = self.CurrentProjectData["Object"].SaveTime
         show_state(f"{time} {self.CurrentProjectData['Path']}已保存", 'success')
 
     def save_as_file(self, event):
-        ...
+        # 打开文件夹对话框，获取保存路径（文件夹）
+        current_prj = self.CurrentProjectData["Object"]
+        if current_prj is None:
+            return
+        if Config.ProjectsFolder == '':
+            desktop_path = os.path.join(os.path.expanduser("~"), 'Desktop')
+            file_dialog = QFileDialog(self.window, "保存工程到", desktop_path)
+        else:
+            file_dialog = QFileDialog(self.window, "保存工程到", Config.ProjectsFolder)
+        file_dialog.setFileMode(QFileDialog.DirectoryOnly)
+        file_dialog.exec_()
+        try:
+            file_path = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
+            print(file_path)
+        except IndexError:
+            return
+        # 保存工程文件
+        current_prj.save_as(file_path)
+        # 更新配置文件
+        Config.Projects[current_prj.Name] = file_path + '/' + current_prj.Name + '.json'
+        Config.save_config()  # 保存配置文件
+        show_state(f"{current_prj.Name}已保存到{file_path}", 'success')
 
     def undo(self, event):
         ...
@@ -535,16 +781,12 @@ class MainHandler:
 
     def select_all(self, event):
         ThreeDF = self.hull_design_tab.ThreeDFrame
-        if type(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode]) == list:
-            ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].extend(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode].copy())
-        elif type(ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode]) == dict:
-            for mt, objs in ThreeDF.showMode_showSet_map[ThreeDF.show_3d_obj_mode].items():
-                for obj in objs:
-                    if type(obj) != NAHull:
-                        continue
-                    ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].clear()
-                    for _col, parts in obj.DrawMap.items():
-                        ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode].extend(parts)
+        if ThreeDF.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+            id_map = NAPart.hull_design_tab_id_map
+        else:
+            id_map = ThreeDF.selectObjOrigin_map[ThreeDF.show_3d_obj_mode].id_map
+        ThreeDF.selected_gl_objects[ThreeDF.show_3d_obj_mode] = list(id_map.values())
+        ThreeDF.paintGL()
         ThreeDF.update()
 
     def set_theme(self, event):
@@ -556,19 +798,14 @@ class MainHandler:
         sensitive_dialog.exec_()
 
     def set_lines(self, event):
-        ...
+        # 提示用户功能未实现
+        MyMessageBox.information(None, "提示", "该功能暂未实现！")
 
-    def thd_view(self, event):
-        ...
-
-    def zoom_out(self, event):
-        ...
-
-    def zoom_reset(self, event):
-        ...
-
-    def full_screen(self, event):
-        ...
+    def switch_view(self, event):
+        # 将hull_design_tab.ThreeDFrame的视图进行切换（透视或者正交）
+        # 提示用户功能未实现
+        MyMessageBox.information(None, "提示", "该功能暂未实现！")
+        # self.hull_design_tab.ThreeDFrame.change_view_mode()
 
     @staticmethod
     def about(event):
@@ -648,12 +885,17 @@ class RightTabWidget(QTabWidget):
         # if self.ActiveTab == "船体设计":
         #     self.show_mod = Handler.hull_design_tab.ThreeDFrame.show_3d_obj_mode
 
+    def change_tab(self, tab_index):
+        self.setCurrentWidget(self.widget(tab_index))
+
     def update_tab(self):
         ThreeDFrame = Handler.hull_design_tab.ThreeDFrame
         _len = len(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode])
         # 隐藏当前的widget
         self.tab1_current_widget.hide()
         self.tab2_current_widget.hide()
+        # 禁用Handler.hull_design_tab.menu的扩展选区栏目
+        Handler.hull_design_tab.menu.expand_select_area_A.setEnabled(False)
 
         # 当被选中物体变化的时候，更新tab的内容
         if _len == 1:  # ================================================================== 只有一个物体
@@ -667,6 +909,12 @@ class RightTabWidget(QTabWidget):
                 self.tab2_current_widget = self.tab2_mod1_widget_singlePart
                 self.tab1_mod1_widget_singlePart.update_context(selected_obj)
                 self.tab2_mod1_widget_singlePart.update_context(selected_obj)
+                # 启用Handler.hull_design_tab.menu的扩展选区栏目，并绑定函数
+                Handler.hull_design_tab.menu.expand_select_area_A.setEnabled(True)
+                Handler.hull_design_tab.menu.connect_expand_select_area_funcs(
+                    add2xzLayer_func=ThreeDFrame.singlePart_add2xzLayer,
+                    add2xyLayer_func=ThreeDFrame.singlePart_add2xyLayer
+                )
             elif type(selected_obj) == NaHullXZLayer:
                 self.tab1_mod2_widget_singleLayer.show()  # TODO: 显示tab1_mod2_grid_singleLayer
                 self.tab2_mod2_widget_singleLayer.show()  # TODO: 显示tab2_mod2_grid_singleLayer
@@ -1104,9 +1352,12 @@ class HullDesignTab(QWidget):
         self.selected_gl_objects = self.ThreeDFrame.selected_gl_objects  # 选中的物体
 
     def bind_shortcut(self):
-        # 快捷键绑定
+        # 基础快捷键绑定
+        save_ = QShortcut(QKeySequence("Ctrl+S"), self)
+        save_.activated.connect(save_current_prj)
+        # 操作快捷键绑定
         expand_ = QShortcut(QKeySequence("Ctrl+E"), self)
-        edit_ = QShortcut(QKeySequence("Ctrl+Enter"), self)
+        edit_ = QShortcut(QKeySequence("Shift+E"), self)
         undo_ = QShortcut(QKeySequence("Ctrl+Z"), self)
         redo_ = QShortcut(QKeySequence("Ctrl+Shift+Z"), self)
         copy_ = QShortcut(QKeySequence("Ctrl+C"), self)
@@ -1128,7 +1379,9 @@ class HullDesignTab(QWidget):
 
     def expand(self):
         # 检查当前被选中的物体的数量和形式
-        ...
+        _len = len(self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode])
+        if _len == 0:
+            return
 
     def edit(self):
         show_state(f"编辑选区", 'success')
@@ -1218,6 +1471,9 @@ class HullDesignTab(QWidget):
 
     @staticmethod
     def save_file():
+        if Handler.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
         # 保存工程文件
         Handler.CurrentProjectData["Object"].save()
         time = Handler.CurrentProjectData["Object"].SaveTime
@@ -1651,7 +1907,14 @@ def user_guide():
     """
     用户引导程序
     """
-    ...
+    # 弹出对话框，询问是否保存当前设计
+    _txt = "是否保存当前设计？"
+    reply = MyMessageBox().question(None, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
+    if reply == MyMessageBox.Ok:
+        save_current_prj()
+    # 弹出UserGuideDialog
+    user_guide_dialog = UserGuideDialog(Handler.window)
+    user_guide_dialog.exec_()
 
 
 if __name__ == '__main__':
@@ -1688,7 +1951,9 @@ if __name__ == '__main__':
                 Handler.LoadingProject = True
                 project_loading_thread = ProjectLoadingConfigThread()
                 project_loading_thread.update_state.connect(show_state)
-                project_loading_thread.finished.connect(lambda: setattr(Handler, "LoadingProject", False))
+                def false_loading_project():
+                    Handler.LoadingProject = False
+                project_loading_thread.finished.connect(false_loading_project)
                 project_loading_thread.start()
             except Exception as e:
                 show_state(f"读取配置文件失败：{e}", 'error')

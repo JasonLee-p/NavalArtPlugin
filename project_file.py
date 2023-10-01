@@ -187,6 +187,8 @@ class ProjectFile:
         # 将工程数据写入工程文件
         self.SaveTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
                         f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
+        self.Config['State'] = self.State
+        self.Config['Camera'] = self.Camera
         self.Code = self.get_check_code()
         self.json_data = {
             'Name': self.Name,
@@ -199,6 +201,26 @@ class ProjectFile:
             'Operations': self.Operations,
         }
         with open(self.Path, 'w', encoding='utf-8') as f:
+            json.dump(self.json_data, f, ensure_ascii=False, indent=2)
+
+    def save_as(self, folder_path):
+        # 将工程数据写入工程文件
+        self.SaveTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
+                        f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
+        self.Config['State'] = self.State
+        self.Config['Camera'] = self.Camera
+        self.Code = self.get_check_code()
+        self.json_data = {
+            'Name': self.Name,
+            'Code': self.Code,
+            'CreateTime': self.CreateTime,
+            'SaveTime': self.SaveTime,
+            'OriginalFilePath': self.OriginalFilePath,
+            'Config': self.Config,
+            'NAPartsData': self.NAPartsData,
+            'Operations': self.Operations,
+        }
+        with open(os.path.join(folder_path, self.Name + '.json'), 'w', encoding='utf-8') as f:
             json.dump(self.json_data, f, ensure_ascii=False, indent=2)
 
     def save_as_na(self, changed_na_file, output_file_path):  # 导出为NA船体

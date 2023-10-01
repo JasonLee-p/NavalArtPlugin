@@ -1317,7 +1317,7 @@ class DesignAnalyser:
                 #     for k, v in self.right_frame0_data1.items():
                 #         ws.append([k, v])
                 #     # 保存文件
-                #     wb.save(os.path.join(_LOCAL_ADDRESS, file_name))
+                #     wb.save(os.folder_path.join(_LOCAL_ADDRESS, file_name))
                 if file_name.endswith(".txt"):
                     # 写入数据
                     f.write(f"设计名称 : {self.ShipName}\n")

@@ -611,3 +611,45 @@ class ColorDialog(BasicDialog):
             self.color_selected.emit()  # 发送自定义信号通知颜色选择完成
         else:
             MyMessageBox().information(None, "提示", "未选择任何颜色", MyMessageBox.Ok)
+
+
+class ExportDialog(BasicDialog):
+    def __init__(self, parent, title="导出", size=QSize(500, 300)):
+        # 和外界交互的变量
+        self.export2na = False
+        self.export2obj = False
+        self.export_path = ""
+        # 布局
+        self.center_layout = QVBoxLayout()
+        self.lb0 = MyLabel("导出功能尚未完成，敬请期待!", font=FONT_10)
+        self.lb0.setAlignment(Qt.AlignCenter)
+        self.center_layout.addWidget(self.lb0)
+        super().__init__(parent, title, size, self.center_layout)
+        self.set_widget()
+
+    def set_widget(self):
+        self.center_layout.setSpacing(0)
+        self.center_layout.setContentsMargins(0, 0, 0, 0)
+
+    def ensure(self):
+        super().ensure()
+
+
+class UserGuideDialog(BasicDialog):
+
+    def __init__(self, parent, title="新手教程", size=QSize(800, 600)):
+        self.center_layout = QVBoxLayout()
+        # 显示用户指南还没做完，敬请期待
+        self.lb0 = MyLabel("新手教程尚未完成，敬请期待!", font=FONT_10)
+        self.lb0.setAlignment(Qt.AlignCenter)
+        self.center_layout.addWidget(self.lb0)
+        ...  # TODO:
+        super().__init__(parent, title, size, self.center_layout)
+        self.set_widget()
+
+    def set_widget(self):
+        self.center_layout.setSpacing(0)
+        self.center_layout.setContentsMargins(0, 0, 0, 0)
+
+    def ensure(self):
+        super().ensure()

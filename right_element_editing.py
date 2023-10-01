@@ -114,9 +114,13 @@ class Mod1SinglePartEditing(QWidget):
             active_textEdit.setText(str(value))
         elif step_type == float:
             if active_textEdit in [self.content["坐标"]["QLineEdit"][0], self.content["坐标"]["QLineEdit"][1],
-                                   self.content["坐标"]["QLineEdit"][2]]:
+                                   self.content["坐标"]["QLineEdit"][2]] and \
+                    self.selected_obj.allParts_relationMap.basicMap[self.selected_obj]:
+                # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
                 # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
-                reply = QMessageBox.warning(None, "警告", "更改单个零件的位置，会解除零件关系图中该零件所有关系！是否继续？",
+                reply = QMessageBox.warning(None, "警告", "更改单个零件的位置，会解除与其他所有零件的方位关系！\n"
+                                                        "我们非常不建议您这么做！\n"
+                                                        "是否继续？",
                                             QMessageBox.Yes | QMessageBox.No | QMessageBox.Help)
                 if reply == QMessageBox.No:
                     return
@@ -127,6 +131,10 @@ class Mod1SinglePartEditing(QWidget):
                     # 解除关系
                     relation_map = self.selected_obj.allParts_relationMap
                     relation_map.del_part(self.selected_obj)
+            elif active_textEdit in [self.content["上弧度"]["QLineEdit"][0], self.content["下弧度"]["QLineEdit"][0]] \
+                    and (value < 0 or value > 1):
+                # 弧度值不在0-1之间，直接不修改
+                return
             active_textEdit.setText(str(round(value, 3)))
             if active_textEdit == self.content["前宽度"]["QLineEdit"][0]:
                 txt = self.content["前扩散"]["QLineEdit"][0].text()

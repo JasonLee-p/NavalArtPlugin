@@ -28,7 +28,7 @@ from .basic import MyLabel, MyMessageBox, MyComboBox, MySlider, MyLineEdit
 from .basic import CircleSelectButton, CircleSelectButtonGroup
 from .basic import BasicDialog, ShortCutWidget
 from .interfaces import MainWindow, MainTabWidget
-from .dialogs import NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog
+from .dialogs import NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog
 # 函数
 from .basic import set_tool_bar_style, set_top_button_style, set_button_style, getFG_fromBG, front_completion
 __all__ = [
@@ -59,7 +59,7 @@ __all__ = [
     "CircleSelectButton", "CircleSelectButtonGroup",
     "BasicDialog", "ShortCutWidget",
     "MainWindow", "MainTabWidget",
-    "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog",
+    "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog",
     # 函数
     "set_tool_bar_style", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion"
 ]

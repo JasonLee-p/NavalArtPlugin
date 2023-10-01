@@ -6,10 +6,8 @@ import struct
 import sys
 import time
 
-import glfw
 import numpy as np
 from OpenGL import GL
-from OpenGL.raw.GL.NV.multisample_filter_hint import GL_MULTISAMPLE_FILTER_HINT_NV
 from PyQt5.QtCore import QTimer, QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
@@ -76,6 +74,13 @@ class Camera:
     def viewport(self):
         return 0, 0, self.width, self.height
 
+    def change_view(self, mode):
+        # 切换正交投影和透视投影
+        if mode == OpenGLWin.Perspective:
+            self.fovy = 45
+        elif mode == OpenGLWin.Orthogonal:
+            self.fovy = 0
+
     def change_target(self, tar):
         self.pos = tar + (self.pos - self.tar).normalized() * self.distance
         self.tar = tar
@@ -130,6 +135,10 @@ class Camera:
         if self.angle.y() < -0.99 and dy < 0:
             return
 
+    @property
+    def save_data(self):
+        return {"tar": list(self.tar), "pos": list(self.pos), "fovy": int(self.fovy)}
+
     def __str__(self):
         return str(
             f"target:     {self.tar.x()}, {self.tar.y()}, {self.tar.z()}\n"
@@ -155,12 +164,16 @@ class OpenGLWin(QOpenGLWidget):
     # 选择模式（子模式）
     ShowObj = 111
     ShowDotNode = 222
+    # 视图模式
+    Perspective = "perspective"
+    Orthogonal = "orthogonal"
 
     def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
         self.show_statu_func = show_statu_func
         self.operation_mode = OpenGLWin.Selectable
         self.show_3d_obj_mode = (OpenGLWin.ShowAll, OpenGLWin.ShowObj)
         self.using_various_mode = using_various_mode  # 是否使用全部四种显示模式
+        self.view_mode = OpenGLWin.Perspective  # 视图模式
 
         super(OpenGLWin, self).__init__()
         # ===================================================================================设置基本参数
@@ -178,7 +191,6 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0 = None
         self.texture = None
         self.shaderProgram = None
-        # self.last_mode_when_store_gl_commands = None
         self.gl_commands = {
             (OpenGLWin.ShowAll, OpenGLWin.ShowObj): [None, False],
             (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): [None, False],
@@ -333,9 +345,10 @@ class OpenGLWin(QOpenGLWidget):
         # ==================================================================================加载时的绘制
         if not self.all_3d_obj["钢铁"] and self.using_various_mode:  # 如果没有钢铁物体，就绘制船体
             parts = AdjustableHull.hull_design_tab_id_map.copy().values()
-            # for part in parts:  # TODO: 优化绘制
-            #     if type(part) == AdjustableHull:
-            #         part.draw(self.gl2_0)
+            for part in parts:  # TODO: 优化绘制
+                if type(part) == AdjustableHull:
+                    part.draw_pre(self.gl2_0)
+                    ...
             if time.time() - st != 0:
                 self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
             self.update()
@@ -365,6 +378,28 @@ class OpenGLWin(QOpenGLWidget):
         self.draw_selected_objs()
         if time.time() - st != 0:
             self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
+
+    def change_view_mode(self):
+        if self.view_mode == OpenGLWin.Perspective:
+            self.view_mode = OpenGLWin.Orthogonal
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glLoadIdentity()
+            self.gl2_0.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1000, 1000)
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.gl2_0.glLoadIdentity()
+            self.camera.change_view(OpenGLWin.Orthogonal)
+            self.paintGL()
+            self.update()
+        elif self.view_mode == OpenGLWin.Orthogonal:
+            self.view_mode = OpenGLWin.Perspective
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glLoadIdentity()
+            self.gl2_0.glFrustum(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, 500, 100000)
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.gl2_0.glLoadIdentity()
+            self.camera.change_view(OpenGLWin.Perspective)
+            self.paintGL()
+            self.update()
 
     def init_fps_label(self):
         self.fps_label.setGeometry(10, 10, 100, 20)
@@ -568,24 +603,42 @@ class OpenGLWin(QOpenGLWidget):
             # 将屏幕坐标点转换为OpenGL坐标系中的坐标点
             _x, _y = pos.x(), self.height - pos.y() - 1
             # 使用拾取技术来确定被点击的三角形
-            glSelectBuffer(2 ** 20)
-            glRenderMode(GL_SELECT)
-            glInitNames()
-            glPushName(0)
-            self.gl2_0.glViewport(0, 0, self.width, self.height)
-            self.gl2_0.glMatrixMode(GL_PROJECTION)
-            self.gl2_0.glPushMatrix()
-            self.gl2_0.glLoadIdentity()
-            gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
-            # 设置透视投影
-            aspect_ratio = self.width / self.height
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)  # 设置透视投影
-            self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            self.paintGL()  # 重新渲染场景
-            self.gl2_0.glMatrixMode(GL_PROJECTION)
-            self.gl2_0.glPopMatrix()
-            self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            hits = glRenderMode(GL_RENDER)
+            if self.view_mode == OpenGLWin.Perspective:  # 如果是透视投影模式：
+                glSelectBuffer(2 ** 20)
+                glRenderMode(GL_SELECT)
+                glInitNames()
+                glPushName(0)
+                self.gl2_0.glViewport(0, 0, self.width, self.height)
+                self.gl2_0.glMatrixMode(GL_PROJECTION)
+                self.gl2_0.glPushMatrix()
+                self.gl2_0.glLoadIdentity()
+                gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
+                # 设置透视投影
+                aspect_ratio = self.width / self.height
+                gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)  # 设置透视投影
+                self.gl2_0.glMatrixMode(GL_MODELVIEW)
+                self.paintGL()  # 重新渲染场景
+                self.gl2_0.glMatrixMode(GL_PROJECTION)
+                self.gl2_0.glPopMatrix()
+                self.gl2_0.glMatrixMode(GL_MODELVIEW)
+                hits = glRenderMode(GL_RENDER)
+            else:  # 如果是正交投影模式：
+                glSelectBuffer(2 ** 20)
+                glRenderMode(GL_SELECT)
+                glInitNames()
+                glPushName(0)
+                self.gl2_0.glViewport(0, 0, self.width, self.height)
+                self.gl2_0.glMatrixMode(GL_PROJECTION)
+                self.gl2_0.glPushMatrix()
+                self.gl2_0.glLoadIdentity()
+                gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
+                self.gl2_0.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1000, 1000)
+                self.gl2_0.glMatrixMode(GL_MODELVIEW)
+                self.paintGL()
+                self.gl2_0.glMatrixMode(GL_PROJECTION)
+                self.gl2_0.glPopMatrix()
+                self.gl2_0.glMatrixMode(GL_MODELVIEW)
+                hits = glRenderMode(GL_RENDER)
             # self.show_statu_func(f"{len(hits)}个零件被选中", "success")
             # 在hits中找到深度最小的零件
             if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
@@ -653,31 +706,51 @@ class OpenGLWin(QOpenGLWidget):
         if max_x - min_x < 3 or max_y - min_y < 3:  # 排除过小的选择框
             return result
         # 使用拾取技术来确定被点击的三角形
-        glSelectBuffer(2 ** 20)
-        glRenderMode(GL_SELECT)
-        glInitNames()
-        glPushName(0)
-        self.gl2_0.glViewport(0, 0, self.width, self.height)
-        self.gl2_0.glMatrixMode(GL_PROJECTION)
-        self.gl2_0.glPushMatrix()
-        self.gl2_0.glLoadIdentity()
-        aspect_ratio = self.width / self.height
-        # 设置选择框
-        gluPickMatrix(
-            (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
-        )
-        # 设置透视投影
-        gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
-        # 转换回模型视图矩阵
-        self.gl2_0.glMatrixMode(GL_MODELVIEW)
-        self.paintGL()
-        # 恢复原来的矩阵
-        self.gl2_0.glMatrixMode(GL_PROJECTION)
-        self.gl2_0.glPopMatrix()
-        # 转换回模型视图矩阵
-        self.gl2_0.glMatrixMode(GL_MODELVIEW)
-        # 获取选择框内的物体
-        hits = glRenderMode(GL_RENDER)
+        if self.view_mode == OpenGLWin.Perspective:  # 如果是透视投影模式：
+            glSelectBuffer(2 ** 20)
+            glRenderMode(GL_SELECT)
+            glInitNames()
+            glPushName(0)
+            self.gl2_0.glViewport(0, 0, self.width, self.height)
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPushMatrix()
+            self.gl2_0.glLoadIdentity()
+            aspect_ratio = self.width / self.height
+            # 设置选择框
+            gluPickMatrix(
+                (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
+            )
+            # 设置透视投影
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
+            # 转换回模型视图矩阵
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.paintGL()
+            # 恢复原来的矩阵
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPopMatrix()
+            # 转换回模型视图矩阵
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            # 获取选择框内的物体
+            hits = glRenderMode(GL_RENDER)
+        else:  # 如果是正交投影模式：
+            glSelectBuffer(2 ** 20)
+            glRenderMode(GL_SELECT)
+            glInitNames()
+            glPushName(0)
+            self.gl2_0.glViewport(0, 0, self.width, self.height)
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPushMatrix()
+            self.gl2_0.glLoadIdentity()
+            gluPickMatrix(
+                (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
+            )
+            self.gl2_0.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1000, 1000)
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            self.paintGL()
+            self.gl2_0.glMatrixMode(GL_PROJECTION)
+            self.gl2_0.glPopMatrix()
+            self.gl2_0.glMatrixMode(GL_MODELVIEW)
+            hits = glRenderMode(GL_RENDER)
         if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
             id_map = NAPart.hull_design_tab_id_map
         else:
@@ -689,6 +762,45 @@ class OpenGLWin(QOpenGLWidget):
                 if part not in result:
                     result.append(part)
         return result
+
+    def singlePart_add2xzLayer(self):
+        """
+        以该零件根据零件关系图，扩展选区
+        :return:
+        """
+        if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+            if len(self.selected_gl_objects[self.show_3d_obj_mode]) >= 1:
+                # 以该零件为根，扩展选区
+                for part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                    relation_map = part.allParts_relationMap.basicMap[part]
+                    # 先向前后
+                    for sub_part in relation_map[PRM.FRONT]:
+                        if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
+                    for sub_part in relation_map[PRM.BACK]:
+                        if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
+                    # 再向左右
+                    ...  # TODO: 未来要加入左右扩展
+
+    def singlePart_add2xyLayer(self):
+        """
+        以该零件根据零件关系图，扩展选区
+        :return:
+        """
+        if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
+            if len(self.selected_gl_objects[self.show_3d_obj_mode]) >= 1:
+                for part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                    relation_map = part.allParts_relationMap.basicMap[part]
+                    # 先向上下
+                    for sub_part in relation_map[PRM.UP]:
+                        if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
+                    for sub_part in relation_map[PRM.DOWN]:
+                        if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
+                            self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
+                    # 再向左右
+                    ...  # TODO: 未来要加入左右扩展
 
     @staticmethod
     def get_matrix():
@@ -778,6 +890,8 @@ class OpenGLWin(QOpenGLWidget):
                 return
             # 获取当前被选中的AdjustableHull
             for selected_obj in self.selected_gl_objects[self.show_3d_obj_mode]:
+                if selected_obj not in selected_obj.allParts_relationMap.basicMap:
+                    continue
                 selected_obj_relations = selected_obj.allParts_relationMap.basicMap[selected_obj]
                 next_obj = None
                 move_direction = None
@@ -806,7 +920,7 @@ class OpenGLWin(QOpenGLWidget):
                 if next_obj is not None:
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
                     self.selected_gl_objects[self.show_3d_obj_mode][index] = next_obj
-                    self.show_statu_func(f"选区{move_direction}移(Alt+{event.key()})", "success")
+                    self.show_statu_func(f"选区{move_direction}移", "success")
                 elif len(self.selected_gl_objects[self.show_3d_obj_mode]) > 1:
                     # 删除当前选中的AdjustableHull
                     index = self.selected_gl_objects[self.show_3d_obj_mode].index(selected_obj)
@@ -1050,9 +1164,9 @@ class DesignTabGLWinMenu(QMenu):
         self.import_selected_objects_A.triggered.connect(import_func)
         self.export_selected_objects_A.triggered.connect(export_func)
 
-    def connect_expand_select_area_funcs(self, add2xzLayer_func, add2yxLayer_func):
+    def connect_expand_select_area_funcs(self, add2xzLayer_func, add2xyLayer_func):
         self.add_selected_objects_A_y.triggered.connect(add2xzLayer_func)
-        self.add_selected_objects_A_z.triggered.connect(add2yxLayer_func)
+        self.add_selected_objects_A_z.triggered.connect(add2xyLayer_func)
 
 
 class OpenGLWin2(QOpenGLWidget):

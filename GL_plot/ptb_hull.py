@@ -32,7 +32,7 @@ class AdHull(ReadPTB, SolidObject):
         self.height = 0
         self.get_deck_dots()  # 给self.deck_dots赋值
         self.faces = {
-            "color": [0.5, 0.5, 0.5, 1],
+            "color": [0.4, 0.4, 0.4, 1],
             "normal": [],
             "faces": []
         }
@@ -95,12 +95,7 @@ class AdHull(ReadPTB, SolidObject):
 
     def draw_deck(self, gl, theme_color=None):
         gl.glLineWidth(1)
-        gl.glColor3f(0.5, 0.5, 0.5)
-        mt = "甲板"
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_AMBIENT, theme_color[mt][0])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_DIFFUSE, theme_color[mt][1])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SPECULAR, theme_color[mt][2])
-        gl.glMaterialfv(gl.GL_FRONT_AND_BACK, gl.GL_SHININESS, theme_color[mt][3])
+        gl.glColor4f(*theme_color["甲板"][0])
         gl.glNormal3f(0, 1, 0)
         gl.glBegin(gl.GL_QUAD_STRIP)
         for dot in self.deck_dots:

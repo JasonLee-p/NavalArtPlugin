@@ -228,14 +228,14 @@ class NAPartNode:
         self.pos = pos
         self.glWin = None
         self.near_parts = {  # 八个卦限
-            PartRelationMap.FRONT_UP_LEFT: None,
-            PartRelationMap.FRONT_UP_RIGHT: None,
-            PartRelationMap.FRONT_DOWN_LEFT: None,
-            PartRelationMap.FRONT_DOWN_RIGHT: None,
-            PartRelationMap.BACK_UP_LEFT: None,
-            PartRelationMap.BACK_UP_RIGHT: None,
-            PartRelationMap.BACK_DOWN_LEFT: None,
-            PartRelationMap.BACK_DOWN_RIGHT: None
+            PartRelationMap.FRONT_UP_LEFT: [],
+            PartRelationMap.FRONT_UP_RIGHT: [],
+            PartRelationMap.FRONT_DOWN_LEFT: [],
+            PartRelationMap.FRONT_DOWN_RIGHT: [],
+            PartRelationMap.BACK_UP_LEFT: [],
+            PartRelationMap.BACK_UP_RIGHT: [],
+            PartRelationMap.BACK_DOWN_LEFT: [],
+            PartRelationMap.BACK_DOWN_RIGHT: [],
         }
         NAPartNode.id_map[id(self) % 4294967296] = self
         NAPartNode.all_dots.append(self.pos)
@@ -260,6 +260,10 @@ class NAPartNode:
         gl.glEndList()
 
 
+class XZLayerNode(NAPartNode):
+    ...
+
+
 class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
@@ -278,6 +282,7 @@ class NAPart:
         NAPart.ShipsAllParts.append(self)
         NAPart.id_map[id(self) % 4294967296] = self
         # 绘图指令集初始化
+        self.pre_genList = None
         self.genList = None
         self.updateList = False
         self.transparent_genList = None
@@ -408,8 +413,8 @@ class AdjustableHull(NAPart):
             [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
         ]
         self.operation_dot_nodes = [
-                dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
-                dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
+            dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
+            dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
         if self.UCur < 0.005 and self.DCur <= 0.005:
             self.plot_all_dots = self.operation_dot_nodes
             # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
@@ -828,6 +833,38 @@ class AdjustableHull(NAPart):
             "HOff": self.HOff,
         }
 
+    def draw_pre(self, gl):
+        alpha = 1
+        color = "#" + self.Col
+        # 16进制颜色转换为RGBA
+        _rate = 255
+        color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
+        gl.glColor4f(*color_)
+        if self.pre_genList:
+            gl.glCallList(self.pre_genList)
+            return
+        self.pre_genList = gl.glGenLists(1)
+        gl.glNewList(self.pre_genList, gl.GL_COMPILE_AND_EXECUTE)
+        try:
+            self.plot_faces = self.plot_faces
+        except AttributeError:
+            return
+        for draw_method, faces_dots in self.plot_faces.items():
+            # draw_method是字符串，需要转换为OpenGL的常量
+            for face in faces_dots:
+                gl.glBegin(eval(f"gl.{draw_method}"))
+                if len(face) == 3 or len(face) == 4:
+                    normal = get_normal(face[0], face[1], face[2])
+                elif len(face) > 12:
+                    normal = get_normal(face[0], face[6], face[12])
+                else:
+                    continue
+                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                for dot in face:
+                    gl.glVertex3f(dot[0], dot[1], dot[2])
+                gl.glEnd()
+        gl.glEndList()
+
     def draw(self, gl):
         alpha = 1
         color = "#" + self.Col
@@ -919,10 +956,11 @@ class MainWeapon(NAPart):
 
 
 class ReadNA:
-    NaPathMode = "path"
+    NaPathMode = "folder_path"
     NaDataMode = "data"
 
-    def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None, glWin=None, design_tab=False):
+    def __init__(self, filepath: Union[str, bool] = False, data=None, show_statu_func=None, glWin=None,
+                 design_tab=False):
         """
 
         :param filepath:
@@ -1251,9 +1289,13 @@ class PartRelationMap:
         :param newPart:
         :return: layer_t, relation_t, dot_t
         """
+        # 如果旋转角度不是90的倍数，就不添加
+        if int(newPart.Rot[0]) % 90 != 0 or int(newPart.Rot[1]) % 90 != 0 or int(newPart.Rot[2]) % 90 != 0:
+            return 0., 0., 0.
         # 点集
         st = time.time()
         if type(newPart) == AdjustableHull:
+            newPart.Pos = [round(newPart.Pos[0], 3), round(newPart.Pos[1], 3), round(newPart.Pos[2], 3)]
             for dot in newPart.operation_dot_nodes:
                 # dot是np.ndarray类型
                 _x = round(float(dot[0]), 3)
@@ -1261,6 +1303,29 @@ class PartRelationMap:
                 _z = round(float(dot[2]), 3)
                 if [_x, _y, _z] not in NAPartNode.all_dots:
                     node = NAPartNode([_x, _y, _z])
+                    # 判断零件在节点的哪一个卦限
+                    if newPart.Pos[0] > _x:
+                        if newPart.Pos[1] > _y:
+                            if newPart.Pos[2] > _z:
+                                node.near_parts[PartRelationMap.BACK_DOWN_LEFT].append(newPart)
+                            else:  # newPart.Pos[2] < _z
+                                node.near_parts[PartRelationMap.BACK_UP_LEFT].append(newPart)
+                        else:  # newPart.Pos[1] < _y
+                            if newPart.Pos[2] > _z:
+                                node.near_parts[PartRelationMap.FRONT_DOWN_LEFT].append(newPart)
+                            else:  # newPart.Pos[2] < _z
+                                node.near_parts[PartRelationMap.FRONT_UP_LEFT].append(newPart)
+                    else:  # newPart.Pos[0] < _x
+                        if newPart.Pos[1] > _y:
+                            if newPart.Pos[2] > _z:
+                                node.near_parts[PartRelationMap.BACK_DOWN_RIGHT].append(newPart)
+                            else:
+                                node.near_parts[PartRelationMap.BACK_UP_RIGHT].append(newPart)
+                        else:  # newPart.Pos[1] < _y
+                            if newPart.Pos[2] > _z:
+                                node.near_parts[PartRelationMap.FRONT_DOWN_RIGHT].append(newPart)
+                            else:  # newPart.Pos[2] < _z
+                                node.near_parts[PartRelationMap.FRONT_UP_RIGHT].append(newPart)
                 # DotsLayerMap
                 if _x not in self.yzDotsLayerMap.keys():
                     self.yzDotsLayerMap[_x] = [newPart]
@@ -1340,7 +1405,7 @@ class PartRelationMap:
             for other_part in other_parts.keys():
                 del self.basicMap[other_part][self.opposite_direction(direction)][part]
         # 删除自身
-        del self.basicMap[part]
+        self.basicMap[part] = {}
 
     def init(self, drawMap, init=True):
         """
