@@ -91,15 +91,20 @@ class Mod1SinglePartEditing(QWidget):
                     # redo_shortcut.activated.connect(lineEdit.redo)
 
     def mouse_wheel(self, event):
-        # 通过鼠标位置检测当前输入框
-        active_textEdit = None
-        pos = self.mapFromGlobal(QCursor.pos())
-        for key in self.content:
-            if key not in ["类型", "旋转"]:
-                for textEdit in self.content[key]["QLineEdit"]:
-                    if textEdit.geometry().contains(pos):
-                        active_textEdit = textEdit
-                        break
+        if type(event) == list:  # [QTextEdit, QWheelEvent]
+            # 是自己的程序在其他地方的调用，第一项就是需要修改的输入框
+            active_textEdit = event[0]
+            event = event[1]
+        else:
+            # 通过鼠标位置检测当前输入框
+            active_textEdit = None
+            pos = self.mapFromGlobal(QCursor.pos())
+            for key in self.content:
+                if key not in ["类型", "旋转"]:
+                    for textEdit in self.content[key]["QLineEdit"]:
+                        if textEdit.geometry().contains(pos):
+                            active_textEdit = textEdit
+                            break
         if active_textEdit is None:
             return
         step = self.wheel_change_value_map[active_textEdit]

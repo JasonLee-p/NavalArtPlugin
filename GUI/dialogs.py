@@ -620,10 +620,24 @@ class ExportDialog(BasicDialog):
         self.export2obj = False
         self.export_path = ""
         # 布局
-        self.center_layout = QVBoxLayout()
-        self.lb0 = MyLabel("导出功能尚未完成，敬请期待!", font=FONT_10)
-        self.lb0.setAlignment(Qt.AlignCenter)
-        self.center_layout.addWidget(self.lb0)
+        self.center_layout = QGridLayout()
+        # self.lb0 = MyLabel("导出功能尚未完成，敬请期待!", font=FONT_10)
+        # self.lb0.setAlignment(Qt.AlignCenter)
+        # self.center_layout.addWidget(self.lb0)
+        self.b0 = QPushButton("")
+        self.b1 = QPushButton("")
+        self.l0 = MyLabel("导出到na文件", font=FONT_10)
+        self.l1 = MyLabel("导出为obj文件", font=FONT_10)
+        self.button_group = CircleSelectButtonGroup(
+            [self.b0, self.b1],
+            parent=self,
+            half_size=7
+        )
+        self.center_layout.addWidget(self.b0, 0, 0)
+        self.center_layout.addWidget(self.b1, 1, 0)
+        self.center_layout.addWidget(self.l0, 0, 1)
+        self.center_layout.addWidget(self.l1, 1, 1)
+
         super().__init__(parent, title, size, self.center_layout)
         self.set_widget()
 
@@ -632,6 +646,7 @@ class ExportDialog(BasicDialog):
         self.center_layout.setContentsMargins(0, 0, 0, 0)
 
     def ensure(self):
+
         super().ensure()
 
 

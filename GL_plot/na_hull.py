@@ -13,6 +13,9 @@ from .basic import SolidObject, DotNode, get_normal
 
 
 class NAHull(ReadNA, SolidObject):
+    current_in_design_tab = None
+    current_in_preview_tab = None
+
     def __init__(self, path=False, data=None, show_statu_func=None, glWin=None, design_tab=False):
         """
         NAHull一定要在用户选完颜色之后调用，因为需要根据颜色来初始化DrawMap。
@@ -35,6 +38,11 @@ class NAHull(ReadNA, SolidObject):
         self.xzLayers = []  # 所有xz截面
         self.xyLayers = []  # 所有xy截面
         self.leftViews = []  # 中间yz截面
+        # 更新current静态变量
+        if design_tab:
+            NAHull.current_in_design_tab = self
+        else:
+            NAHull.current_in_preview_tab = self
 
     def get_layers(self):
         self.get_xz_layers()

@@ -5,6 +5,7 @@
 import json
 import os
 import time
+from typing import Union
 
 from PyQt5.QtWidgets import QMessageBox
 from path_utils import find_na_root_path
@@ -102,8 +103,8 @@ class ProjectFile:
         # 工程文件的属性
         if mode not in ProjectFile._available_modes:
             raise ValueError(f"operation_mode must be in {ProjectFile._available_modes}")
+        # 如果从文件加载：检查安全码
         if mode == ProjectFile.LOAD:
-            # 检查安全码
             if not self.check_data(code, save_time, na_parts_data, operations):
                 QMessageBox(QMessageBox.Warning, '警告', '工程文件已被修改！').exec_()
                 return
@@ -119,7 +120,7 @@ class ProjectFile:
         self.Config = {'State': self.State, 'Camera': self.Camera}
         self.NAPartsData = na_parts_data
         self.Operations = operations if operations else {}
-        self.json_data = {
+        self._json_data = {
             'Name': self.Name,
             'Code': self.Code,
             'CreateTime': self.CreateTime,
@@ -133,7 +134,12 @@ class ProjectFile:
         self._succeed_init = True
 
     @staticmethod
-    def load_project(path) -> 'ProjectFile':  # 从文件加载工程
+    def load_project(path) -> Union[None, 'ProjectFile']:
+        """
+        从工程文件加载工程
+        :param path:
+        :return:
+        """
         # 判断是否为json
         if not path.endswith('.json'):
             # 提示错误
@@ -183,14 +189,14 @@ class ProjectFile:
         from hashlib import sha1
         return str(sha1((self.SaveTime + str(self.NAPartsData) + str(self.Operations)).encode('utf-8')).hexdigest())
 
-    def save(self):
+    def save(self, folder_path=None):
         # 将工程数据写入工程文件
         self.SaveTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
                         f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
         self.Config['State'] = self.State
         self.Config['Camera'] = self.Camera
         self.Code = self.get_check_code()
-        self.json_data = {
+        self._json_data = {
             'Name': self.Name,
             'Code': self.Code,
             'CreateTime': self.CreateTime,
@@ -200,28 +206,12 @@ class ProjectFile:
             'NAPartsData': self.NAPartsData,
             'Operations': self.Operations,
         }
-        with open(self.Path, 'w', encoding='utf-8') as f:
-            json.dump(self.json_data, f, ensure_ascii=False, indent=2)
-
-    def save_as(self, folder_path):
-        # 将工程数据写入工程文件
-        self.SaveTime = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
-                        f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
-        self.Config['State'] = self.State
-        self.Config['Camera'] = self.Camera
-        self.Code = self.get_check_code()
-        self.json_data = {
-            'Name': self.Name,
-            'Code': self.Code,
-            'CreateTime': self.CreateTime,
-            'SaveTime': self.SaveTime,
-            'OriginalFilePath': self.OriginalFilePath,
-            'Config': self.Config,
-            'NAPartsData': self.NAPartsData,
-            'Operations': self.Operations,
-        }
-        with open(os.path.join(folder_path, self.Name + '.json'), 'w', encoding='utf-8') as f:
-            json.dump(self.json_data, f, ensure_ascii=False, indent=2)
+        if not folder_path:
+            _path = self.Path
+        else:
+            _path = os.path.join(folder_path, self.Name + '.json')
+        with open(_path, 'w', encoding='utf-8') as f:
+            json.dump(self._json_data, f, ensure_ascii=False, indent=2)
 
     def save_as_na(self, changed_na_file, output_file_path):  # 导出为NA船体
         # 以xml形式，na文件格式保存
