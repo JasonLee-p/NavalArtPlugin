@@ -8,7 +8,7 @@ from typing import Union
 import numpy as np
 from PyQt5.QtCore import QThread
 
-from ship_reader.NA_design_reader import ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap
+from ship_reader.NA_design_reader import ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap, NAPartNode
 from .basic import SolidObject, DotNode, get_normal
 
 
@@ -32,6 +32,14 @@ class NAHull(ReadNA, SolidObject):
         self.DrawMap = {}  # 绘图数据，键值对是：颜色 和 零件对象集合
         if design_tab:
             NAPart.hull_design_tab_id_map = {}
+            NAPartNode.id_map = {}
+            NaHullXZLayer.id_map = {}
+            NaHullXYLayer.id_map = {}
+            NaHullLeftView.id_map = {}
+            NAXZLayerNode.id_map = {}
+            NAXYLayerNode.id_map = {}
+            NALeftViewNode.id_map = {}
+            NAPartNode.all_dots = []
         ReadNA.__init__(self, path, data, self.show_statu_func, glWin, design_tab)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
         self.DrawMap = self.ColorPartsMap.copy()
@@ -82,9 +90,7 @@ class NAHull(ReadNA, SolidObject):
         # 将ColorPartMap转换为字典形式，以便于json序列化
         result = {}
         for color, part_set in data.items():
-            result[color] = []
-            for part in part_set:
-                result[color].append(part.to_dict())
+            result[color] = [part.to_dict() for part in part_set]
         return result
 
     def draw_color(self, gl, color, part_set, transparent):
@@ -148,6 +154,12 @@ class NAHull(ReadNA, SolidObject):
             # t = Thread(target=self.draw_color, args=(gl, theme_color, material, color, part_set))
             # t.start()
             self.draw_color(gl, color, part_set, transparent)
+
+    # 整体缩放
+    def scale(self, ratio):
+        for part_set in self.DrawMap.values():
+            for part in part_set:
+                part.scale(ratio)
 
 
 class DrawThread(QThread):

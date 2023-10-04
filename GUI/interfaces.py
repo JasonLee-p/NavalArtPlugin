@@ -6,14 +6,16 @@ from PyQt5.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
 # 本地库
 from .basic import *
 if Theme == "Day":
-    from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit
+    from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z
 elif Theme == "Night":
-    from UI_design.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit
+    from UI_design.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z
 
 # 图标
 ICO_ = b64decode(ICO)
 ADD_ = b64decode(add)
 CHOOSE_ = b64decode(choose)
+ADD_Y = b64decode(add_y)
+ADD_Z = b64decode(add_z)
 
 
 class MainWindow(QWidget):

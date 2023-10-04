@@ -5,10 +5,12 @@
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QPoint
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QKeyEvent, QCursor, QKeySequence, QIcon, QPixmap, QImage
 from PyQt5.QtGui import QMatrix4x4, QVector3D, QColor
-from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QPushButton, QToolBar, QMessageBox, QTabWidget, QAction
+from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QPushButton, QToolBar, QMessageBox, QTabWidget, QAction, QScrollArea
 from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QToolButton, QMenu, QCheckBox, QSlider, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 
+# 路径
+from .basic import ProjectFolder
 # 颜色
 from .basic import GLTheme
 from .basic import WHITE, GOLD, GRAY
@@ -22,10 +24,10 @@ from .basic import FONT_16, FONT_17, FONT_18, FONT_19, FONT_20, FONT_21, FONT_22
 from .basic import LOCAL_ADDRESS
 from .basic import WinWid, WinHei, RATE
 # 图标
-from .interfaces import ICO_, ADD_, CHOOSE_, minimize, maximize, maximize_exit
+from .interfaces import ICO_, ADD_, CHOOSE_, ADD_Y, ADD_Z, minimize, maximize, maximize_exit
 # 控件
 from .basic import MyLabel, MyMessageBox, MyComboBox, MySlider, MyLineEdit
-from .basic import CircleSelectButton, CircleSelectButtonGroup
+from .basic import CircleSelectButton, CircleSelectButtonGroup, SelectWidgetGroup
 from .basic import BasicDialog, ShortCutWidget
 from .interfaces import MainWindow, MainTabWidget
 from .dialogs import NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog
@@ -36,10 +38,12 @@ __all__ = [
     "Qt", "QThread", "pyqtSignal", "QSize", "QPoint",
     "QMouseEvent", "QWheelEvent", "QKeyEvent", "QCursor", "QKeySequence", "QIcon", "QPixmap", "QImage",
     "QMatrix4x4", "QVector3D", "QColor",
-    "QWidget", "QLabel", "QFrame", "QPushButton", "QToolBar", "QMessageBox", "QTabWidget", "QAction",
+    "QWidget", "QLabel", "QFrame", "QPushButton", "QToolBar", "QMessageBox", "QTabWidget", "QAction", "QScrollArea",
     "QApplication", "QFileDialog", "QShortcut", "QToolButton", "QMenu", "QCheckBox", "QSlider", "QTextEdit", "QLineEdit",
     "QVBoxLayout", "QHBoxLayout", "QGridLayout",
 
+    # 路径
+    "ProjectFolder",
     # 颜色
     "GLTheme",
     "WHITE", "GOLD", "GRAY",
@@ -53,10 +57,10 @@ __all__ = [
     "LOCAL_ADDRESS",
     "WinWid", "WinHei", "RATE",
     # 图标
-    "ICO_", "ADD_", "CHOOSE_", "minimize", "maximize", "maximize_exit",
+    "ICO_", "ADD_", "CHOOSE_", "ADD_Y", "ADD_Z", "minimize", "maximize", "maximize_exit",
     # 控件
     "MyLabel", "MyMessageBox", "MyComboBox", "MySlider", "MyLineEdit",
-    "CircleSelectButton", "CircleSelectButtonGroup",
+    "CircleSelectButton", "CircleSelectButtonGroup", "SelectWidgetGroup",
     "BasicDialog", "ShortCutWidget",
     "MainWindow", "MainTabWidget",
     "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog",

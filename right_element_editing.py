@@ -8,14 +8,26 @@ from PyQt5.QtGui import QDoubleValidator
 
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
+from ship_reader.NA_design_reader import PartRelationMap
 
 
 class Mod1SinglePartEditing(QWidget):
     def __init__(self):
         """
-        全视图模式，单零件元素检视器
+        全视图模式，单零件编辑器
         """
         super().__init__()
+        # 图标
+        self.ADD_Y = QPixmap.fromImage(QImage.fromData(ADD_Y))
+        self.ADD_Z = QPixmap.fromImage(QImage.fromData(ADD_Z))
+        self.ADD_Y = self.ADD_Y.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.ADD_Z = self.ADD_Z.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # 转化为控件
+        self.add_y_label = QLabel()
+        self.add_z_label = QLabel()
+        self.add_y_label.setPixmap(self.ADD_Y)
+        self.add_z_label.setPixmap(self.ADD_Z)
+        # 选择的对象
         self.selected_obj = Union[NAPart, AdjustableHull, None]
         self.allow_update_obj_when_editing = True
         self.content = {
@@ -35,7 +47,8 @@ class Mod1SinglePartEditing(QWidget):
             "高偏移": {"value": [0], "QLineEdit": [QLineEdit()]}
         }
         self.wheel_change_value_map = {
-            self.content["坐标"]["QLineEdit"][0]: float(0.1), self.content["坐标"]["QLineEdit"][1]: float(0.1), self.content["坐标"]["QLineEdit"][2]: float(0.1),
+            self.content["坐标"]["QLineEdit"][0]: float(0.1), self.content["坐标"]["QLineEdit"][1]: float(0.1),
+            self.content["坐标"]["QLineEdit"][2]: float(0.1),
             self.content["装甲"]["QLineEdit"][0]: int(1),
             self.content["原长度"]["QLineEdit"][0]: float(0.1), self.content["原高度"]["QLineEdit"][0]: float(0.1),
             self.content["前宽度"]["QLineEdit"][0]: float(0.1), self.content["后宽度"]["QLineEdit"][0]: float(0.1),
@@ -43,6 +56,21 @@ class Mod1SinglePartEditing(QWidget):
             self.content["上弧度"]["QLineEdit"][0]: float(0.1), self.content["下弧度"]["QLineEdit"][0]: float(0.1),
             self.content["高缩放"]["QLineEdit"][0]: float(0.1), self.content["高偏移"]["QLineEdit"][0]: float(0.1)
         }
+        # 单选框，用户选择当宽度编辑的时候相应的扩散是否修改，默认为修改。
+        self.circle_bt = CircleSelectButton(7, False)
+        self.keep_spread_label = MyLabel("保持扩散", FONT_9, side=Qt.AlignCenter)
+        self.keep_spread_label.setFixedSize(80, 20)
+        # 下方其他编辑
+        self.down_layout = QGridLayout()
+        # 按钮（包括前后细分，上下细分，向前添加层，向后添加层，向上添加层，向下添加层）
+        self.add_z_button = QPushButton()
+        self.add_y_button = QPushButton()
+        self.add_front_layer_button = QPushButton()
+        self.add_back_layer_button = QPushButton()
+        self.add_up_layer_button = QPushButton()
+        self.add_down_layer_button = QPushButton()
+        self.buttons = [self.add_z_button, self.add_y_button, self.add_front_layer_button, self.add_back_layer_button,
+                        self.add_up_layer_button, self.add_down_layer_button]
         # grid
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -89,6 +117,107 @@ class Mod1SinglePartEditing(QWidget):
                     # # 添加重做快捷键
                     # redo_shortcut = QShortcut(QKeySequence("Ctrl+Y"), lineEdit)
                     # redo_shortcut.activated.connect(lineEdit.redo)
+        # 添加输入框的值限制
+        self.content["上弧度"]["QLineEdit"][0].setValidator(QDoubleValidator(0, 1, 3))
+        self.content["下弧度"]["QLineEdit"][0].setValidator(QDoubleValidator(0, 1, 3))
+        self.content["高缩放"]["QLineEdit"][0].setValidator(QDoubleValidator(0, 1, 3))
+        # 第四五行右边添加单选框，圆圈在左1，文字在右
+        w = QWidget()
+        w.setLayout(QHBoxLayout())
+        w.layout().addWidget(self.circle_bt)
+        w.layout().addWidget(self.keep_spread_label)
+        self.keep_spread_label.mousePressEvent = lambda event: self.circle_bt.click()
+        w.mousePressEvent = lambda event: self.circle_bt.click()
+        self.layout.addWidget(w, 5, 2, 2, 2)
+        # 添加分割线
+        line = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        self.layout.addWidget(line, len(self.content), 0, 1, 4)
+        # 下一个标题
+        lb2 = MyLabel("添加零件", FONT_10, side=Qt.AlignCenter)
+        self.layout.addWidget(lb2, len(self.content) + 1, 0, 1, 4)
+        # 添加下方其他编辑
+        self.layout.addLayout(self.down_layout, len(self.content) + 2, 0, 1, 4)
+        self.down_layout.setSpacing(7)
+        self.down_layout.setContentsMargins(0, 0, 0, 0)
+        # 设置按钮样式
+        style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:hover{{background-color: {BG_COLOR2};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:pressed{{background-color: {BG_COLOR3};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}")
+        for i in range(len(self.buttons)):
+            self.buttons[i].setStyleSheet(style)
+            self.buttons[i].setLayout(QHBoxLayout())
+            self.buttons[i].layout().setSpacing(0)
+            self.buttons[i].layout().setContentsMargins(3, 3, 3, 3)
+            self.buttons[i].setFixedSize(90, 50)
+            self.down_layout.addWidget(self.buttons[i], 2 * (i // 2), i % 2)
+        # 按钮内添加控件
+        self.add_z_button.layout().addWidget(self.add_z_label)
+        self.add_y_button.layout().addWidget(self.add_y_label)
+        self.add_z_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
+        self.add_y_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
+        self.add_front_layer_button.layout().addWidget(MyLabel("向前添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_back_layer_button.layout().addWidget(MyLabel("向后添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_up_layer_button.layout().addWidget(MyLabel("向上添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_down_layer_button.layout().addWidget(MyLabel("向下添加层", FONT_9, side=Qt.AlignCenter))
+        # 绑定按钮事件
+        self.add_z_button.clicked.connect(self.add_z)
+        self.add_y_button.clicked.connect(self.add_y)
+        self.add_front_layer_button.clicked.connect(self.add_front_layer)
+        self.add_back_layer_button.clicked.connect(self.add_back_layer)
+        self.add_up_layer_button.clicked.connect(self.add_up_layer)
+        self.add_down_layer_button.clicked.connect(self.add_down_layer)
+
+    def add_z(self):
+        if self.selected_obj:
+            self.selected_obj.add_z(smooth=True)
+
+    def add_y(self):
+        # y轴细分
+        pass
+
+    def add_front_layer(self):
+        # 向前添加层
+        relation_map = self.selected_obj.allParts_relationMap.basicMap
+        if relation_map[self.selected_obj][PartRelationMap.FRONT]:
+            glWin = self.selected_obj.glWin
+            _next = list(relation_map[self.selected_obj][PartRelationMap.FRONT].keys())[0]
+            if type(_next) == NAPart:
+                return
+            glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
+            self.selected_obj = _next
+            self.update_context(self.selected_obj)
+            glWin.paintGL()
+            glWin.update()
+
+        else:
+            ...
+
+    def add_back_layer(self):
+        # 向后添加层
+        relation_map = self.selected_obj.allParts_relationMap.basicMap
+        if relation_map[self.selected_obj][PartRelationMap.BACK]:
+            glWin = self.selected_obj.glWin
+            _next = list(relation_map[self.selected_obj][PartRelationMap.BACK].keys())[0]
+            if type(_next) == NAPart:
+                return
+            glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
+            self.selected_obj = _next
+            self.update_context(self.selected_obj)
+            glWin.paintGL()
+            glWin.update()
+        else:
+            ...
+
+    def add_up_layer(self):
+        # 向上添加层
+        pass
+
+    def add_down_layer(self):
+        # 向下添加层
+        pass
 
     def mouse_wheel(self, event):
         if type(event) == list:  # [QTextEdit, QWheelEvent]
@@ -141,12 +270,13 @@ class Mod1SinglePartEditing(QWidget):
                 # 弧度值不在0-1之间，直接不修改
                 return
             active_textEdit.setText(str(round(value, 3)))
-            if active_textEdit == self.content["前宽度"]["QLineEdit"][0]:
-                txt = self.content["前扩散"]["QLineEdit"][0].text()
-                self.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
-            elif active_textEdit == self.content["后宽度"]["QLineEdit"][0]:
-                txt = self.content["后扩散"]["QLineEdit"][0].text()
-                self.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
+            if not self.circle_bt.isChecked():  # 扩散随着宽度变换
+                if active_textEdit == self.content["前宽度"]["QLineEdit"][0]:
+                    txt = self.content["前扩散"]["QLineEdit"][0].text()
+                    self.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
+                elif active_textEdit == self.content["后宽度"]["QLineEdit"][0]:
+                    txt = self.content["后扩散"]["QLineEdit"][0].text()
+                    self.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
         update_success = self.update_obj_when_editing()
 
     def update_obj_when_editing(self):
@@ -154,7 +284,8 @@ class Mod1SinglePartEditing(QWidget):
             return False
         # 当值被修改，更新被绘制对象的值
         changed = self.selected_obj.change_attrs(
-            [self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(), self.content["坐标"]["QLineEdit"][2].text()],
+            [self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
+             self.content["坐标"]["QLineEdit"][2].text()],
             self.content["装甲"]["QLineEdit"][0].text(),
             self.content["原长度"]["QLineEdit"][0].text(),
             self.content["原高度"]["QLineEdit"][0].text(),
@@ -172,6 +303,9 @@ class Mod1SinglePartEditing(QWidget):
 
     def update_context(self, selected_obj):
         self.selected_obj = selected_obj
+        if selected_obj is None:
+            self.hide()
+            return
         self.allow_update_obj_when_editing = False
         # 更新内容
         obj_type_text = "可调节船体" if selected_obj.Id == "0" else "其他零件"
@@ -192,6 +326,59 @@ class Mod1SinglePartEditing(QWidget):
             self.content["高缩放"]["QLineEdit"][0].setText(str(round(selected_obj.HScl, 3)))
             self.content["高偏移"]["QLineEdit"][0].setText(str(round(selected_obj.HOff, 3)))
         self.allow_update_obj_when_editing = True
+
+
+class Mod1AllPartsEditing(QWidget):
+    def __init__(self):
+        # 提供y，z平移，整体缩放，重置关系图 功能
+        super().__init__()
+        self.title = MyLabel("所有可调节船体", FONT_10, side=Qt.AlignCenter)
+        self.trans_button = QPushButton("整体平移")
+        self.scale_button = QPushButton("整体缩放")
+        self.remap_button = QPushButton("重新绑定零件关系")
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.init_layout()
+        self.init_button()
+
+    def init_button(self):
+        style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:hover{{background-color: {BG_COLOR2};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:pressed{{background-color: {BG_COLOR3};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}")
+        self.trans_button.setStyleSheet(style)
+        self.scale_button.setStyleSheet(style)
+        self.remap_button.setStyleSheet(style)
+        self.trans_button.setFixedSize(150, 30)
+        self.scale_button.setFixedSize(150, 30)
+        self.remap_button.setFixedSize(150, 30)
+        # 信号绑定
+        self.trans_button.clicked.connect(self.trans_all_parts)
+        self.scale_button.clicked.connect(self.scale_all_parts)
+        self.remap_button.clicked.connect(self.remap_all_parts)
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.layout.addWidget(self.title)
+        self.layout.addWidget(self.trans_button)
+        self.layout.addWidget(self.scale_button)
+        self.layout.addWidget(self.remap_button)
+
+    def trans_all_parts(self):
+        ...
+
+    def scale_all_parts(self):
+        ...
+
+    def remap_all_parts(self):
+        ...
+
+    def update_context(self):
+        pass
 
 
 class Mod2SingleLayerEditing(QWidget):

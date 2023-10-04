@@ -57,6 +57,49 @@ def get_normal(dot1, dot2, dot3, center=None):
         return QVector3D.crossProduct(v1, v2).normalized()
 
 
+def rotate_quaternion(vec, rot):
+    """
+    对np.array类型的向量进行四元数旋转
+    :param vec:
+    :param rot:
+    :return:
+    """
+    if rot == [0, 0, 0]:
+        # 标准化为单位向量
+        return vec / np.linalg.norm(vec)
+    # 转换为弧度
+    rot = np.radians(rot)
+    # 计算旋转的四元数
+    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
+    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
+    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
+
+    # 合并三个旋转四元数
+    q = quaternion(1, 0, 0, 0)
+    if RotateOrder == "XYZ":
+        q = q * quaternion(*q_x) * quaternion(*q_y) * quaternion(*q_z)
+    elif RotateOrder == "XZY":
+        q = q * quaternion(*q_x) * quaternion(*q_z) * quaternion(*q_y)
+    elif RotateOrder == "YXZ":
+        q = q * quaternion(*q_y) * quaternion(*q_x) * quaternion(*q_z)
+    elif RotateOrder == "YZX":
+        q = q * quaternion(*q_y) * quaternion(*q_z) * quaternion(*q_x)
+    elif RotateOrder == "ZXY":
+        q = q * quaternion(*q_z) * quaternion(*q_x) * quaternion(*q_y)
+    elif RotateOrder == "ZYX":
+        q = q * quaternion(*q_z) * quaternion(*q_y) * quaternion(*q_x)
+    else:
+        raise ValueError("Invalid RotateOrder!")
+
+    # 进行四元数旋转
+    rotated_point_quat = q * np.quaternion(0, *vec) * np.conj(q)
+    # 提取旋转后的点坐标
+    rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
+    # 标准化为单位向量
+    rotated_point = rotated_point / np.linalg.norm(rotated_point)
+    return rotated_point
+
+
 def rotate_quaternion2(dot_dict, scl, rot):
     """
     对点集进行四元数旋转
@@ -220,6 +263,90 @@ def rotate_quaternion1(dot_dict, scl, rot):
     return rotated_dot_dict
 
 
+def get_bezier(start, s_control, back, b_control, x):
+    """
+    计算贝塞尔曲线上的点的坐标，用np.array类型表示
+    :param start: 起点
+    :param s_control: 起点控制点
+    :param back: 终点
+    :param b_control: 终点控制点
+    :param x: 点的x坐标，x在start[0]和back[0]之间
+    :return: 返回贝塞尔曲线上的点坐标
+    """
+    # 计算 t 值
+    t = (x - start[0]) / (back[0] - start[0])
+
+    # 贝塞尔曲线公式
+    result = (1 - t)**3 * start + 3 * (1 - t)**2 * t * s_control + 3 * (1 - t) * t**2 * b_control + t**3 * back
+
+    return np.array(result)
+
+
+def fit_bezier(front_k, back_k, length, height, n, draw=False):
+    # 过滤n值>=2
+    if n < 2:
+        raise ValueError("n must be greater than or equal to 2")
+
+    # 计算控制点位置
+    distance = length / 4
+    start = np.array([0, 0])
+    end = np.array([length, height])
+    dir_s = np.array([1, front_k])
+    dir_b = np.array([1, back_k])
+    # 标准化后乘以距离
+    dir_s = dir_s * distance / np.linalg.norm(dir_s)
+    dir_b = dir_b * distance / np.linalg.norm(dir_b)
+    start_control = start + dir_s
+    end_control = end - dir_b
+    if draw:
+        # 在matplotlib绘制贝塞尔曲线：
+        import matplotlib.pyplot as plt
+        # 从0到length之间生成100个点
+        t_values = np.linspace(0, length, 100)
+        # 初始化存储曲线上点的空数组
+        curve_points = []
+        # 计算贝塞尔曲线上的点
+        for t in t_values:
+            point = get_bezier(start, start_control, end, end_control, t / length)
+            curve_points.append(point)
+        # 转换为NumPy数组以便于绘图
+        curve_points = np.array(curve_points)
+        # 绘制贝塞尔曲线
+        plt.figure(figsize=(8, 6))
+        plt.plot(curve_points[:, 0], curve_points[:, 1], label='Bezier Curve', color='blue')
+        plt.scatter([start[0], start_control[0], end[0], end_control[0]],
+                    [start[1], start_control[1], end[1], end_control[1]],
+                    color='red', marker='o', label='Control Points')
+        plt.title('Bezier Curve')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+    # 存储斜率的列表
+    slopes = []
+    # 计算每段的长度
+    last_point = None
+    step = length / n
+    # 计算每段的斜率
+    for i in range(n):
+        # 计算当前参数值
+        x = (i + 1) * step
+        # 计算贝塞尔曲线上的点坐标
+        point = get_bezier(start, start_control, end, end_control, x)
+        # 计算与前一个点的斜率，如果为第一个点则计算与起点的斜率
+        if i == 0:
+            slope = (point[1] - start[1]) / step
+        else:
+            slope = (point[1] - last_point[1]) / step
+        # 将斜率添加到列表中
+        slopes.append(slope)
+        # 保存上一个点的坐标
+        last_point = point
+
+    return slopes
+
+
 class NAPartNode:
     id_map = {}
     all_dots = []  # 不储存对象，储存所有点的坐标列表
@@ -295,6 +422,10 @@ class NAPart:
 
     def delete(self):
         del NAPart.id_map[id(self) % 4294967296]
+
+    def scale(self, ratio: list):
+        self.Scl = [self.Scl[0] * ratio[0], self.Scl[1] * ratio[1], self.Scl[2] * ratio[2]]
+        self.Pos = [self.Pos[0] * ratio[0], self.Pos[1] * ratio[1], self.Pos[2] * ratio[2]]
 
     def __str__(self):
         part_type = "NAPart"
@@ -789,6 +920,176 @@ class AdjustableHull(NAPart):
             #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
             self.glWin.update()
 
+    def add_z(self, smooth=False):
+        """
+        对零件进行z细分，平均分为前后两部分
+        :param smooth: 是否根据前后零件对中间层进行平滑
+        :return:
+        """
+        if self.HOff != 0:  # 暂时不支持有高度偏移的零件进行z细分
+            return
+        front_vector = np.array([0, 0, 1])
+        # 以0,0,1方向为前方，开始以self.Rot旋转
+        front_vector = rotate_quaternion(front_vector, self.Rot)
+        if self in self.allParts_relationMap.basicMap.keys():
+            # 寻找前后左右上下的零件
+            front_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.FRONT].keys())
+            back_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.BACK].keys())
+            left_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.LEFT].keys())
+            right_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.RIGHT].keys())
+            up_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.UP].keys())
+            down_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.DOWN].keys())
+            # 根据旋转角求出位置的偏移（往向量的方向移动1/4Len乘以缩放比例）
+            if front_vector.all() == np.array([0, 0, 1]).all():
+                front_parts, back_parts = front_parts, back_parts
+            elif front_vector.all() == np.array([0, 0, -1]).all():
+                front_parts, back_parts = back_parts, front_parts
+            elif front_vector.all() == np.array([1, 0, 0]).all():
+                front_parts, back_parts = left_parts, right_parts
+            elif front_vector.all() == np.array([-1, 0, 0]).all():
+                front_parts, back_parts = right_parts, left_parts
+            elif front_vector.all() == np.array([0, 1, 0]).all():
+                front_parts, back_parts = up_parts, down_parts
+            elif front_vector.all() == np.array([0, -1, 0]).all():
+                front_parts, back_parts = down_parts, up_parts
+            else:
+                front_parts, back_parts = [], []
+        else:
+            front_parts, back_parts = [], []
+        # 得到前后零件
+        front_part = None
+        back_part = None
+        if front_parts:
+            for p in front_parts:
+                v1 = np.array(p.Pos) - np.array(self.Pos)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
+                if np.linalg.norm(v1 - v2) < 0.001:
+                    # 如果前后相接：
+                    front_part = p
+                    break
+        if back_parts:
+            for p in back_parts:
+                v1 = np.array(self.Pos) - np.array(p.Pos)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
+                if np.linalg.norm(v1 - v2) < 0.001:
+                    # 如果前后相接：
+                    back_part = p
+                    break
+        if smooth and (front_part or back_part):
+            # 计算中间层的宽度变化率
+            self_wid_spr_ratio = (self.FWid - self.BWid) * self.Scl[0] / (self.Len * self.Scl[2])
+            # 计算中间层的扩散变化率
+            self_spr_spr_ratio = (self.FSpr - self.BSpr) * self.Scl[0] / (self.Len * self.Scl[2])
+            # 计算中间层的高度变化率
+            self_hei_scl_ratio = (self.Hei * self.HScl - self.Hei) / (self.Len * self.Scl[2])
+            if front_part:
+                # 前零件的宽度变化率
+                front_wid_spr_ratio = (front_part.FWid - front_part.BWid) * front_part.Scl[0] / (front_part.Len * front_part.Scl[2])
+                # 前零件的扩散变化率
+                front_spr_spr_ratio = (front_part.FSpr - front_part.BSpr) * front_part.Scl[0] / (front_part.Len * front_part.Scl[2])
+                # 前零件的高度变化率
+                front_hei_scl_ratio = (front_part.Hei * front_part.HScl - front_part.Hei) / (front_part.Len * front_part.Scl[2])
+            if back_part:
+                # 后零件的宽度变化率
+                back_wid_spr_ratio = (back_part.FWid - back_part.BWid) * back_part.Scl[0] / (back_part.Len * back_part.Scl[2])
+                # 后零件的扩散变化率
+                back_spr_spr_ratio = (back_part.FSpr - back_part.BSpr) * back_part.Scl[0] / (back_part.Len * back_part.Scl[2])
+                # 后零件的高度变化率
+                back_hei_scl_ratio = (back_part.Hei * back_part.HScl - back_part.Hei) / (back_part.Len * back_part.Scl[2])
+            if front_part and not back_part:
+                # 给back_part的比率赋值为前零件-2*(前零件-中零件)
+                back_wid_spr_ratio = front_wid_spr_ratio + 2 * (front_wid_spr_ratio - self_wid_spr_ratio)
+                back_spr_spr_ratio = front_spr_spr_ratio + 2 * (front_spr_spr_ratio - self_spr_spr_ratio)
+                back_hei_scl_ratio = front_hei_scl_ratio + 2 * (front_hei_scl_ratio - self_hei_scl_ratio)
+            elif not front_part and back_part:
+                # 给front_part的比率赋值为后零件-2*(后零件-中零件)
+                front_wid_spr_ratio = back_wid_spr_ratio + 2 * (back_wid_spr_ratio - self_wid_spr_ratio)
+                front_spr_spr_ratio = back_spr_spr_ratio + 2 * (back_spr_spr_ratio - self_spr_spr_ratio)
+                front_hei_scl_ratio = back_hei_scl_ratio + 2 * (back_hei_scl_ratio - self_hei_scl_ratio)
+            # 计算中间层分为两段后前后分别的比率
+            # 用贝塞尔曲线拟合
+            wid_ratios = fit_bezier(
+                front_wid_spr_ratio, back_wid_spr_ratio,
+                self.Len * self.Scl[2], (self.FWid - self.BWid) * self.Scl[0], 2)
+            spr_ratios = fit_bezier(
+                front_spr_spr_ratio, back_spr_spr_ratio,
+                self.Len * self.Scl[2], (self.FSpr - self.BSpr) * self.Scl[0], 2)
+            hei_ratios = fit_bezier(
+                front_hei_scl_ratio, back_hei_scl_ratio,
+                self.Len * self.Scl[2], (self.Hei * self.HScl - self.Hei) * self.Scl[1], 2)
+            B_wid_spr_ratio = wid_ratios[1]
+            B_spr_spr_ratio = spr_ratios[1]
+            B_hei_scl_ratio = hei_ratios[1]
+            # 计算前后零件的数值：
+            mid_width = self.BWid + B_wid_spr_ratio * self.Len * self.Scl[2] * 0.5
+            mid_spread = self.BSpr + B_spr_spr_ratio * self.Len * self.Scl[2] * 0.5
+            mid_height = self.Hei + B_hei_scl_ratio * self.Len * self.Scl[2] * 0.5
+        else:  # 不平滑的情况
+            mid_width = (self.FWid + self.BWid) / 2
+            mid_spread = (self.FSpr + self.BSpr) / 2
+            mid_height = (self.Hei * self.HScl + self.Hei) / 2
+        pos_offset = front_vector * self.Len / 4 * self.Scl[2]
+        F_Pos = np.array(self.Pos) + pos_offset
+        B_Pos = np.array(self.Pos) - pos_offset
+        F_Hei = mid_height
+        F_HScl = (self.Hei * self.HScl) / mid_height
+        B_Hei = self.Hei
+        B_HScl = mid_height / self.Hei
+
+        FP = AdjustableHull(
+            self.read_na_obj, self.Id, F_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len / 2, F_Hei, self.FWid, mid_width, self.FSpr, mid_spread, self.UCur, self.DCur, F_HScl, 0)
+        BP = AdjustableHull(
+            self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
+        # 删除原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
+        # 往read_na的drawMap中添加零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(FP)
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(BP)
+        if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
+            # 添加关系图
+            self.allParts_relationMap.replace(FP, BP, self, None)
+        # 删除原来的零件
+        NAPart.id_map.pop(id(self) % 4294967296)
+        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
+        # 添加新的零件
+        NAPart.hull_design_tab_id_map[id(FP) % 4294967296] = FP
+        NAPart.hull_design_tab_id_map[id(BP) % 4294967296] = BP
+        self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode] = [FP, BP]
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = True
+        self.glWin.paintGL()
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = False
+        self.glWin.update()
+
+    def scale(self, ratio: list, update=False):
+        super().scale(ratio)
+        self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
+        self.plot_faces = self.get_plot_faces()
+        if update:
+            # 修改glWin的genList状态
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = True
+            self.glWin.update_selected_list = True
+            self.glWin.list_id_selected = None
+            # 修改零件本身的genList状态
+            self.updateList = True
+            self.update_selectedList = True
+            self.glWin.paintGL()
+            self.glWin.update()
+            # 修改glWin的genList状态
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = False
+            self.glWin.update_selected_list = False
+            # 修改零件本身的genList状态
+            self.updateList = False
+            self.update_selectedList = False
+        return True
+
     def __str__(self):
         part_type = str(self.__class__.__name__)
         return str(
@@ -865,8 +1166,9 @@ class AdjustableHull(NAPart):
                 gl.glEnd()
         gl.glEndList()
 
-    def draw(self, gl):
-        alpha = 1
+    def draw(self, gl, transparent=False):
+        gl.glLoadName(id(self) % 4294967296)
+        alpha = 1 if transparent is False else 0.3
         color = "#" + self.Col
         # 16进制颜色转换为RGBA
         _rate = 255
@@ -921,8 +1223,8 @@ class AdjustableHull(NAPart):
                     gl.glVertex3f(dot[0], dot[1], dot[2])
                 gl.glEnd()
         gl.glColor4f(*theme_color["橙色"][0])
+        gl.glLineWidth(3)
         for _line_name, line in self.plot_lines.items():
-            gl.glLineWidth(2)
             # 首尾不相连
             gl.glBegin(gl.GL_LINE_STRIP)
             for dot in line:
@@ -1030,7 +1332,8 @@ class ReadNA:
                         obj = AdjustableHull(
                             self,
                             part["Id"],
-                            tuple(part["Pos"]), tuple(part["Rot"]), tuple(abs(i) for i in part["Scl"]),
+                            tuple(part["Pos"]), tuple([round(i, 3) for i in part["Rot"]]),
+                            tuple(abs(i) for i in part["Scl"]),
                             str(part["Col"]), int(part["Amr"]),
                             float(part["Len"]), float(part["Hei"]),
                             float(part["FWid"]), float(part["BWid"]),
@@ -1107,7 +1410,7 @@ class ReadNA:
                 _rot = part.find('rotation').attrib
                 _scl = part.find('scale').attrib
                 _pos = (float(_pos['x']), float(_pos['y']), float(_pos['z']))
-                _rot = (float(_rot['x']), float(_rot['y']), float(_rot['z']))
+                _rot = (round(float(_rot['x']), 3), round(float(_rot['y']), 3), round(float(_rot['z']), 3))
                 _scl = (float(_scl['x']), float(_scl['y']), float(_scl['z']))
                 _scl = tuple(abs(i) for i in _scl)
                 _col = str(part.find('color').attrib['hex'])
@@ -1289,6 +1592,8 @@ class PartRelationMap:
         :param newPart:
         :return: layer_t, relation_t, dot_t
         """
+        if type(newPart) != AdjustableHull:
+            return 0., 0., 0.
         # 如果旋转角度不是90的倍数，就不添加
         if int(newPart.Rot[0]) % 90 != 0 or int(newPart.Rot[1]) % 90 != 0 or int(newPart.Rot[2]) % 90 != 0:
             return 0., 0., 0.
@@ -1394,6 +1699,84 @@ class PartRelationMap:
         relation_t = round(time.time() - st, 4)
         return layer_t, relation_t, dot_t
 
+    def replace(self, part0, part1, replaced_part, direction):
+        """
+
+        :param part0: 在该方向值大的零件，注意，不是在原零件坐标系的方向，而是在世界坐标系的方向
+        :param part1: 在该方向值小的零件，注意，不是在原零件坐标系的方向，而是在世界坐标系的方向
+        :param replaced_part:
+        :param direction:
+        :return:
+        """
+        # if replaced_part not in self.basicMap.keys():
+        #     return # 如果被替换零件不在basicMap中，就不替换
+        if not direction:
+            # 自行判断方向
+            if part0.Pos[0] == part1.Pos[0] and part0.Pos[1] == part1.Pos[1]:
+                direction = self.FRONT_BACK
+                if part0.Pos[2] < part1.Pos[2]:
+                    part0, part1 = part1, part0
+            elif part0.Pos[0] == part1.Pos[0] and part0.Pos[2] == part1.Pos[2]:
+                direction = self.UP_DOWN
+                if part0.Pos[1] < part1.Pos[1]:
+                    part0, part1 = part1, part0
+            elif part0.Pos[1] == part1.Pos[1] and part0.Pos[2] == part1.Pos[2]:
+                direction = self.LEFT_RIGHT
+                if part0.Pos[0] < part1.Pos[0]:
+                    part0, part1 = part1, part0
+        new_map0 = {self.FRONT: {}, self.BACK: {}, self.UP: {}, self.DOWN: {}, self.LEFT: {}, self.RIGHT: {}}
+        new_map1 = {self.FRONT: {}, self.BACK: {}, self.UP: {}, self.DOWN: {}, self.LEFT: {}, self.RIGHT: {}}
+        # 定义一个方向映射，以便根据不同的方向进行操作
+        direction_map = {
+            self.FRONT_BACK: (self.FRONT, self.BACK),
+            self.UP_DOWN: (self.UP, self.DOWN),
+            self.LEFT_RIGHT: (self.LEFT, self.RIGHT)
+        }
+        dir_index_map = {
+            self.FRONT_BACK: 2,
+            self.UP_DOWN: 1,
+            self.LEFT_RIGHT: 0
+        }
+        if not direction:
+            return
+        new_map0[direction_map[direction][1]] = {part1: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
+        new_map1[direction_map[direction][0]] = {part0: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
+        # 获取被替换零件的关系图
+        replaced_relation_map = self.basicMap[replaced_part]
+        for part in replaced_relation_map[direction_map[direction][0]].keys():
+            # 给新零件添加关系
+            new_map0[direction_map[direction][0]][part] = abs(part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+            new_map1[direction_map[direction][0]][part] = abs(part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
+            # 给原零件添加关系
+            if part in self.basicMap.keys():
+                self.basicMap[part][direction_map[direction][1]][part0] = abs(
+                    part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+                self.basicMap[part][direction_map[direction][1]][part1] = abs(
+                    part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
+            # 给原零件删除关系
+            del self.basicMap[part][direction_map[direction][1]][replaced_part]
+            # 给原零件重排序
+            self.basicMap[part][direction_map[direction][1]] = dict(
+                sorted(self.basicMap[part][direction_map[direction][1]].items(), key=lambda x: x[1]))
+        for part in replaced_relation_map[direction_map[direction][1]].keys():
+            # 给新零件添加关系
+            new_map0[direction_map[direction][1]][part] = abs(part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+            new_map1[direction_map[direction][1]][part] = abs(part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
+            # 给原零件添加关系
+            self.basicMap[part][direction_map[direction][0]][part0] = abs(
+                part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+            self.basicMap[part][direction_map[direction][0]][part1] = abs(
+                part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
+            # 给原零件删除关系
+            del self.basicMap[part][direction_map[direction][0]][replaced_part]
+            # 给原零件重排序
+            self.basicMap[part][direction_map[direction][0]] = dict(
+                sorted(self.basicMap[part][direction_map[direction][0]].items(), key=lambda x: x[1]))
+        self.basicMap[part0] = new_map0
+        self.basicMap[part1] = new_map1
+        # 删除被替换零件
+        del self.basicMap[replaced_part]
+
     def del_part(self, part):
         """
         删除零件
@@ -1406,6 +1789,28 @@ class PartRelationMap:
                 del self.basicMap[other_part][self.opposite_direction(direction)][part]
         # 删除自身
         self.basicMap[part] = {}
+
+    def remap(self, drawMap):
+        st = time.time()
+        total_parts_num = sum([len(parts) for parts in drawMap.values()])
+        i = 1
+        for _color, parts in drawMap.items():
+            for part in parts:
+                layer_t, relation_t, dot_t = self.add_part(part)
+                # 标准化（填补0）
+                layer_t = str(layer_t).ljust(6, '0')
+                relation_t = str(relation_t).ljust(6, '0')
+                dot_t = str(dot_t).ljust(6, '0')
+                if i % 3 == 0:
+                    process = round(i / total_parts_num * 100, 2)
+                    self.show_statu_func(
+                        f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
+                        f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s", "process")
+                i += 1
+        self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
+        st = time.time()
+        self.sort()
+        self.show_statu_func(f"零件关系图排序完成! 耗时：{time.time() - st}s", "success")
 
     def init(self, drawMap, init=True):
         """

@@ -134,7 +134,7 @@ class ProjectFile:
         self._succeed_init = True
 
     @staticmethod
-    def load_project(path) -> Union[None, 'ProjectFile']:
+    def load_project_from_na(path: str) -> Union[None, 'ProjectFile']:
         """
         从工程文件加载工程
         :param path:
@@ -213,7 +213,7 @@ class ProjectFile:
         with open(_path, 'w', encoding='utf-8') as f:
             json.dump(self._json_data, f, ensure_ascii=False, indent=2)
 
-    def save_as_na(self, changed_na_file, output_file_path):  # 导出为NA船体
+    def save_as_na(self, original_na_path, output_file_path):  # 导出为NA船体
         # 以xml形式，na文件格式保存
         """
         文件格式：
@@ -235,7 +235,78 @@ class ProjectFile:
               <armor value="5" />
             </part>
           </root>
-        :param changed_na_file:
+
+        AdjustableHull数据格式：{
+            "Typ": 'AdjustableHull',
+            "Id": self.Id,
+            "Pos": list(self.Pos),
+            "Rot": list(self.Rot),
+            "Scl": list(self.Scl),
+            "Col": str(self.Col),
+            "Amr": self.Amr,
+            "Len": self.Len,
+            "Hei": self.Hei,
+            "FWid": self.FWid,
+            "BWid": self.BWid,
+            "FSpr": self.FSpr,
+            "BSpr": self.BSpr,
+            "UCur": self.UCur,
+            "DCur": self.DCur,
+            "HScl": self.HScl,
+            "HOff": self.HOff,
+        }
+        :param original_na_path:
         :param output_file_path:
         :return:
         """
+        colors = [col[1:] for col in self.NAPartsData.keys()]
+        # 打开original_na_path（以xml形式）
+        import xml.etree.ElementTree as ET
+        root = ET.parse(original_na_path).getroot()
+        ship = root.find('ship')
+        # 寻找颜色在color中且id为0的part
+        for part in ship.findall('part'):
+            if part.attrib['id'] == '0':
+                if part.find('color').attrib['hex'] in colors:
+                    # 删除该part
+                    ship.remove(part)
+        root.remove(ship)
+        # 将self.NAPartsData中的数据写入xml
+        for color, part_set in self.NAPartsData.items():
+            for part in part_set:
+                if part["Typ"] != 'AdjustableHull':
+                    continue
+                _part = ET.SubElement(root, 'part')
+                _part.attrib['id'] = str(part["Id"])
+                _data = ET.SubElement(_part, 'data')
+                _data.attrib['length'] = str(part["Len"])
+                _data.attrib['height'] = str(part["Hei"])
+                _data.attrib['frontWidth'] = str(part["FWid"])
+                _data.attrib['backWidth'] = str(part["BWid"])
+                _data.attrib['frontSpread'] = str(part["FSpr"])
+                _data.attrib['backSpread'] = str(part["BSpr"])
+                _data.attrib['upCurve'] = str(part["UCur"])
+                _data.attrib['downCurve'] = str(part["DCur"])
+                _data.attrib['heightScale'] = str(part["HScl"])
+                _data.attrib['heightOffset'] = str(part["HOff"])
+                _pos = ET.SubElement(_part, 'position')
+                _pos.attrib['x'] = str(part["Pos"][0])
+                _pos.attrib['y'] = str(part["Pos"][1])
+                _pos.attrib['z'] = str(part["Pos"][2])
+                _rot = ET.SubElement(_part, 'rotation')
+                _rot.attrib['x'] = str(part["Rot"][0])
+                _rot.attrib['y'] = str(part["Rot"][1])
+                _rot.attrib['z'] = str(part["Rot"][2])
+                _scl = ET.SubElement(_part, 'scale')
+                _scl.attrib['x'] = str(part["Scl"][0])
+                _scl.attrib['y'] = str(part["Scl"][1])
+                _scl.attrib['z'] = str(part["Scl"][2])
+                _col = ET.SubElement(_part, 'color')
+                _col.attrib['hex'] = str(part["Col"])
+                _amr = ET.SubElement(_part, 'armor')
+                _amr.attrib['value'] = str(part["Amr"])
+                ship.append(_part)
+        root.append(ship)
+        tree = ET.ElementTree(root)
+        # 保存xml
+        tree.write(output_file_path, encoding='utf-8', xml_declaration=True)

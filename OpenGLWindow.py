@@ -12,7 +12,7 @@ from PyQt5.QtCore import QTimer, QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer, \
-    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter
+    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat
 from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -356,15 +356,27 @@ class OpenGLWin(QOpenGLWidget):
         # =====================================================================================全视图部件模式
         elif self.show_3d_obj_mode[0] == OpenGLWin.ShowAll:  # 如果有钢铁物体，就绘制钢铁物体
             if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是部件模式
-                for mt, objs in self.all_3d_obj.items():
-                    for obj in objs:
-                        obj.glWin = self
-                        obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color)
+                if self.using_various_mode:
+                    for part in NAPart.hull_design_tab_id_map.copy().values():
+                        if type(part) != AdjustableHull:
+                            continue
+                        part.draw(self.gl2_0)
+                        part.glWin = self
+                # for mt, objs in self.all_3d_obj.items():
+                #     for obj in objs:
+                #         obj.glWin = self
+                #         obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color)
             elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):  # 如果是节点模式
-                for mt, objs in self.all_3d_obj.items():
-                    for obj in objs:
-                        obj.glWin = self
-                        obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color, transparent=True)
+                if self.using_various_mode:
+                    for part in NAPart.hull_design_tab_id_map.copy().values():
+                        if type(part) != AdjustableHull:
+                            continue
+                        part.draw(self.gl2_0, transparent=True)
+                        part.glWin = self
+                # for mt, objs in self.all_3d_obj.items():
+                #     for obj in objs:
+                #         obj.glWin = self
+                #         obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color, transparent=True)
                 self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)  # 启用光源1
                 for node in NAPartNode.id_map.copy().values():
                     node.draw(self.gl2_0, theme_color=self.theme_color)
@@ -615,7 +627,7 @@ class OpenGLWin(QOpenGLWidget):
                 gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
                 # 设置透视投影
                 aspect_ratio = self.width / self.height
-                gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)  # 设置透视投影
+                gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)  # 设置透视投影
                 self.gl2_0.glMatrixMode(GL_MODELVIEW)
                 self.paintGL()  # 重新渲染场景
                 self.gl2_0.glMatrixMode(GL_PROJECTION)
@@ -675,7 +687,7 @@ class OpenGLWin(QOpenGLWidget):
                 (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
             )
             # 设置透视投影
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)
             # 转换回模型视图矩阵
             self.gl2_0.glMatrixMode(GL_MODELVIEW)
             self.paintGL()
@@ -721,7 +733,7 @@ class OpenGLWin(QOpenGLWidget):
                 (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
             )
             # 设置透视投影
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)
             # 转换回模型视图矩阵
             self.gl2_0.glMatrixMode(GL_MODELVIEW)
             self.paintGL()
@@ -1048,14 +1060,13 @@ class OpenGLWin(QOpenGLWidget):
         self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
         self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
 
-
     def init_view(self):
         # 适应窗口大小
         glViewport(0, 0, self.width, self.height)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         aspect_ratio = self.width / self.height
-        gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)  # 设置透视投影
+        gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)  # 设置透视投影
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
@@ -1063,6 +1074,10 @@ class OpenGLWin(QOpenGLWidget):
         glShadeModel(GL_SMOOTH)  # 设置阴影平滑模式
         glClearDepth(1.0)  # 设置深度缓存
         glEnable(GL_DEPTH_TEST)  # 启用深度测试
+        # 设置深度缓冲为32位
+        f = QSurfaceFormat()
+        f.setDepthBufferSize(32)
+        self.setFormat(f)
         glDepthFunc(GL_LEQUAL)  # 所作深度测试的类型
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)  # 告诉系统对透视进行修正
         glEnable(GL_NORMALIZE)  # 启用法向量规范化
@@ -1150,7 +1165,7 @@ class DesignTabGLWinMenu(QMenu):
             self.delete_selected_objects_A: False,
             self.add_selected_objects_A: False,
             self.import_selected_objects_A: True,
-            self.export_selected_objects_A: False,
+            self.export_selected_objects_A: True
         }
         for action, available in self.actions.items():
             action.setEnabled(available)
@@ -1563,7 +1578,7 @@ class OpenGLWin2(QOpenGLWidget):
             gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
             # 设置透视投影
             aspect_ratio = self.width / self.height
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)  # 设置透视投影
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)  # 设置透视投影
             glMatrixMode(GL_MODELVIEW)
             self.paintGL()  # 重新渲染场景
             glMatrixMode(GL_PROJECTION)
@@ -1603,7 +1618,7 @@ class OpenGLWin2(QOpenGLWidget):
                 (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
             )
             # 设置透视投影
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)
             # 转换回模型视图矩阵
             glMatrixMode(GL_MODELVIEW)
             self.paintGL()
@@ -1648,7 +1663,7 @@ class OpenGLWin2(QOpenGLWidget):
             (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
         )
         # 设置透视投影
-        gluPerspective(self.fovy, aspect_ratio, 0.1, 5000.0)
+        gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)
         # 转换回模型视图矩阵
         glMatrixMode(GL_MODELVIEW)
         self.paintGL()

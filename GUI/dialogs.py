@@ -26,6 +26,8 @@ def front_completion(string, length, add_char):
 
 
 class NewProjectDialog(BasicDialog):
+    current = None
+
     def ensure(self):
         # 外传参数
         self.create_new_project = True
@@ -51,7 +53,7 @@ class NewProjectDialog(BasicDialog):
             return
         super().ensure()
 
-    def __init__(self, parent, title="新建工程", size=QSize(750, 580)):
+    def __init__(self, parent, title="新建工程", size=QSize(750, 600)):
         # 外传参数（初始化ProjectFile类需要的参数）
         self.create_new_project = False
         self.generate_mode = None
@@ -62,6 +64,7 @@ class NewProjectDialog(BasicDialog):
         self.OriginalNAPath = ''
         self.PTBPath = find_ptb_path()
         self.PTBDesignPath = ''
+        self.ProjectFolder = ProjectFolder
         # 控件
         self.center_layout = QVBoxLayout()
         self.center_top_layout = QGridLayout()
@@ -135,6 +138,7 @@ class NewProjectDialog(BasicDialog):
         set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
         set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
         super().__init__(parent, title, size, self.center_layout)
+        NewProjectDialog.current = self
 
     def set_widgets(self):
         self.center_layout.setContentsMargins(70, 55, 70, 0)
@@ -324,7 +328,7 @@ class NewProjectDialog(BasicDialog):
         """
         用户选择路径
         """
-        choose_path_from = self.NAPath
+        choose_path_from = self.ProjectFolder
         path = QFileDialog.getExistingDirectory(self, "选择工程路径", choose_path_from)
         self.input_path.setText(path)
 
@@ -369,6 +373,84 @@ class NewProjectDialog(BasicDialog):
 
     def select_preset(self):
         ...
+
+
+class SelectNaDialog(BasicDialog):
+    def __init__(self, parent, title="选择您的NavalArt设计", size=QSize(1300, 700)):
+        # 信号
+        self.NaPath = os.path.join(find_na_root_path(), 'ShipSaves')
+        self.NaThumbnailPath = os.path.join(self.NaPath, 'Thumbnails')
+        self.selected_na_design = None
+        # =======================================================================================布局
+        self.center_layout = QVBoxLayout()
+        # 滚动区，用于显示缩略图，缩略图下方是一个label，用于显示船体名称
+        self.scroll_area = QScrollArea()
+        self.scroll_area_widget = QWidget()
+        self.scroll_area_widget_layout = QGridLayout()
+        super().__init__(parent, title, size, self.center_layout, resizable=True)
+        # 当鼠标移动到窗口边缘按下，添加缩放功能
+        self.setMouseTracking(True)
+        self.na_designs = {}
+        self.set_widgets()
+        self.container_group = SelectWidgetGroup(
+            list(self.na_designs.values()), self.scroll_area_widget,
+            original_style_sheet=f"background-color: {BG_COLOR0}; border-radius: 10px;",
+            selected_style_sheet=f"background-color: {BG_COLOR3}; border-radius: 10px;"
+        )
+
+    def set_widgets(self):
+        self.center_layout.setContentsMargins(25, 25, 25, 25)
+        self.center_layout.setSpacing(25)
+        self.center_layout.addWidget(self.scroll_area)
+        self.scroll_area.setWidget(self.scroll_area_widget)
+        self.scroll_area_widget.setLayout(self.scroll_area_widget_layout)
+        self.scroll_area_widget_layout.setAlignment(Qt.AlignCenter)
+        self.scroll_area_widget_layout.setContentsMargins(30, 30, 30, 30)
+        self.scroll_area_widget_layout.setSpacing(25)
+        # 遍历NaPath下的所有.na文件，在ThumbnailPath下找到对应的缩略图，显示在scroll_area中
+        total_num = 0
+        for file in os.listdir(self.NaPath):
+            if not file.endswith('.na'):
+                continue
+            # 在ThumbnailPath下找到对应的缩略图
+            thumbnail_path = os.path.join(self.NaThumbnailPath, file.split('.')[0] + '.png')
+            if not os.path.exists(thumbnail_path):
+                continue
+            # 生成文字label
+            label = MyLabel(file.split('.')[0], font=FONT_10)
+            label.setAlignment(Qt.AlignCenter)
+            # 生成图片label
+            thumbnail = QPixmap(thumbnail_path).scaled(220, 200, Qt.KeepAspectRatio)
+            thumbnail_label = QLabel()
+            thumbnail_label.setPixmap(thumbnail)
+            thumbnail_label.setAlignment(Qt.AlignCenter)
+            # 主容器（按钮，上图片下文字）
+            bt = QPushButton()
+            bt.setFixedSize(260, 220)
+            bt.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+            bt_layout = QVBoxLayout()
+            bt_layout.addWidget(thumbnail_label)
+            bt_layout.addWidget(label)
+            bt.setLayout(bt_layout)
+            # 将容器添加到布局中
+            self.na_designs[file.split('.')[0]] = bt
+            self.scroll_area_widget_layout.addWidget(bt, total_num // 4, total_num % 4, Qt.AlignCenter)
+            total_num += 1
+        self.set_scroll_area_widget(total_num)
+
+    def set_scroll_area_widget(self, total_num):
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFixedSize(1250, 585)
+        self.scroll_area.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+        self.scroll_area_widget.setFixedSize(1200, 240 * (total_num // 4 + 1))
+        self.scroll_area_widget_layout.setAlignment(Qt.AlignTop)
+        style = str(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+        self.scroll_area_widget.setStyleSheet(style)
+
+    def ensure(self):
+        index = self.container_group.selected_bt_index
+        self.selected_na_design = list(self.na_designs.keys())[index]
+        super().ensure()
 
 
 class ThemeDialog(BasicDialog):
@@ -491,6 +573,7 @@ class ColorDialog(BasicDialog):
     color_selected = pyqtSignal()
 
     def __init__(self, parent, na_hull):
+        self.canceled = False
         self.title = "选择：该设计中 船体独有的颜色"
         self.na_hull = na_hull
         self.color_parts_map = self.na_hull.ColorPartsMap
@@ -502,7 +585,12 @@ class ColorDialog(BasicDialog):
         self.color_partNum_map = dict(sorted(self.color_partNum_map.items(), key=lambda x: x[1], reverse=True))
         self.color_choose_map = {}
         # 生成颜色选择按钮（显示出该颜色，并且在色块上显示出该颜色对应的部件数量，下方是勾选框，用于选择是否显示该颜色）
+        self.center_layout = QVBoxLayout()
+        # 滚动区
         self.center_grid_layout = QGridLayout()
+        self.scroll_area = QScrollArea()
+        self.scroll_area_widget = QWidget()
+
         # 颜色行数
         lines = -1
         for color, num in self.color_partNum_map.items():
@@ -563,19 +651,28 @@ class ColorDialog(BasicDialog):
         self.all_choose_box = QCheckBox("全选")
         self.all_choose_box.setStyleSheet(f"color: {FG_COLOR0};"
                                           f"font: 11pt '微软雅黑';")
-        self.all_choose_box.setFixedSize(80, 80)
+        self.all_choose_box.setFixedSize(80, 70)
         self.all_choose_box.stateChanged.connect(self.all_choose_box_state_changed)
-        self.center_grid_layout.addWidget(
-            self.all_choose_box, lines * 4 + 4, 0, 1, min(15, self.color_num), alignment=Qt.AlignCenter)
         # 设置布局
+        top_and_bottom_and_button_height = 170
+        single_line_h = 200
         if 3 < self.color_num <= 15:
             size = QSize(100 + self.color_num * 85, 380)
-        elif self.color_num > 15:
-            size = QSize(100 + 15 * 85, 380 + lines * 170)
+            self.scroll_area_widget.setFixedSize(size.width() - 25, single_line_h + 20)
+        elif 15 < self.color_num <= 45:
+            size = QSize(100 + 15 * 85, (1 + lines) * single_line_h + top_and_bottom_and_button_height)
+            self.scroll_area_widget.setFixedSize(size.width() - 25, (1 + lines) * single_line_h + 20)
+        elif 45 < self.color_num:
+            size = QSize(100 + 15 * 85, 3 * single_line_h + top_and_bottom_and_button_height)
+            self.scroll_area_widget.setFixedSize(size.width() - 25, (1 + lines) * single_line_h + 20)
         else:
-            size = QSize(360, 380)
-        super().__init__(parent, self.title, size, self.center_grid_layout)
+            size = QSize(320, 380)
+            self.scroll_area_widget.setFixedSize(size.width() - 25, single_line_h + 20)
+        self.scroll_area.setFixedSize(size.width(), size.height() - top_and_bottom_and_button_height + 20)
+        super().__init__(parent, self.title, size, self.center_layout)
         self.set_widget()
+        self.cancel_button.clicked.connect(self.cancel)
+        self.close_button.clicked.connect(self.cancel)
 
     @staticmethod
     def color_block_pressed(event, choose_box):
@@ -591,15 +688,29 @@ class ColorDialog(BasicDialog):
                 choose_box.setChecked(False)
 
     def set_widget(self):
-        # 上下间距
-        self.center_grid_layout.setSpacing(5)
-        self.center_grid_layout.setContentsMargins(50, 30, 50, 0)
-        # 居中
+        self.scroll_area_widget.setLayout(self.center_grid_layout)
+        self.scroll_area.setWidget(self.scroll_area_widget)
+        self.center_layout.addWidget(self.scroll_area)
+        self.center_layout.setAlignment(Qt.AlignCenter)
+        self.center_grid_layout.setAlignment(Qt.AlignCenter)
+        self.scroll_area.setAlignment(Qt.AlignCenter)
+        self.center_layout.addWidget(self.all_choose_box, alignment=Qt.AlignCenter)
+        # 滚动区边框取消
+        self.center_layout.setContentsMargins(0, 0, 0, 0)
+        self.scroll_area.setStyleSheet("border: 0px;")
+        self.center_grid_layout.setHorizontalSpacing(20)
+        self.center_grid_layout.setVerticalSpacing(15)
+        self.center_grid_layout.setContentsMargins(10, 40, 10, 0)
 
+    # noinspection PyUnresolvedReferences
     def close(self) -> bool:
-        self.color_selected.emit()
         return super().close()
 
+    def cancel(self):
+        self.canceled = True
+        self.close()
+
+    # noinspection PyUnresolvedReferences
     def ensure(self):
         draw_map = {}
         for color, choose_box in self.color_choose_map.items():
@@ -607,23 +718,19 @@ class ColorDialog(BasicDialog):
                 draw_map[color] = self.color_parts_map[color]
         self.na_hull.DrawMap = draw_map
         if draw_map:
-            super().ensure()
             self.color_selected.emit()  # 发送自定义信号通知颜色选择完成
+            self.close()
         else:
             MyMessageBox().information(None, "提示", "未选择任何颜色", MyMessageBox.Ok)
 
 
 class ExportDialog(BasicDialog):
-    def __init__(self, parent, title="导出", size=QSize(500, 300)):
+    def __init__(self, parent, title="导出", size=QSize(300, 200)):
         # 和外界交互的变量
         self.export2na = False
         self.export2obj = False
-        self.export_path = ""
         # 布局
         self.center_layout = QGridLayout()
-        # self.lb0 = MyLabel("导出功能尚未完成，敬请期待!", font=FONT_10)
-        # self.lb0.setAlignment(Qt.AlignCenter)
-        # self.center_layout.addWidget(self.lb0)
         self.b0 = QPushButton("")
         self.b1 = QPushButton("")
         self.l0 = MyLabel("导出到na文件", font=FONT_10)
@@ -631,7 +738,8 @@ class ExportDialog(BasicDialog):
         self.button_group = CircleSelectButtonGroup(
             [self.b0, self.b1],
             parent=self,
-            half_size=7
+            half_size=7,
+            default_index=0
         )
         self.center_layout.addWidget(self.b0, 0, 0)
         self.center_layout.addWidget(self.b1, 1, 0)
@@ -642,11 +750,14 @@ class ExportDialog(BasicDialog):
         self.set_widget()
 
     def set_widget(self):
-        self.center_layout.setSpacing(0)
-        self.center_layout.setContentsMargins(0, 0, 0, 0)
+        self.center_layout.setSpacing(15)
+        self.center_layout.setContentsMargins(30, 30, 30, 30)
 
     def ensure(self):
-
+        if self.button_group.selected_bt_index == 0:
+            self.export2na = True
+        elif self.button_group.selected_bt_index == 1:
+            self.export2obj = True
         super().ensure()
 
 

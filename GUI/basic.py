@@ -8,6 +8,8 @@ import json
 import os
 from abc import abstractmethod
 # 第三方库
+from typing import List
+
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
 from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
@@ -24,8 +26,10 @@ try:
     with open(_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     Theme = data['Config']['Theme']
+    ProjectFolder = data['ProjectsFolder']
 except:
     Theme = 'Night'
+    ProjectFolder = os.path.join(os.path.expanduser("~"), 'Desktop')
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':
@@ -276,7 +280,7 @@ class CircleSelectButtonGroup:
     用于管理一组圆形选择按钮
     """
 
-    def __init__(self, button_list, parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3):
+    def __init__(self, button_list: List[QPushButton], parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3, default_index=0):
         self.group = button_list
         self.parent = parent
         self.half_size = half_size
@@ -292,6 +296,10 @@ class CircleSelectButtonGroup:
             button.clicked.connect(self.change_color)
         self.group[0].setChecked(True)
         self.selected_bt_index = 0
+        if default_index:
+            self.group[default_index].setStyleSheet(
+                f"border-radius: {half_size}px; background-color: {check_color};")
+            self.selected_bt_index = default_index
 
     def change_color(self):
         self.selected_bt_index = self.group.index(self.parent.sender())
@@ -306,8 +314,36 @@ class CircleSelectButtonGroup:
                     f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid {FG_COLOR0};")
 
 
+class SelectWidgetGroup:
+    def __init__(self, widget_list: List[QWidget], parent, original_style_sheet, selected_style_sheet):
+        """
+        给非按钮控件添加选中效果
+        :param widget_list:
+        :param parent:
+        :param original_style_sheet:
+        :param selected_style_sheet:
+        """
+        self.group = widget_list
+        self.parent = parent
+        self.original_style_sheet = original_style_sheet
+        self.selected_style_sheet = selected_style_sheet
+        for widget in self.group:
+            widget.setStyleSheet(original_style_sheet)
+            widget.clicked.connect(self.change_color)
+        self.group[0].setStyleSheet(selected_style_sheet)
+        self.selected_bt_index = 0
+
+    def change_color(self):
+        self.selected_bt_index = self.group.index(self.parent.sender())
+        for i, widget in enumerate(self.group):
+            if i == self.selected_bt_index:
+                widget.setStyleSheet(self.selected_style_sheet)
+            else:
+                widget.setStyleSheet(self.original_style_sheet)
+
+
 class BasicDialog(QDialog):
-    def __init__(self, parent=None, title=None, size=QSize(400, 300), center_layout=None):
+    def __init__(self, parent=None, title=None, size=QSize(400, 300), center_layout=None, resizable=False):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         super().__init__(parent=parent)
@@ -354,8 +390,18 @@ class BasicDialog(QDialog):
         self.m_flag = False
         self.m_Position = None
         self.drag = None  # 初始化拖动条
+        self.resizable = resizable
+        if resizable:
+            # 添加缩放功能，当鼠标移动到窗口边缘时，鼠标变成缩放样式
+            self.drag = [False, False, False, False]  # 用于判断鼠标是否在窗口边缘
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)  # 设置窗口无边框
+            self.setMouseTracking(True)  # 设置widget鼠标跟踪
+            self.resize_flag = False  # 用于判断是否拉伸窗口
+            self.resize_dir = None  # 用于判断拉伸窗口的方向
+            self.resize_area = 5  # 用于判断鼠标是否在边缘区域
+            self.resize_min_size = QSize(200, 200)
+            self.resize_max_size = QSize(WinWid, WinHei)
 
-    # 子类必须重写该方法
     @abstractmethod
     def ensure(self):
         self.close()
@@ -404,16 +450,88 @@ class BasicDialog(QDialog):
             self.m_flag = True
             self.m_Position = event.globalPos() - self.pos()
             event.accept()
+        elif event.button() == Qt.LeftButton and self.resizable:
+            self.resize_flag = True
+            self.m_Position = event.globalPos()
+            _pos = event.pos()
+            # 判断鼠标所在的位置是否为边缘
+            if _pos.x() < self.resize_area:
+                self.drag[0] = True
+            if _pos.x() > self.width() - self.resize_area:
+                self.drag[1] = True
+            if _pos.y() < self.resize_area:
+                self.drag[2] = True
+            if _pos.y() > self.height() - self.resize_area:
+                self.drag[3] = True
+            # 判断鼠标所在的位置是否为角落
+            if _pos.x() < self.resize_area and _pos.y() < self.resize_area:
+                self.resize_dir = 'lt'
+            elif _pos.x() < self.resize_area and _pos.y() > self.height() - self.resize_area:
+                self.resize_dir = 'lb'
+            elif _pos.x() > self.width() - self.resize_area and _pos.y() < self.resize_area:
+                self.resize_dir = 'rt'
+            elif _pos.x() > self.width() - self.resize_area and _pos.y() > self.height() - self.resize_area:
+                self.resize_dir = 'rb'
+            event.accept()
+        self.update()
 
     def mouseReleaseEvent(self, QMouseEvent):
         # 拖动窗口时，鼠标释放后停止拖动
         self.m_flag = False if self.m_flag else self.m_flag
+        if self.resizable:
+            self.resize_flag = False if self.resize_flag else self.resize_flag
+            self.drag = [False, False, False, False]
+            self.resize_dir = None
 
     def mouseMoveEvent(self, QMouseEvent):
         # 当鼠标在标题栏按下且非最大化时，移动窗口
         if Qt.LeftButton and self.m_flag:
             self.move(QMouseEvent.globalPos() - self.m_Position)
             QMouseEvent.accept()
+        if self.resizable:
+            # 检查是否需要改变鼠标样式
+            _pos = QMouseEvent.pos()
+            if _pos.x() < self.resize_area:
+                self.setCursor(Qt.SizeHorCursor)
+            elif _pos.x() > self.width() - self.resize_area:
+                self.setCursor(Qt.SizeHorCursor)
+            elif _pos.y() < self.resize_area:
+                self.setCursor(Qt.SizeVerCursor)
+            elif _pos.y() > self.height() - self.resize_area:
+                self.setCursor(Qt.SizeVerCursor)
+            elif _pos.x() < self.resize_area and _pos.y() < self.resize_area:
+                self.setCursor(Qt.SizeFDiagCursor)
+            elif _pos.x() < self.resize_area and _pos.y() > self.height() - self.resize_area:
+                self.setCursor(Qt.SizeBDiagCursor)
+            elif _pos.x() > self.width() - self.resize_area and _pos.y() < self.resize_area:
+                self.setCursor(Qt.SizeBDiagCursor)
+            elif _pos.x() > self.width() - self.resize_area and _pos.y() > self.height() - self.resize_area:
+                self.setCursor(Qt.SizeFDiagCursor)
+            else:
+                self.setCursor(Qt.ArrowCursor)
+            # 检查是否需要拉伸窗口
+            if self.resize_flag:
+                _pos = QMouseEvent.pos()
+                _dx = QMouseEvent.globalPos().x() - self.m_Position.x()
+                _dy = QMouseEvent.globalPos().y() - self.m_Position.y()
+                if self.resize_dir == 'lt':
+                    self.setGeometry(self.x() + _dx, self.y() + _dy, self.width() - _dx, self.height() - _dy)
+                elif self.resize_dir == 'lb':
+                    self.setGeometry(self.x() + _dx, self.y(), self.width() - _dx, _dy)
+                elif self.resize_dir == 'rt':
+                    self.setGeometry(self.x(), self.y() + _dy, self.width() + _dx, self.height() - _dy)
+                elif self.resize_dir == 'rb':
+                    self.setGeometry(self.x(), self.y(), self.width() + _dx, self.height() + _dy)
+                elif self.resize_dir == 't':
+                    self.setGeometry(self.x(), self.y() + _dy, self.width(), self.height() - _dy)
+                elif self.resize_dir == 'l':
+                    self.setGeometry(self.x() + _dx, self.y(), self.width() - _dx, self.height())
+                elif self.resize_dir == 'r':
+                    self.setGeometry(self.x(), self.y(), self.width() + _dx, self.height())
+                elif self.resize_dir == 'b':
+                    self.setGeometry(self.x(), self.y(), self.width(), self.height() + _dy)
+                self.m_Position = QMouseEvent.globalPos()
+                QMouseEvent.accept()
 
 
 class ShortCutWidget(QWidget):
