@@ -347,6 +347,7 @@ class OpenGLWin(QOpenGLWidget):
             parts = AdjustableHull.hull_design_tab_id_map.copy().values()
             for part in parts:  # TODO: 优化绘制
                 if type(part) == AdjustableHull:
+                    part.glWin = self
                     part.draw_pre(self.gl2_0)
                     ...
             if time.time() - st != 0:
@@ -360,23 +361,26 @@ class OpenGLWin(QOpenGLWidget):
                     for part in NAPart.hull_design_tab_id_map.copy().values():
                         if type(part) != AdjustableHull:
                             continue
-                        part.draw(self.gl2_0)
                         part.glWin = self
-                # for mt, objs in self.all_3d_obj.items():
-                #     for obj in objs:
-                #         obj.glWin = self
-                #         obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color)
+                        part.draw(self.gl2_0)
+                else:
+                    for mt, objs in self.all_3d_obj.items():
+                        for obj in objs:
+                            obj.glWin = self
+                            obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color)
             elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):  # 如果是节点模式
                 if self.using_various_mode:
                     for part in NAPart.hull_design_tab_id_map.copy().values():
                         if type(part) != AdjustableHull:
                             continue
-                        part.draw(self.gl2_0, transparent=True)
                         part.glWin = self
-                # for mt, objs in self.all_3d_obj.items():
-                #     for obj in objs:
-                #         obj.glWin = self
-                #         obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color, transparent=True)
+                        part.draw(self.gl2_0, transparent=True)
+
+                else:
+                    for mt, objs in self.all_3d_obj.items():
+                        for obj in objs:
+                            obj.glWin = self
+                            obj.draw(self.gl2_0, material=mt, theme_color=self.theme_color, transparent=True)
                 self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)  # 启用光源1
                 for node in NAPartNode.id_map.copy().values():
                     node.draw(self.gl2_0, theme_color=self.theme_color)
@@ -784,6 +788,9 @@ class OpenGLWin(QOpenGLWidget):
             if len(self.selected_gl_objects[self.show_3d_obj_mode]) >= 1:
                 # 以该零件为根，扩展选区
                 for part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                    if part not in part.allParts_relationMap.basicMap:
+                        # 找不到零件，可能是因为零件被细分后从关系图中删除了，直接跳过  # TODO: 要优化在细分零件后对关系图的替换重置函数
+                        continue
                     relation_map = part.allParts_relationMap.basicMap[part]
                     # 先向前后
                     for sub_part in relation_map[PRM.FRONT]:
@@ -813,6 +820,9 @@ class OpenGLWin(QOpenGLWidget):
                             self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
                     # 再向左右
                     ...  # TODO: 未来要加入左右扩展
+        # for part in self.selected_gl_objects[self.show_3d_obj_mode]:
+        #     print(part.glWin)
+        # print("=====================================")
 
     @staticmethod
     def get_matrix():

@@ -26,7 +26,7 @@ try:
     from path_utils import find_ptb_path, find_na_root_path
     from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu
     from right_element_view import Mod1SinglePartView
-    from right_element_editing import Mod1SinglePartEditing, Mod1AllPartsEditing
+    from right_element_editing import Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
 
@@ -959,13 +959,11 @@ class RightTabWidget(QTabWidget):
         self.tab1_mod2_grid_multiLayer = QGridLayout()
         # =====================================================================编辑模式tab2_mod1的三种界面
         self.tab2_mod1_widget_singlePart = Mod1SinglePartEditing()
-        self.tab2_mod1_widget_verticalPartSet = QWidget()
+        self.tab2_mod1_widget_verticalPartSet = Mod1VerticalPartSetEditing()
         self.tab2_mod1_widget_horizontalPartSet = QWidget()
         self.tab2_mod1_widget_verHorPartSet = QWidget()
         self.tab2_mod1_widget_allParts = Mod1AllPartsEditing()
 
-        self.tab2_mod1_grid_verticalPartSet = QGridLayout()
-        self.tab2_mod1_grid_verticalPartSet = QGridLayout()
         self.tab2_mod1_grid_horizontalPartSet = QGridLayout()
         self.tab2_mod1_grid_verHorPartSet = QGridLayout()
         # ===========================================================================tab2_mod2的两种界面
@@ -975,7 +973,7 @@ class RightTabWidget(QTabWidget):
         self.tab2_mod2_grid_multiLayer = QGridLayout()
         # =============================================================================当前显示的widget
         self.tab1_current_widget = self.tab1_mod1_widget_singlePart
-        self.tab2_current_widget = self.tab2_mod1_widget_singlePart
+        self.tab2_current_widget = self.tab2_mod1_widget_allParts
         # GUI绑定和样式
         self.init_style()
         self.bind_widget()
@@ -1086,6 +1084,7 @@ class RightTabWidget(QTabWidget):
                             self.tab2_mod1_widget_verticalPartSet.show()
                             self.tab1_current_widget = self.tab1_mod1_widget_verticalPartSet
                             self.tab2_current_widget = self.tab2_mod1_widget_verticalPartSet
+                            self.tab2_mod1_widget_verticalPartSet.selected_objs = selected_parts.copy()
                     else:  # 纵截块
                         # 往左右两边遍历切换根节点，搜寻上下零件
                         for i in range(dir_index_map[PRM.LEFT]):
@@ -1251,15 +1250,6 @@ class RightTabWidget(QTabWidget):
         title.setFixedSize(70, 25)
         self.tab1_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
 
-    def init_tab2_mod1_grid_verticalPartSet(self):
-        self.tab2_mod1_grid_verticalPartSet.setSpacing(7)
-        self.tab2_mod1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
-        self.tab2_mod1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        # 添加title，说明当前显示的是纵向排列的船体截块
-        title = MyLabel("竖直截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
-        title.setFixedSize(70, 25)
-        self.tab2_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
-
     def init_tab1_mod1_grid_horizontalPartSet(self):
         self.tab1_mod1_grid_horizontalPartSet.setSpacing(7)
         self.tab1_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
@@ -1375,14 +1365,14 @@ class RightTabWidget(QTabWidget):
         self.init_tab1_mod1_grid_horizontalPartSet()
         self.init_tab1_mod1_grid_verHorPartSet()
         # 隐藏
-        self.tab1_mod1_widget_verticalPartSet.hide()  # mod1
+        self.tab1_mod1_widget_singlePart.hide()  # mod1
+        self.tab1_mod1_widget_verticalPartSet.hide()
         self.tab1_mod1_widget_horizontalPartSet.hide()
         self.tab1_mod1_widget_verHorPartSet.hide()
         self.tab1_mod2_widget_singleLayer.hide()  # mod2
         self.tab1_mod2_widget_multiLayer.hide()
         # ===================================================================================tab2
         # tab2_mod1
-        self.tab2_mod1_widget_verticalPartSet.setLayout(self.tab2_mod1_grid_verticalPartSet)
         self.tab2_mod1_widget_horizontalPartSet.setLayout(self.tab2_mod1_grid_horizontalPartSet)
         self.tab2_mod1_widget_verHorPartSet.setLayout(self.tab2_mod1_grid_verHorPartSet)
         # tab2_mod2
@@ -1397,11 +1387,11 @@ class RightTabWidget(QTabWidget):
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_singleLayer)  # mod2
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_multiLayer)
         # 初始化控件
-        self.init_tab2_mod1_grid_verticalPartSet()
         self.init_tab2_mod1_grid_horizontalPartSet()
         self.init_tab2_mod1_grid_verHorPartSet()
         # 隐藏
-        self.tab2_mod1_widget_verticalPartSet.hide()  # mod1
+        self.tab2_mod1_widget_singlePart.hide()  # mod1
+        self.tab2_mod1_widget_verticalPartSet.hide()
         self.tab2_mod1_widget_horizontalPartSet.hide()
         self.tab2_mod1_widget_verHorPartSet.hide()
         self.tab2_mod2_widget_singleLayer.hide()  # mod2
@@ -1730,10 +1720,13 @@ class HullDesignTab(QWidget):
             # 此时用户显然已经选取了颜色，要根据绘图的DrawMap对需要绘制的零件关系图进行初始化
             na_hull.partRelationMap.init(na_hull.DrawMap)
         na_hull.get_layers()
-        # 更新自身信号
+        # 更新自身信号，清空NAPart.hull_design_tab_id_map，重新填入DrawMap的内容
         self.all_3d_obj["钢铁"].append(na_hull)
+        NAPart.hull_design_tab_id_map.clear()
         for _color, objs in na_hull.DrawMap.items():
             self.prj_all_parts.extend(objs)
+            for obj in objs:
+                NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj
         self.xz_layer_obj.extend(na_hull.xzLayers)
         self.xy_layer_obj.extend(na_hull.xyLayers)
         self.left_view_obj.extend(na_hull.leftViews)

@@ -57,6 +57,80 @@ def get_normal(dot1, dot2, dot3, center=None):
         return QVector3D.crossProduct(v1, v2).normalized()
 
 
+def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
+    """
+    求rot_关于rot的关系：
+    x+为左，y+为上，z+为前
+    左转90度：'l'
+    右转90度：'r'
+    抬头90度：'u'
+    低头90度：'d'
+    关于x轴对称（上下颠倒，前后颠倒）：'x'
+    关于y轴对称（前后颠倒，左右颠倒）：'y'
+    关于z轴对称（左右颠倒，上下颠倒）：'z'
+    关于关于原点中心对称（左右颠倒，上下颠倒，前后颠倒）：'o'
+    其他：None
+    :param rot: 第一个旋转角度的列表 [rx, ry, rz]
+    :param rot_: 第二个旋转角度的列表 [rx_, ry_, rz_]
+    :return: 字符串，表示两个旋转之间的关系，如 'l'、'r'、'u'、'd'、'x'、'y'、'z'、'o'、None
+    """
+    # 将角度转换为弧度
+    rot = np.radians(rot)
+    rot_ = np.radians(rot_)
+
+    # 计算两个旋转矩阵
+    R = np.eye(3)
+    R_ = np.eye(3)
+
+    for i in range(3):
+        if i == 0:
+            R = np.dot(R, np.array([[1, 0, 0],
+                                    [0, np.cos(rot[i]), -np.sin(rot[i])],
+                                    [0, np.sin(rot[i]), np.cos(rot[i])]]))
+            R_ = np.dot(R_, np.array([[1, 0, 0],
+                                      [0, np.cos(rot_[i]), -np.sin(rot_[i])],
+                                      [0, np.sin(rot_[i]), np.cos(rot_[i])]]))
+        elif i == 1:
+            R = np.dot(R, np.array([[np.cos(rot[i]), 0, np.sin(rot[i])],
+                                    [0, 1, 0],
+                                    [-np.sin(rot[i]), 0, np.cos(rot[i])]]))
+            R_ = np.dot(R_, np.array([[np.cos(rot_[i]), 0, np.sin(rot_[i])],
+                                      [0, 1, 0],
+                                      [-np.sin(rot_[i]), 0, np.cos(rot_[i])]]))
+        elif i == 2:
+            R = np.dot(R, np.array([[np.cos(rot[i]), -np.sin(rot[i]), 0],
+                                    [np.sin(rot[i]), np.cos(rot[i]), 0],
+                                    [0, 0, 1]]))
+            R_ = np.dot(R_, np.array([[np.cos(rot_[i]), -np.sin(rot_[i]), 0],
+                                      [np.sin(rot_[i]), np.cos(rot_[i]), 0],
+                                      [0, 0, 1]]))
+
+    # 计算旋转矩阵之间的差异
+    diff_matrix = np.dot(R_.T, R)
+
+    # 根据差异矩阵判断关系
+    if np.allclose(diff_matrix, np.eye(3)):
+        return None
+    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]])):
+        return 'x'
+    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])):
+        return 'y'
+    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]])):
+        return 'z'
+    elif np.allclose(diff_matrix, -np.eye(3)):
+        return 'o'
+    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])):
+        return 'u'
+    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])):
+        return 'd'
+    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])):
+        return 'r'
+    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])):
+        return 'l'
+    else:
+        return None
+
+
 def rotate_quaternion(vec, rot):
     """
     对np.array类型的向量进行四元数旋转
@@ -277,7 +351,7 @@ def get_bezier(start, s_control, back, b_control, x):
     t = (x - start[0]) / (back[0] - start[0])
 
     # 贝塞尔曲线公式
-    result = (1 - t)**3 * start + 3 * (1 - t)**2 * t * s_control + 3 * (1 - t) * t**2 * b_control + t**3 * back
+    result = (1 - t) ** 3 * start + 3 * (1 - t) ** 2 * t * s_control + 3 * (1 - t) * t ** 2 * b_control + t ** 3 * back
 
     return np.array(result)
 
@@ -395,6 +469,8 @@ class NAPart:
     ShipsAllParts = []
     id_map = {}  # 储存零件ID与零件实例的映射
     hull_design_tab_id_map = {}  # 在na_hull中清空和初始化
+
+    operation_history = {}  # 储存操作历史，格式为 {new_part_data: original_part_data}
 
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.glWin = None  # 用于绘制的窗口
@@ -920,149 +996,288 @@ class AdjustableHull(NAPart):
             #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
             self.glWin.update()
 
-    def add_z(self, smooth=False):
+    def get_part_data(self, other_part=None):
         """
-        对零件进行z细分，平均分为前后两部分
+        将零件的前后左右上下节点信息转化到世界坐标或其他零件的坐标系中
+        例如一个零件在绕y轴旋转180度后，其左前下节点变为右后下节点
+        :return: 例如：当零件没有旋转的时候（z+为前）：
+        dict = {
+        "FLU": self.FWid + self.FSpr, "FRU": self.FWid + self.FSpr, "FLD": self.FWid, "FRD": self.FWid,
+        "BLU": self.BWid + self.BSpr, "BRU": self.BWid + self.BSpr, "BLD": self.BWid, "BRD": self.BWid,
+        "H": self.Hei
+        }
+        当零件绕y轴旋转180度（前后左右颠倒）：
+        dict = {
+        "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.BWid, "FRD": self.BWid,
+        "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.FWid, "BRD": self.FWid,
+        "H": self.Hei
+        }
+        当零件向上抬头90度（y+为上）：
+        dict = {
+        "FLU": self.FWid, "FRU": self.FWid, "FLD": self.BWid, "FRD": self.BWid,
+        "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
+        "H": self.Len
+        }
+        当零件左转90度（x+为左）：
+        dict = {
+        "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
+        "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
+        "H": self.Hei
+        }
+        """
+        # 获取零件的旋转关系
+        if other_part:
+            rotation_relation = get_rot_relation(other_part.Rot, self.Rot)
+        else:
+            rotation_relation = get_rot_relation([0, 0, 0], self.Rot)
+
+        # 根据旋转关系计算节点信息在世界坐标系中的位置
+        if rotation_relation is None:
+            # 零件没有旋转，直接返回初始节点信息
+            part_data = {
+                "FLU": self.FWid + self.FSpr, "FRU": self.FWid + self.FSpr, "FLD": self.FWid, "FRD": self.FWid,
+                "BLU": self.BWid + self.BSpr, "BRU": self.BWid + self.BSpr, "BLD": self.BWid, "BRD": self.BWid,
+                "BH": self.Hei, "FH": self.Hei * self.HScl,
+                "L": self.Len
+            }
+        elif rotation_relation == 'x':
+            # 零件绕x轴旋转180度（前后上下颠倒）
+            part_data = {
+                "FLU": self.BWid, "FRU": self.BWid, "FLD": self.BWid + self.BSpr, "FRD": self.BWid + self.BSpr,
+                "BLU": self.FWid, "BRU": self.FWid, "BLD": self.FWid + self.FSpr, "BRD": self.FWid + self.FSpr,
+                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "L": self.Len
+            }
+
+        elif rotation_relation == 'y':
+            # 零件绕y轴旋转180度（前后左右颠倒）
+            part_data = {
+                "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.BWid, "FRD": self.BWid,
+                "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.FWid, "BRD": self.FWid,
+                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "L": self.Len
+            }
+        elif rotation_relation == 'z':
+            # 零件绕z轴旋转180度（上下左右颠倒）
+            part_data = {
+                "FLU": self.FWid, "FRU": self.FWid, "FLD": self.FWid + self.FSpr, "FRD": self.FWid + self.FSpr,
+                "BLU": self.BWid, "BRU": self.BWid, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
+                "BH": self.Hei, "FH": self.Hei * self.HScl,
+                "L": self.Len
+            }
+        elif rotation_relation == 'o':
+            # 零件绕原点中心对称（左右颠倒，上下颠倒，前后颠倒）
+            part_data = {
+                "FLU": self.FWid, "FRU": self.FWid, "FLD": self.FWid + self.FSpr, "FRD": self.FWid + self.FSpr,
+                "BLU": self.BWid, "BRU": self.BWid, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
+                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "L": self.Len
+            }
+        elif rotation_relation == 'u':
+            # 零件向上抬头90度（y+为上）
+            part_data = {
+                "FLU": self.FWid, "FRU": self.FWid, "FLD": self.BWid, "FRD": self.BWid,
+                "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.BWid + self.BSpr,
+                "BRD": self.BWid + self.BSpr,
+                "BH": self.Len, "FH": self.Len,
+                "L": self.Hei
+            }
+        elif rotation_relation == 'd':
+            # 零件低头90度（z+为下）
+            part_data = {
+                "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.FWid + self.FSpr,
+                "FRD": self.FWid + self.FSpr,
+                "BLU": self.BWid, "BRU": self.BWid, "BLD": self.FWid, "BRD": self.FWid,
+                "BH": self.Len, "FH": self.Len,
+                "L": self.Hei
+            }
+        elif rotation_relation == 'l':
+            # 零件左转90度（x+为左）
+            part_data = {
+                "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
+                "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
+                "BH": self.Hei, "FH": self.Hei,
+                "L": self.Len
+            }
+        elif rotation_relation == 'r':
+            # 零件右转90度（y+为右）
+            part_data = {
+                "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
+                "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
+                "BH": self.Hei, "FH": self.Hei,
+                "L": self.Len
+            }
+        else:
+            # 其他情况，暂时不处理
+            part_data = None
+        return part_data
+
+    def only_self_add_z(self, smooth=False):
+        """
+        操作单零件
+        对零件进行z细分，平均分为前后两部分（注意，是零件坐标系的z轴）
         :param smooth: 是否根据前后零件对中间层进行平滑
         :return:
         """
-        if self.HOff != 0:  # 暂时不支持有高度偏移的零件进行z细分
-            return
-        front_vector = np.array([0, 0, 1])
-        # 以0,0,1方向为前方，开始以self.Rot旋转
-        front_vector = rotate_quaternion(front_vector, self.Rot)
-        if self in self.allParts_relationMap.basicMap.keys():
-            # 寻找前后左右上下的零件
-            front_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.FRONT].keys())
-            back_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.BACK].keys())
-            left_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.LEFT].keys())
-            right_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.RIGHT].keys())
-            up_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.UP].keys())
-            down_parts = list(self.allParts_relationMap.basicMap[self][PartRelationMap.DOWN].keys())
-            # 根据旋转角求出位置的偏移（往向量的方向移动1/4Len乘以缩放比例）
-            if front_vector.all() == np.array([0, 0, 1]).all():
-                front_parts, back_parts = front_parts, back_parts
-            elif front_vector.all() == np.array([0, 0, -1]).all():
-                front_parts, back_parts = back_parts, front_parts
-            elif front_vector.all() == np.array([1, 0, 0]).all():
-                front_parts, back_parts = left_parts, right_parts
-            elif front_vector.all() == np.array([-1, 0, 0]).all():
-                front_parts, back_parts = right_parts, left_parts
-            elif front_vector.all() == np.array([0, 1, 0]).all():
-                front_parts, back_parts = up_parts, down_parts
-            elif front_vector.all() == np.array([0, -1, 0]).all():
-                front_parts, back_parts = down_parts, up_parts
-            else:
-                front_parts, back_parts = [], []
-        else:
-            front_parts, back_parts = [], []
-        # 得到前后零件
-        front_part = None
-        back_part = None
-        if front_parts:
-            for p in front_parts:
-                v1 = np.array(p.Pos) - np.array(self.Pos)
-                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
-                if np.linalg.norm(v1 - v2) < 0.001:
-                    # 如果前后相接：
-                    front_part = p
-                    break
-        if back_parts:
-            for p in back_parts:
-                v1 = np.array(self.Pos) - np.array(p.Pos)
-                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
-                if np.linalg.norm(v1 - v2) < 0.001:
-                    # 如果前后相接：
-                    back_part = p
-                    break
-        if smooth and (front_part or back_part):
-            # 计算中间层的宽度变化率
-            self_wid_spr_ratio = (self.FWid - self.BWid) * self.Scl[0] / (self.Len * self.Scl[2])
-            # 计算中间层的扩散变化率
-            self_spr_spr_ratio = (self.FSpr - self.BSpr) * self.Scl[0] / (self.Len * self.Scl[2])
-            # 计算中间层的高度变化率
-            self_hei_scl_ratio = (self.Hei * self.HScl - self.Hei) / (self.Len * self.Scl[2])
-            if front_part:
-                # 前零件的宽度变化率
-                front_wid_spr_ratio = (front_part.FWid - front_part.BWid) * front_part.Scl[0] / (front_part.Len * front_part.Scl[2])
-                # 前零件的扩散变化率
-                front_spr_spr_ratio = (front_part.FSpr - front_part.BSpr) * front_part.Scl[0] / (front_part.Len * front_part.Scl[2])
-                # 前零件的高度变化率
-                front_hei_scl_ratio = (front_part.Hei * front_part.HScl - front_part.Hei) / (front_part.Len * front_part.Scl[2])
-            if back_part:
-                # 后零件的宽度变化率
-                back_wid_spr_ratio = (back_part.FWid - back_part.BWid) * back_part.Scl[0] / (back_part.Len * back_part.Scl[2])
-                # 后零件的扩散变化率
-                back_spr_spr_ratio = (back_part.FSpr - back_part.BSpr) * back_part.Scl[0] / (back_part.Len * back_part.Scl[2])
-                # 后零件的高度变化率
-                back_hei_scl_ratio = (back_part.Hei * back_part.HScl - back_part.Hei) / (back_part.Len * back_part.Scl[2])
-            if front_part and not back_part:
-                # 给back_part的比率赋值为前零件-2*(前零件-中零件)
-                back_wid_spr_ratio = front_wid_spr_ratio + 2 * (front_wid_spr_ratio - self_wid_spr_ratio)
-                back_spr_spr_ratio = front_spr_spr_ratio + 2 * (front_spr_spr_ratio - self_spr_spr_ratio)
-                back_hei_scl_ratio = front_hei_scl_ratio + 2 * (front_hei_scl_ratio - self_hei_scl_ratio)
-            elif not front_part and back_part:
-                # 给front_part的比率赋值为后零件-2*(后零件-中零件)
-                front_wid_spr_ratio = back_wid_spr_ratio + 2 * (back_wid_spr_ratio - self_wid_spr_ratio)
-                front_spr_spr_ratio = back_spr_spr_ratio + 2 * (back_spr_spr_ratio - self_spr_spr_ratio)
-                front_hei_scl_ratio = back_hei_scl_ratio + 2 * (back_hei_scl_ratio - self_hei_scl_ratio)
-            # 计算中间层分为两段后前后分别的比率
-            # 用贝塞尔曲线拟合
-            wid_ratios = fit_bezier(
-                front_wid_spr_ratio, back_wid_spr_ratio,
-                self.Len * self.Scl[2], (self.FWid - self.BWid) * self.Scl[0], 2)
-            spr_ratios = fit_bezier(
-                front_spr_spr_ratio, back_spr_spr_ratio,
-                self.Len * self.Scl[2], (self.FSpr - self.BSpr) * self.Scl[0], 2)
-            hei_ratios = fit_bezier(
-                front_hei_scl_ratio, back_hei_scl_ratio,
-                self.Len * self.Scl[2], (self.Hei * self.HScl - self.Hei) * self.Scl[1], 2)
-            B_wid_spr_ratio = wid_ratios[1]
-            B_spr_spr_ratio = spr_ratios[1]
-            B_hei_scl_ratio = hei_ratios[1]
-            # 计算前后零件的数值：
-            mid_width = self.BWid + B_wid_spr_ratio * self.Len * self.Scl[2] * 0.5
-            mid_spread = self.BSpr + B_spr_spr_ratio * self.Len * self.Scl[2] * 0.5
-            mid_height = self.Hei + B_hei_scl_ratio * self.Len * self.Scl[2] * 0.5
-        else:  # 不平滑的情况
-            mid_width = (self.FWid + self.BWid) / 2
-            mid_spread = (self.FSpr + self.BSpr) / 2
-            mid_height = (self.Hei * self.HScl + self.Hei) / 2
-        pos_offset = front_vector * self.Len / 4 * self.Scl[2]
-        F_Pos = np.array(self.Pos) + pos_offset
-        B_Pos = np.array(self.Pos) - pos_offset
-        F_Hei = mid_height
-        F_HScl = (self.Hei * self.HScl) / mid_height
-        B_Hei = self.Hei
-        B_HScl = mid_height / self.Hei
-
-        FP = AdjustableHull(
-            self.read_na_obj, self.Id, F_Pos, self.Rot, self.Scl, self.Col, self.Amr,
-            self.Len / 2, F_Hei, self.FWid, mid_width, self.FSpr, mid_spread, self.UCur, self.DCur, F_HScl, 0)
-        BP = AdjustableHull(
-            self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
-            self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
-        # 删除原来的零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
-        # 往read_na的drawMap中添加零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(FP)
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(BP)
+        FP, BP = self.add_z_without_relation(smooth=smooth)
+        if FP is None or BP is None:
+            return None, None
+        # 添加到关系图
         if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
-            # 添加关系图
             self.allParts_relationMap.replace(FP, BP, self, None)
-        # 删除原来的零件
-        NAPart.id_map.pop(id(self) % 4294967296)
-        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
-        # 添加新的零件
-        NAPart.hull_design_tab_id_map[id(FP) % 4294967296] = FP
-        NAPart.hull_design_tab_id_map[id(BP) % 4294967296] = BP
-        self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode] = [FP, BP]
+        # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
         self.glWin.paintGL()
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = False
         self.glWin.update()
+        return FP, BP
+
+    def add_z_without_relation(self, smooth=False):
+        """
+        不操作关系图，用于多零件操作或单零件操作的关系图操作前
+        :param smooth:
+        :return:
+        """
+        if self.HOff != 0:  # 暂时不支持有高度偏移的零件进行z细分
+            return None, None
+        front_vector = np.array([0., 0., 1.])
+        front_vector = rotate_quaternion(front_vector, self.Rot)
+        fVector_relation_map = {
+            (0., 0., 1.): {"Larger": PartRelationMap.FRONT, "Smaller": PartRelationMap.BACK},
+            (0., 0., -1.): {"Larger": PartRelationMap.BACK, "Smaller": PartRelationMap.FRONT},
+            (1., 0., 0.): {"Larger": PartRelationMap.LEFT, "Smaller": PartRelationMap.RIGHT},
+            (-1., 0., 0.): {"Larger": PartRelationMap.RIGHT, "Smaller": PartRelationMap.LEFT},
+            (0., 1., 0.): {"Larger": PartRelationMap.UP, "Smaller": PartRelationMap.DOWN},
+            (0., -1., 0.): {"Larger": PartRelationMap.DOWN, "Smaller": PartRelationMap.UP},
+        }
+        # 寻找前后左右上下的零件
+        if self in self.allParts_relationMap.basicMap.keys() and tuple(front_vector) in fVector_relation_map.keys():
+            # 转置关系映射
+            relation_map = self.allParts_relationMap.basicMap[self]
+            front_parts = list(relation_map[fVector_relation_map[tuple(front_vector)]["Larger"]].keys())
+            back_parts = list(relation_map[fVector_relation_map[tuple(front_vector)]["Smaller"]].keys())
+        else:
+            front_parts = []
+            back_parts = []
+        # 得到前后零件
+        front_part: Union[None, AdjustableHull] = None
+        back_part: Union[None, AdjustableHull] = None
+        f_data: Union[None, dict] = None
+        b_data: Union[None, dict] = None
+        if front_parts:
+            for p in front_parts:
+                v1 = np.array(p.Pos) - np.array(self.Pos)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
+                # 对后零件进行关于本零件的转置
+                f_data = p.get_part_data(self)
+                if np.linalg.norm(v1 - v2) < 0.001 and self.FWid * self.Scl[0] == f_data["BLD"] * p.Scl[0]:
+                    # 如果前后相接且宽度相接
+                    front_part = p
+                    break
+        if back_parts:
+            for p in back_parts:
+                v1 = np.array(self.Pos) - np.array(p.Pos)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
+                # 对后零件进行关于本零件的转置
+                b_data = p.get_part_data(self)
+                if np.linalg.norm(v1 - v2) < 0.001 and self.BWid * self.Scl[0] == b_data["FLD"] * p.Scl[0]:
+                    # 如果前后相接且宽度相接
+                    back_part = p
+                    break
+        # 计算中间层的宽度变化率
+        if smooth and (front_part or back_part):
+            # 计算中间层的宽度变化率，上宽度变化率，高度变化率
+            self_wid_spr_ratio = (self.FWid - self.BWid) * self.Scl[0] / (self.Len * self.Scl[2])
+            self_uw_spr_ratio = (self.FWid + self.FSpr - self.BWid - self.BSpr) * self.Scl[0] / (self.Len * self.Scl[2])
+            self_hei_scl_ratio = (self.Hei * self.HScl - self.Hei) / (self.Len * self.Scl[2])
+            if front_part:
+                front_wid_spr_ratio = (f_data["FLD"] - f_data["BLD"]) * front_part.Scl[0] / (
+                        f_data["L"] * front_part.Scl[2])
+                front_uw_spr_ratio = (f_data["FLU"] - f_data["BLU"]) * front_part.Scl[0] / (
+                        f_data["L"] * front_part.Scl[2])
+                front_hei_scl_ratio = (f_data["FH"] - f_data["BH"]) * front_part.Scl[1] / (
+                        f_data["L"] * front_part.Scl[2])
+            if back_part:
+                back_wid_spr_ratio = (b_data["FLD"] - b_data["BLD"]) * back_part.Scl[0] / (
+                        b_data["L"] * back_part.Scl[2])
+                back_uw_spr_ratio = (b_data["FLU"] - b_data["BLU"]) * back_part.Scl[0] / (
+                        b_data["L"] * back_part.Scl[2])
+                back_hei_scl_ratio = (b_data["FH"] - b_data["BH"]) * back_part.Scl[1] / (
+                        b_data["L"] * back_part.Scl[2])
+            # 处理前后零件缺失的情况（添加默认值）
+            if front_part and not back_part:
+                # 给back_part的比率赋值为前零件-2*(前零件-中零件)
+                # noinspection PyUnboundLocalVariable
+                back_wid_spr_ratio = front_wid_spr_ratio - 2 * (front_wid_spr_ratio - self_wid_spr_ratio)
+                # noinspection PyUnboundLocalVariable
+                back_uw_spr_ratio = front_uw_spr_ratio - 2 * (front_uw_spr_ratio - self_uw_spr_ratio)
+                # noinspection PyUnboundLocalVariable
+                back_hei_scl_ratio = front_hei_scl_ratio - 2 * (front_hei_scl_ratio - self_hei_scl_ratio)
+            elif not front_part and back_part:
+                # 给front_part的比率赋值为后零件-2*(后零件-中零件)
+                # noinspection PyUnboundLocalVariable
+                front_wid_spr_ratio = back_wid_spr_ratio - 2 * (back_wid_spr_ratio - self_wid_spr_ratio)
+                # noinspection PyUnboundLocalVariable
+                front_uw_spr_ratio = back_uw_spr_ratio - 2 * (back_uw_spr_ratio - self_uw_spr_ratio)
+                # noinspection PyUnboundLocalVariable
+                front_hei_scl_ratio = back_hei_scl_ratio - 2 * (back_hei_scl_ratio - self_hei_scl_ratio)
+            # 用贝塞尔曲线拟合
+            wid_ratios = fit_bezier(front_wid_spr_ratio, back_wid_spr_ratio,
+                                    self.Len * self.Scl[2], (self.FWid - self.BWid) * self.Scl[0], 2)
+            uw_ratios = fit_bezier(front_uw_spr_ratio, back_uw_spr_ratio,
+                                   self.Len * self.Scl[2], (self.FWid + self.FSpr - self.BWid - self.BSpr) * self.Scl[0], 2)
+            hei_ratios = fit_bezier(front_hei_scl_ratio, back_hei_scl_ratio,
+                                    self.Len * self.Scl[2], (self.Hei * self.HScl - self.Hei) * self.Scl[1], 2)
+            B_wid_spr_ratio = wid_ratios[1]
+            B_uw_spr_ratio = uw_ratios[1]
+            B_hei_scl_ratio = hei_ratios[1]
+            # 计算前后零件的数值：
+            mid_width = self.BWid + B_wid_spr_ratio * self.Len * self.Scl[2] * 0.5
+            mid_uwidth = self.BWid + self.BSpr + B_uw_spr_ratio * self.Len * self.Scl[2] * 0.5
+            mid_height = self.Hei + B_hei_scl_ratio * self.Len * self.Scl[2] * 0.5
+        else:  # 不进行平滑处理的情况
+            mid_width = (self.FWid + self.BWid) / 2
+            mid_uwidth = (self.FWid + self.FSpr + self.BWid + self.BSpr) / 2
+            mid_height = (self.Hei * self.HScl + self.Hei) / 2
+        # 处理异常值
+        if mid_width < 0:
+            mid_width = 0
+        if mid_uwidth < 0:
+            mid_uwidth = 0
+        # 求出新零件的参数
+        mid_spread = mid_uwidth - mid_width
+        pos_offset = front_vector * self.Len / 4 * self.Scl[2]
+        F_Pos = np.array(self.Pos) + pos_offset
+        B_Pos = np.array(self.Pos) - pos_offset
+        F_Hei = mid_height if mid_height > 0 else 0
+        F_HScl = (self.Hei * self.HScl) / mid_height
+        B_Hei = self.Hei
+        B_HScl = mid_height / self.Hei
+        # 生成新零件对象
+        FP = AdjustableHull(
+            self.read_na_obj, self.Id, F_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len / 2, F_Hei, self.FWid, mid_width, self.FSpr, mid_spread, self.UCur, self.DCur, F_HScl, 0)
+        BP = AdjustableHull(
+            self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
+        # 在数据中删除原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
+        # 往read_na的drawMap中添加零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(FP)
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(BP)
+        # 更新显示的被选中的零件
+        if self.glWin:
+            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
+            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(FP)
+            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(BP)
+        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
+        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
+        # 向hull_design_tab_id_map（绘制所需）添加新的零件
+        NAPart.hull_design_tab_id_map[id(FP) % 4294967296] = FP
+        NAPart.hull_design_tab_id_map[id(BP) % 4294967296] = BP
+        return FP, BP
 
     def scale(self, ratio: list, update=False):
         super().scale(ratio)
@@ -1739,39 +1954,52 @@ class PartRelationMap:
         }
         if not direction:
             return
-        new_map0[direction_map[direction][1]] = {part1: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
-        new_map1[direction_map[direction][0]] = {part0: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
+        new_map0[direction_map[direction][1]] = {
+            part1: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
+        new_map1[direction_map[direction][0]] = {
+            part0: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
         # 获取被替换零件的关系图
         replaced_relation_map = self.basicMap[replaced_part]
         for part in replaced_relation_map[direction_map[direction][0]].keys():
             # 给新零件添加关系
-            new_map0[direction_map[direction][0]][part] = abs(part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-            new_map1[direction_map[direction][0]][part] = abs(part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            # 给原零件添加关系
+            new_map0[direction_map[direction][0]][part] = abs(
+                part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+            new_map1[direction_map[direction][0]][part] = abs(
+                part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
             if part in self.basicMap.keys():
+                # 给原零件添加关系
                 self.basicMap[part][direction_map[direction][1]][part0] = abs(
                     part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
                 self.basicMap[part][direction_map[direction][1]][part1] = abs(
                     part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            # 给原零件删除关系
-            del self.basicMap[part][direction_map[direction][1]][replaced_part]
-            # 给原零件重排序
-            self.basicMap[part][direction_map[direction][1]] = dict(
-                sorted(self.basicMap[part][direction_map[direction][1]].items(), key=lambda x: x[1]))
+                # 给原零件删除关系
+                del self.basicMap[part][direction_map[direction][1]][replaced_part]
+                # 给原零件重排序
+                self.basicMap[part][direction_map[direction][1]] = dict(
+                    sorted(self.basicMap[part][direction_map[direction][1]].items(), key=lambda x: x[1]))
+            else:
+                # 找不到原零件，可能是因为原零件被细分，所以在关系图中被删除  # TODO: 需要优化关系图替换和重写绑定的部分
+                pass
         for part in replaced_relation_map[direction_map[direction][1]].keys():
             # 给新零件添加关系
-            new_map0[direction_map[direction][1]][part] = abs(part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-            new_map1[direction_map[direction][1]][part] = abs(part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            # 给原零件添加关系
-            self.basicMap[part][direction_map[direction][0]][part0] = abs(
+            new_map0[direction_map[direction][1]][part] = abs(
                 part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-            self.basicMap[part][direction_map[direction][0]][part1] = abs(
+            new_map1[direction_map[direction][1]][part] = abs(
                 part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            # 给原零件删除关系
-            del self.basicMap[part][direction_map[direction][0]][replaced_part]
-            # 给原零件重排序
-            self.basicMap[part][direction_map[direction][0]] = dict(
-                sorted(self.basicMap[part][direction_map[direction][0]].items(), key=lambda x: x[1]))
+            # 给原零件添加关系
+            if part in self.basicMap.keys():
+                self.basicMap[part][direction_map[direction][0]][part0] = abs(
+                    part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
+                self.basicMap[part][direction_map[direction][0]][part1] = abs(
+                    part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
+                # 给原零件删除关系
+                del self.basicMap[part][direction_map[direction][0]][replaced_part]
+                # 给原零件重排序
+                self.basicMap[part][direction_map[direction][0]] = dict(
+                    sorted(self.basicMap[part][direction_map[direction][0]].items(), key=lambda x: x[1]))
+            else:
+                # 找不到原零件，可能是因为原零件被细分，所以在关系图中被删除  # TODO: 需要优化关系图替换和重写绑定的部分
+                pass
         self.basicMap[part0] = new_map0
         self.basicMap[part1] = new_map1
         # 删除被替换零件
@@ -1790,11 +2018,19 @@ class PartRelationMap:
         # 删除自身
         self.basicMap[part] = {}
 
-    def remap(self, drawMap):
+    def remap(self, na_hull):
+        self.basicMap = {}
+        self.xzDotsLayerMap = {}
+        self.xyDotsLayerMap = {}
+        self.yzDotsLayerMap = {}
+        self.xzPartsLayerMap = {}
+        self.xyPartsLayerMap = {}
+        self.yzPartsLayerMap = {}
+
         st = time.time()
-        total_parts_num = sum([len(parts) for parts in drawMap.values()])
+        total_parts_num = sum([len(parts) for parts in na_hull.DrawMap.values()])
         i = 1
-        for _color, parts in drawMap.items():
+        for _color, parts in na_hull.DrawMap.items():
             for part in parts:
                 layer_t, relation_t, dot_t = self.add_part(part)
                 # 标准化（填补0）
@@ -1808,9 +2044,8 @@ class PartRelationMap:
                         f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s", "process")
                 i += 1
         self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
-        st = time.time()
         self.sort()
-        self.show_statu_func(f"零件关系图排序完成! 耗时：{time.time() - st}s", "success")
+        self.show_statu_func(f"零件关系重新绑定完成! 耗时：{time.time() - st}s", "success")
 
     def init(self, drawMap, init=True):
         """
