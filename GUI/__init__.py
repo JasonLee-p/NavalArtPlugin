@@ -4,7 +4,7 @@
 # 引入Qt库
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QPoint
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QKeyEvent, QCursor, QKeySequence, QIcon, QPixmap, QImage
-from PyQt5.QtGui import QMatrix4x4, QVector3D, QColor
+from PyQt5.QtGui import QMatrix4x4, QVector3D, QColor, QDoubleValidator
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QPushButton, QToolBar, QMessageBox, QTabWidget, QAction, QScrollArea
 from PyQt5.QtWidgets import QApplication, QFileDialog, QShortcut, QToolButton, QMenu, QCheckBox, QSlider, QTextEdit, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
@@ -37,7 +37,7 @@ __all__ = [
     # 引入Qt库
     "Qt", "QThread", "pyqtSignal", "QSize", "QPoint",
     "QMouseEvent", "QWheelEvent", "QKeyEvent", "QCursor", "QKeySequence", "QIcon", "QPixmap", "QImage",
-    "QMatrix4x4", "QVector3D", "QColor",
+    "QMatrix4x4", "QVector3D", "QColor", "QDoubleValidator",
     "QWidget", "QLabel", "QFrame", "QPushButton", "QToolBar", "QMessageBox", "QTabWidget", "QAction", "QScrollArea",
     "QApplication", "QFileDialog", "QShortcut", "QToolButton", "QMenu", "QCheckBox", "QSlider", "QTextEdit", "QLineEdit",
     "QVBoxLayout", "QHBoxLayout", "QGridLayout",

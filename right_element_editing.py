@@ -4,8 +4,6 @@
 """
 from typing import Union, List
 
-from PyQt5.QtGui import QDoubleValidator
-
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
 from ship_reader.NA_design_reader import PartRelationMap
@@ -502,6 +500,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         for mode in glWin.gl_commands.keys():
             glWin.gl_commands[mode][1] = False
         glWin.update()
+        self.hide()
 
     def add_y(self):
         up_parts = []
@@ -523,6 +522,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         for mode in glWin.gl_commands.keys():
             glWin.gl_commands[mode][1] = False
         glWin.update()
+        self.hide()
 
     def add_front_layer(self):
         ...
@@ -640,6 +640,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         for mode in glWin.gl_commands.keys():
             glWin.gl_commands[mode][1] = False
         glWin.update()
+        self.hide()
 
     def add_y(self):
         up_parts = []
@@ -661,6 +662,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         for mode in glWin.gl_commands.keys():
             glWin.gl_commands[mode][1] = False
         glWin.update()
+        self.hide()
 
     def add_front_layer(self):
         ...

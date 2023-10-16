@@ -18,17 +18,16 @@ try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
     # 本地库
-    from GUI.dialogs import SelectNaDialog
     from util_funcs import *
     from ship_reader import *
     from GUI import *
+    from GUI.dialogs import SelectNaDialog
     from GL_plot import *
     from path_utils import find_ptb_path, find_na_root_path
     from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu
     from right_element_view import Mod1SinglePartView
     from right_element_editing import (
-        Mod1SinglePartEditing, Mod1AllPartsEditing,
-        Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing)
+        Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing)
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
 
@@ -1643,7 +1642,7 @@ class HullDesignTab(QWidget):
         try:
             show_state(f"{_original_na_p}读取成功", 'success')
             # 获取用户选择的工程路径 ==========================================================================
-            chosen_path = find_na_root_path() if Config.Projects == {} else os.path.dirname(Config.ProjectsFolder)
+            chosen_path = find_na_root_path() if Config.Projects == {} else Config.ProjectsFolder
             default_name = _original_na_p.split('/')[-1].split('.')[0]
             try:
                 save_dialog = QFileDialog(self, "选择工程保存路径", chosen_path)
