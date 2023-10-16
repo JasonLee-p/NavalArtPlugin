@@ -1037,7 +1037,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.FWid + self.FSpr, "FRU": self.FWid + self.FSpr, "FLD": self.FWid, "FRD": self.FWid,
                 "BLU": self.BWid + self.BSpr, "BRU": self.BWid + self.BSpr, "BLD": self.BWid, "BRD": self.BWid,
-                "BH": self.Hei, "FH": self.Hei * self.HScl,
+                "BH": self.Hei, "FH": self.Hei * self.HScl, "H": self.Hei,
                 "L": self.Len
             }
         elif rotation_relation == 'x':
@@ -1045,7 +1045,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.BWid, "FRU": self.BWid, "FLD": self.BWid + self.BSpr, "FRD": self.BWid + self.BSpr,
                 "BLU": self.FWid, "BRU": self.FWid, "BLD": self.FWid + self.FSpr, "BRD": self.FWid + self.FSpr,
-                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "BH": self.Hei * self.HScl, "FH": self.Hei, "H": self.Hei,
                 "L": self.Len
             }
 
@@ -1054,7 +1054,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.BWid, "FRD": self.BWid,
                 "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.FWid, "BRD": self.FWid,
-                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "BH": self.Hei * self.HScl, "FH": self.Hei, "H": self.Hei,
                 "L": self.Len
             }
         elif rotation_relation == 'z':
@@ -1062,7 +1062,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.FWid, "FRU": self.FWid, "FLD": self.FWid + self.FSpr, "FRD": self.FWid + self.FSpr,
                 "BLU": self.BWid, "BRU": self.BWid, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
-                "BH": self.Hei, "FH": self.Hei * self.HScl,
+                "BH": self.Hei, "FH": self.Hei * self.HScl, "H": self.Hei,
                 "L": self.Len
             }
         elif rotation_relation == 'o':
@@ -1070,7 +1070,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.FWid, "FRU": self.FWid, "FLD": self.FWid + self.FSpr, "FRD": self.FWid + self.FSpr,
                 "BLU": self.BWid, "BRU": self.BWid, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
-                "BH": self.Hei * self.HScl, "FH": self.Hei,
+                "BH": self.Hei * self.HScl, "FH": self.Hei, "H": self.Hei,
                 "L": self.Len
             }
         elif rotation_relation == 'u':
@@ -1079,7 +1079,7 @@ class AdjustableHull(NAPart):
                 "FLU": self.FWid, "FRU": self.FWid, "FLD": self.BWid, "FRD": self.BWid,
                 "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.BWid + self.BSpr,
                 "BRD": self.BWid + self.BSpr,
-                "BH": self.Len, "FH": self.Len,
+                "BH": self.Len, "FH": self.Len, "H": self.Len,
                 "L": self.Hei
             }
         elif rotation_relation == 'd':
@@ -1088,7 +1088,7 @@ class AdjustableHull(NAPart):
                 "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.FWid + self.FSpr,
                 "FRD": self.FWid + self.FSpr,
                 "BLU": self.BWid, "BRU": self.BWid, "BLD": self.FWid, "BRD": self.FWid,
-                "BH": self.Len, "FH": self.Len,
+                "BH": self.Len, "FH": self.Len, "H": self.Len,
                 "L": self.Hei
             }
         elif rotation_relation == 'l':
@@ -1096,7 +1096,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
                 "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
-                "BH": self.Hei, "FH": self.Hei,
+                "BH": self.Hei, "FH": self.Hei, "H": self.Hei,
                 "L": self.Len
             }
         elif rotation_relation == 'r':
@@ -1104,7 +1104,7 @@ class AdjustableHull(NAPart):
             part_data = {
                 "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
                 "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
-                "BH": self.Hei, "FH": self.Hei,
+                "BH": self.Hei, "FH": self.Hei, "H": self.Hei,
                 "L": self.Len
             }
         else:
@@ -1134,6 +1134,27 @@ class AdjustableHull(NAPart):
         self.glWin.update()
         return FP, BP
 
+    def only_self_add_y(self, smooth=False):
+        """
+        操作单零件
+        对零件进行z细分，平均分为前后两部分（注意，是零件坐标系的z轴）
+        :param smooth: 是否根据前后零件对中间层进行平滑
+        :return:
+        """
+        UP, DP = self.add_y_without_relation(smooth=smooth)
+        if UP is None or DP is None:
+            return None, None
+        # 添加到关系图
+        if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
+            self.allParts_relationMap.replace(UP, DP, self, None)
+        # 重新渲染
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = True
+        self.glWin.paintGL()
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = False
+        self.glWin.update()
+
     def add_z_without_relation(self, smooth=False):
         """
         不操作关系图，用于多零件操作或单零件操作的关系图操作前
@@ -1144,7 +1165,7 @@ class AdjustableHull(NAPart):
             return None, None
         front_vector = np.array([0., 0., 1.])
         front_vector = rotate_quaternion(front_vector, self.Rot)
-        fVector_relation_map = {
+        Vector_relation_map = {
             (0., 0., 1.): {"Larger": PartRelationMap.FRONT, "Smaller": PartRelationMap.BACK},
             (0., 0., -1.): {"Larger": PartRelationMap.BACK, "Smaller": PartRelationMap.FRONT},
             (1., 0., 0.): {"Larger": PartRelationMap.LEFT, "Smaller": PartRelationMap.RIGHT},
@@ -1153,11 +1174,11 @@ class AdjustableHull(NAPart):
             (0., -1., 0.): {"Larger": PartRelationMap.DOWN, "Smaller": PartRelationMap.UP},
         }
         # 寻找前后左右上下的零件
-        if self in self.allParts_relationMap.basicMap.keys() and tuple(front_vector) in fVector_relation_map.keys():
+        if self in self.allParts_relationMap.basicMap.keys() and tuple(front_vector) in Vector_relation_map.keys():
             # 转置关系映射
             relation_map = self.allParts_relationMap.basicMap[self]
-            front_parts = list(relation_map[fVector_relation_map[tuple(front_vector)]["Larger"]].keys())
-            back_parts = list(relation_map[fVector_relation_map[tuple(front_vector)]["Smaller"]].keys())
+            front_parts = list(relation_map[Vector_relation_map[tuple(front_vector)]["Larger"]].keys())
+            back_parts = list(relation_map[Vector_relation_map[tuple(front_vector)]["Smaller"]].keys())
         else:
             front_parts = []
             back_parts = []
@@ -1169,9 +1190,9 @@ class AdjustableHull(NAPart):
         if front_parts:
             for p in front_parts:
                 v1 = np.array(p.Pos) - np.array(self.Pos)
-                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
                 # 对后零件进行关于本零件的转置
                 f_data = p.get_part_data(self)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + f_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.FWid * self.Scl[0] == f_data["BLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接
                     front_part = p
@@ -1179,9 +1200,9 @@ class AdjustableHull(NAPart):
         if back_parts:
             for p in back_parts:
                 v1 = np.array(self.Pos) - np.array(p.Pos)
-                v2 = front_vector * self.Scl[2] * (self.Len / 2 + p.Len / 2)
                 # 对后零件进行关于本零件的转置
                 b_data = p.get_part_data(self)
+                v2 = front_vector * self.Scl[2] * (self.Len / 2 + b_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.BWid * self.Scl[0] == b_data["FLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接
                     back_part = p
@@ -1227,7 +1248,8 @@ class AdjustableHull(NAPart):
             wid_ratios = fit_bezier(front_wid_spr_ratio, back_wid_spr_ratio,
                                     self.Len * self.Scl[2], (self.FWid - self.BWid) * self.Scl[0], 2)
             uw_ratios = fit_bezier(front_uw_spr_ratio, back_uw_spr_ratio,
-                                   self.Len * self.Scl[2], (self.FWid + self.FSpr - self.BWid - self.BSpr) * self.Scl[0], 2)
+                                   self.Len * self.Scl[2],
+                                   (self.FWid + self.FSpr - self.BWid - self.BSpr) * self.Scl[0], 2)
             hei_ratios = fit_bezier(front_hei_scl_ratio, back_hei_scl_ratio,
                                     self.Len * self.Scl[2], (self.Hei * self.HScl - self.Hei) * self.Scl[1], 2)
             B_wid_spr_ratio = wid_ratios[1]
@@ -1269,15 +1291,170 @@ class AdjustableHull(NAPart):
         self.read_na_obj.DrawMap[f"#{self.Col}"].append(BP)
         # 更新显示的被选中的零件
         if self.glWin:
-            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
-            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(FP)
-            self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(BP)
+            try:
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(FP)
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(BP)
+            except ValueError:
+                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
+                replaced = False
+                while not replaced:
+                    for mode in self.glWin.selected_gl_objects.keys():
+                        try:
+                            self.glWin.selected_gl_objects[mode].remove(self)
+                            self.glWin.selected_gl_objects[mode].append(FP)
+                            self.glWin.selected_gl_objects[mode].append(BP)
+                            replaced = True
+                            break
+                        except ValueError:
+                            continue
         # 从hull_design_tab_id_map（绘制所需）删除原来的零件
         NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
         # 向hull_design_tab_id_map（绘制所需）添加新的零件
         NAPart.hull_design_tab_id_map[id(FP) % 4294967296] = FP
         NAPart.hull_design_tab_id_map[id(BP) % 4294967296] = BP
         return FP, BP
+
+    def add_y_without_relation(self, smooth=False):
+        if self.HOff != 0:  # 暂时不支持有高度偏移的零件进行z细分
+            return None, None
+        up_vector = np.array([0., 1., 0.])
+        up_vector = rotate_quaternion(up_vector, self.Rot)
+        Vector_relation_map = {
+            (0., 0., 1.): {"Larger": PartRelationMap.FRONT, "Smaller": PartRelationMap.BACK},
+            (0., 0., -1.): {"Larger": PartRelationMap.BACK, "Smaller": PartRelationMap.FRONT},
+            (1., 0., 0.): {"Larger": PartRelationMap.LEFT, "Smaller": PartRelationMap.RIGHT},
+            (-1., 0., 0.): {"Larger": PartRelationMap.RIGHT, "Smaller": PartRelationMap.LEFT},
+            (0., 1., 0.): {"Larger": PartRelationMap.UP, "Smaller": PartRelationMap.DOWN},
+            (0., -1., 0.): {"Larger": PartRelationMap.DOWN, "Smaller": PartRelationMap.UP},
+        }
+        # 寻找前后左右上下的零件
+        if self in self.allParts_relationMap.basicMap.keys() and tuple(up_vector) in Vector_relation_map.keys():
+            # 转置关系映射
+            relation_map = self.allParts_relationMap.basicMap[self]
+            up_parts = list(relation_map[Vector_relation_map[tuple(up_vector)]["Larger"]].keys())
+            down_parts = list(relation_map[Vector_relation_map[tuple(up_vector)]["Smaller"]].keys())
+        else:
+            up_parts = []
+            down_parts = []
+        # 得到上下零件
+        up_part: Union[None, AdjustableHull] = None
+        down_part: Union[None, AdjustableHull] = None
+        u_data: Union[None, dict] = None
+        d_data: Union[None, dict] = None
+        if up_parts:
+            for p in up_parts:
+                v1 = np.array(p.Pos) - np.array(self.Pos)
+                # 对后零件进行关于本零件的转置
+                u_data = p.get_part_data(self)
+                v2 = up_vector * self.Scl[1] * (self.Hei + u_data["H"]) / 2
+                if np.linalg.norm(v1 - v2) < 0.001 and \
+                        - 0.001 < (self.FWid + self.FSpr) * self.Scl[0] - u_data["FLD"] * p.Scl[0] < 0.001 and \
+                        - 0.001 < (self.BWid + self.BSpr) * self.Scl[0] - u_data["BLD"] * p.Scl[0] < 0.001:
+                    # 如果上下相接且宽度相接
+                    up_part = p
+                    # self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(p)  # TODO: 要删除
+                    break
+        if down_parts:
+            for p in down_parts:
+                v1 = np.array(self.Pos) - np.array(p.Pos)
+                # 对后零件进行关于本零件的转置
+                d_data = p.get_part_data(self)
+                v2 = up_vector * self.Scl[1] * (self.Hei + d_data["H"]) / 2
+                if np.linalg.norm(v1 - v2) < 0.001 and \
+                        - 0.001 < self.FWid * self.Scl[0] - d_data["FLU"] * p.Scl[0] < 0.001 and \
+                        - 0.001 < self.BWid * self.Scl[0] - d_data["BLU"] * p.Scl[0] < 0.001:
+                    # 如果上下相接且宽度相接
+                    down_part = p
+                    # self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(p)  # TODO: 要删除
+                    break
+        # 计算中间层的宽度变化率
+        if smooth and (up_part or down_part):
+            # 计算中间层的前宽度变化率，后宽度变化率
+            self_fw_ratio = self.FSpr * self.Scl[0] / (self.Hei * self.Scl[1])
+            self_bw_ratio = self.BSpr * self.Scl[0] / (self.Hei * self.Scl[1])
+            if up_part:
+                up_fw_ratio = (u_data["FLU"] - u_data["FLD"]) * up_part.Scl[0] / (u_data["H"] * up_part.Scl[1])
+                up_bw_ratio = (u_data["BLU"] - u_data["BLD"]) * up_part.Scl[0] / (u_data["H"] * up_part.Scl[1])
+            if down_part:
+                down_fw_ratio = (d_data["FLU"] - d_data["FLD"]) * down_part.Scl[0] / (d_data["H"] * down_part.Scl[1])
+                down_bw_ratio = (d_data["BLU"] - d_data["BLD"]) * down_part.Scl[0] / (d_data["H"] * down_part.Scl[1])
+            # 处理前后零件缺失的情况（添加默认值）
+            if up_part and not down_part:
+                # 给down_part的比率赋值为上零件-2*(上零件-中零件)
+                # noinspection PyUnboundLocalVariable
+                down_fw_ratio = up_fw_ratio - 2 * (up_fw_ratio - self_fw_ratio)
+                # noinspection PyUnboundLocalVariable
+                down_bw_ratio = up_bw_ratio - 2 * (up_bw_ratio - self_bw_ratio)
+            elif not up_part and down_part:
+                # 给up_part的比率赋值为下零件-2*(下零件-中零件)
+                # noinspection PyUnboundLocalVariable
+                up_fw_ratio = down_fw_ratio - 2 * (down_fw_ratio - self_fw_ratio)
+                # noinspection PyUnboundLocalVariable
+                up_bw_ratio = down_bw_ratio - 2 * (down_bw_ratio - self_bw_ratio)
+            # 用贝塞尔曲线拟合
+            fw_ratios = fit_bezier(up_fw_ratio, down_fw_ratio,
+                                   self.Hei * self.Scl[1], self.FSpr * self.Scl[0], 2)
+            bw_ratios = fit_bezier(up_bw_ratio, down_bw_ratio,
+                                   self.Hei * self.Scl[1], self.BSpr * self.Scl[0], 2)
+            F_fw_ratio = fw_ratios[1]
+            F_bw_ratio = bw_ratios[1]
+            # 计算前后零件的数值：
+            mid_fw = self.FWid + F_fw_ratio * self.Hei * self.Scl[1] * 0.5
+            mid_bw = self.BWid + F_bw_ratio * self.Hei * self.Scl[1] * 0.5
+        else:  # 不进行平滑处理的情况
+            mid_fw = self.FWid + self.FSpr / 2
+            mid_bw = self.BWid + self.BSpr / 2
+        # 处理异常值
+        if mid_fw < 0:
+            mid_fw = 0
+        if mid_bw < 0:
+            mid_bw = 0
+        # 求出新零件的参数
+        pos_offset = up_vector * self.Hei / 4 * self.Scl[1]
+        U_Pos = np.array(self.Pos) + pos_offset
+        D_Pos = np.array(self.Pos) - pos_offset
+        U_FSpr = self.FWid + self.FSpr - mid_fw
+        U_BSpr = self.BWid + self.BSpr - mid_bw
+        D_FSpr = mid_fw - self.FWid
+        D_BSpr = mid_bw - self.BWid
+        # 生成新零件对象
+        UP = AdjustableHull(
+            self.read_na_obj, self.Id, U_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len, self.Hei / 2, mid_fw, mid_bw, U_FSpr, U_BSpr, self.UCur, 0, 1, 0)
+        DP = AdjustableHull(
+            self.read_na_obj, self.Id, D_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len, self.Hei / 2, self.FWid, self.BWid, D_FSpr, D_BSpr, 0, self.DCur, 1, 0)
+        # 在数据中删除原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
+        # 往read_na的drawMap中添加零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(UP)
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(DP)
+        # 更新显示的被选中的零件
+        if self.glWin:
+            try:
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(UP)
+                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(DP)
+            except ValueError:
+                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
+                replaced = False
+                while not replaced:
+                    for mode in self.glWin.selected_gl_objects.keys():
+                        try:
+                            self.glWin.selected_gl_objects[mode].remove(self)
+                            self.glWin.selected_gl_objects[mode].append(UP)
+                            self.glWin.selected_gl_objects[mode].append(DP)
+                            replaced = True
+                            break
+                        except ValueError:
+                            continue
+        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
+        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
+        # 向hull_design_tab_id_map（绘制所需）添加新的零件
+        NAPart.hull_design_tab_id_map[id(UP) % 4294967296] = UP
+        NAPart.hull_design_tab_id_map[id(DP) % 4294967296] = DP
+        return UP, DP
 
     def scale(self, ratio: list, update=False):
         super().scale(ratio)
@@ -1593,7 +1770,7 @@ class ReadNA:
                     i += 1
             self.show_statu_func(f"零件实例化完成，耗时：{round(time.time() - st, 2)} s", "success")
             self.partRelationMap.sort()
-            self.partRelationMap.init(drawMap=None, init=False)  # 上方已经初始化了drawMap。
+            # 上方已经初始化了drawMap，不init了
         else:  # =========================================================================== 读取na文件
             self.Mode = ReadNA.NaPathMode
             self.filename = filepath.split('\\')[-1]
@@ -1703,6 +1880,7 @@ class PartRelationMap:
         """
         self.show_statu_func = show_statu_func
         self.Parts = read_na.Parts
+        self.na_hull = read_na  # na船体对象
         """点平面集"""
         self.xzDotsLayerMap = {  # y: [Part0, Part1, ...]
         }  # 每一水平截面层的点，根据basicMap的前后左右关系，将点分为同一层
@@ -2018,47 +2196,57 @@ class PartRelationMap:
         # 删除自身
         self.basicMap[part] = {}
 
-    def remap(self, na_hull):
-        self.basicMap = {}
-        self.xzDotsLayerMap = {}
-        self.xyDotsLayerMap = {}
-        self.yzDotsLayerMap = {}
-        self.xzPartsLayerMap = {}
-        self.xyPartsLayerMap = {}
-        self.yzPartsLayerMap = {}
+    def remap(self):
+        # 清空所有数据
+        NAPartNode.all_dots.clear()
+        NAPartNode.id_map.clear()
+        self.basicMap.clear()
+        self.xzDotsLayerMap.clear()
+        self.xyDotsLayerMap.clear()
+        self.yzDotsLayerMap.clear()
+        self.xzPartsLayerMap.clear()
+        self.xyPartsLayerMap.clear()
+        self.yzPartsLayerMap.clear()
+        self.relationMap = {
+            PartRelationMap.FRONT: {},
+            PartRelationMap.UP: {},
+            PartRelationMap.LEFT: {},
+            PartRelationMap.SAME: {}
+        }
 
         st = time.time()
-        total_parts_num = sum([len(parts) for parts in na_hull.DrawMap.values()])
+        total_parts_num = len(NAPart.hull_design_tab_id_map)
         i = 1
-        for _color, parts in na_hull.DrawMap.items():
-            for part in parts:
-                layer_t, relation_t, dot_t = self.add_part(part)
-                # 标准化（填补0）
-                layer_t = str(layer_t).ljust(6, '0')
-                relation_t = str(relation_t).ljust(6, '0')
-                dot_t = str(dot_t).ljust(6, '0')
-                if i % 3 == 0:
-                    process = round(i / total_parts_num * 100, 2)
-                    self.show_statu_func(
-                        f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
-                        f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s", "process")
-                i += 1
+        for part in NAPart.hull_design_tab_id_map.values():
+            layer_t, relation_t, dot_t = self.add_part(part)
+            # 标准化（填补0）
+            layer_t = str(layer_t).ljust(6, '0')
+            relation_t = str(relation_t).ljust(6, '0')
+            dot_t = str(dot_t).ljust(6, '0')
+            if i % 3 == 0:
+                process = round(i / total_parts_num * 100, 2)
+                self.show_statu_func(
+                    f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
+                    f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s",
+                    "process")
+            i += 1
         self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
         self.sort()
         self.show_statu_func(f"零件关系重新绑定完成! 耗时：{time.time() - st}s", "success")
 
-    def init(self, drawMap, init=True):
+    def init(self, na_hull, init=True):
         """
-        :param drawMap: NaHull的绘图字典，键值对为：{颜色：[零件1，零件2，...]}
+        :param na_hull: NaHull对象
         :param init: 如果为False，这个函数则仅用于drawMap的初始化后调用，用来指示代码位置方便Debug
         :return:
         """
         if not init:
             return
+        self.na_hull = na_hull
         st = time.time()
-        total_parts_num = sum([len(parts) for parts in drawMap.values()])
+        total_parts_num = sum([len(parts) for parts in self.na_hull.DrawMap.values()])
         i = 1
-        for _color, parts in drawMap.items():
+        for _color, parts in self.na_hull.DrawMap.items():
             for part in parts:
                 layer_t, relation_t, dot_t = self.add_part(part)
                 # 标准化（填补0）
@@ -2069,7 +2257,8 @@ class PartRelationMap:
                     process = round(i / total_parts_num * 100, 2)
                     self.show_statu_func(
                         f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
-                        f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s", "process")
+                        f"\t\t\t\t单件耗时：     截面对象  {layer_t} s     零件关系  {relation_t} s     节点集合  {dot_t} s",
+                        "process")
                 i += 1
         self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
         st = time.time()

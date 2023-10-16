@@ -53,11 +53,20 @@ class NAHull(ReadNA, SolidObject):
             NAHull.current_in_preview_tab = self
 
     def get_layers(self):
-        self.get_xz_layers()
-        self.get_xy_layers()
-        self.get_left_views()
+        # 清空id_map
+        NAXZLayerNode.id_map = {}
+        NAXYLayerNode.id_map = {}
+        NALeftViewNode.id_map = {}
+        NaHullXZLayer.id_map = {}
+        NaHullXYLayer.id_map = {}
+        NaHullLeftView.id_map = {}
+        xz = self.get_xz_layers()
+        xy = self.get_xy_layers()
+        _l = self.get_left_views()
+        return xz, xy, _l
 
     def get_xz_layers(self):
+        self.xzLayers.clear()
         total_y_num = len(self.partRelationMap.xzDotsLayerMap)
         i = 0
         for y, parts in self.partRelationMap.xzDotsLayerMap.items():
@@ -68,8 +77,10 @@ class NAHull(ReadNA, SolidObject):
                 continue
             self.xzLayers.append(NaHullXZLayer(self, y, parts))
         self.show_statu_func("xz截面生成完毕", "process")
+        return self.xzLayers
 
     def get_xy_layers(self):
+        self.xyLayers.clear()
         total_z_num = len(self.partRelationMap.xyDotsLayerMap)
         i = 0
         for z, parts in self.partRelationMap.xyDotsLayerMap.items():
@@ -80,10 +91,13 @@ class NAHull(ReadNA, SolidObject):
                 continue
             self.xyLayers.append(NaHullXYLayer(self, z, parts))
         self.show_statu_func("xy截面生成完毕", "process")
+        return self.xyLayers
 
     def get_left_views(self):
+        self.leftViews.clear()
         # TODO: 生成左视图
         self.show_statu_func("左视图生成完毕", "process")
+        return self.leftViews
 
     @staticmethod
     def toJson(data):

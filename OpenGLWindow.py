@@ -3,12 +3,11 @@
 OpenGL窗口
 """
 import struct
-import sys
 import time
 
 import numpy as np
 from OpenGL import GL
-from PyQt5.QtCore import QTimer, QByteArray
+from PyQt5.QtCore import QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer, \
@@ -137,7 +136,10 @@ class Camera:
 
     @property
     def save_data(self):
-        return {"tar": list(self.tar), "pos": list(self.pos), "fovy": int(self.fovy)}
+        # return {"tar": list(self.tar), "pos": list(self.pos), "fovy": int(self.fovy)}
+        return {"tar": [self.tar.x(), self.tar.y(), self.tar.z()],
+                "pos": [self.pos.x(), self.pos.y(), self.pos.z()],
+                "fovy": int(self.fovy)}
 
     def __str__(self):
         return str(
@@ -214,16 +216,16 @@ class OpenGLWin(QOpenGLWidget):
             self.xzLayer_node = []  # 所有横剖面的节点
             self.xyLayer_node = []  # 所有纵剖面的节点
             self.leftView_node = []  # 所有左视图的节点
-            self.showMode_showSet_map = {  # 正常显示的映射
-                (OpenGLWin.ShowAll, OpenGLWin.ShowObj): self.all_3d_obj,
-                (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): self.all_3d_obj,
-                (OpenGLWin.ShowXZ, OpenGLWin.ShowObj): self.xz_layer_obj,
-                (OpenGLWin.ShowXZ, OpenGLWin.ShowDotNode): self.xz_layer_obj,
-                (OpenGLWin.ShowXY, OpenGLWin.ShowObj): self.xy_layer_obj,
-                (OpenGLWin.ShowXY, OpenGLWin.ShowDotNode): self.xy_layer_obj,
-                (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): self.left_view_obj,
-                (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): self.left_view_obj
-            }
+            # self.showMode_showSet_map = {  # 正常显示的映射
+            #     (OpenGLWin.ShowAll, OpenGLWin.ShowObj): self.all_3d_obj,
+            #     (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): self.all_3d_obj,
+            #     (OpenGLWin.ShowXZ, OpenGLWin.ShowObj): self.xz_layer_obj,
+            #     (OpenGLWin.ShowXZ, OpenGLWin.ShowDotNode): self.xz_layer_obj,
+            #     (OpenGLWin.ShowXY, OpenGLWin.ShowObj): self.xy_layer_obj,
+            #     (OpenGLWin.ShowXY, OpenGLWin.ShowDotNode): self.xy_layer_obj,
+            #     (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): self.left_view_obj,
+            #     (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): self.left_view_obj
+            # }
         self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
             if type(gl_plot_obj) == NAHull:
@@ -309,8 +311,13 @@ class OpenGLWin(QOpenGLWidget):
         self.initialized = True
 
     def paintGL(self) -> None:
+        """
+        绘制
+        所有的对象在绘制的时候都会绑定self.glWin = self
+        :return:
+        """
         st = time.time()
-        # 获取窗口大小
+        # 获取窗口大小，如果窗口大小改变，就重新初始化
         width = QOpenGLWidget.width(self)
         height = QOpenGLWidget.height(self)
         if width != self.width or height != self.height:
@@ -331,8 +338,8 @@ class OpenGLWin(QOpenGLWidget):
                     button.setGeometry(sub_right + 10 + index * (self.ModBtWid + 35), 50, self.ModBtWid + 25, 23)
         # 清除颜色缓冲区和深度缓冲区
         self.gl2_0.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        if self.select_start and self.select_end:  # 绘制选择框
-            # 颜色
+        # 绘制选择框
+        if self.select_start and self.select_end:
             self.gl2_0.glColor4f(*self.theme_color["选择框"][0])
             self.draw_select_box()
         # 设置相机
@@ -346,8 +353,8 @@ class OpenGLWin(QOpenGLWidget):
         if not self.all_3d_obj["钢铁"] and self.using_various_mode:  # 如果没有钢铁物体，就绘制船体
             parts = AdjustableHull.hull_design_tab_id_map.copy().values()
             for part in parts:  # TODO: 优化绘制
+                part.glWin = self
                 if type(part) == AdjustableHull:
-                    part.glWin = self
                     part.draw_pre(self.gl2_0)
                     ...
             if time.time() - st != 0:
@@ -359,9 +366,9 @@ class OpenGLWin(QOpenGLWidget):
             if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是部件模式
                 if self.using_various_mode:
                     for part in NAPart.hull_design_tab_id_map.copy().values():
+                        part.glWin = self
                         if type(part) != AdjustableHull:
                             continue
-                        part.glWin = self
                         part.draw(self.gl2_0)
                 else:
                     for mt, objs in self.all_3d_obj.items():
@@ -371,9 +378,10 @@ class OpenGLWin(QOpenGLWidget):
             elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):  # 如果是节点模式
                 if self.using_various_mode:
                     for part in NAPart.hull_design_tab_id_map.copy().values():
+                        part.glWin = self
                         if type(part) != AdjustableHull:
                             continue
-                        part.glWin = self
+
                         part.draw(self.gl2_0, transparent=True)
 
                 else:
@@ -387,7 +395,7 @@ class OpenGLWin(QOpenGLWidget):
                 self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
         # ========================================================================================其他模式
         elif self.using_various_mode and self.show_3d_obj_mode[0] != OpenGLWin.ShowAll:  # 如果是其他模式
-            for obj in self.showMode_showSet_map[self.show_3d_obj_mode]:
+            for obj in self.selectObjOrigin_map[self.show_3d_obj_mode].id_map.copy().values():
                 obj.glWin = self
                 obj.draw(self.gl2_0, theme_color=self.theme_color)
         # ===================================================================================绘制被选物体
@@ -425,6 +433,7 @@ class OpenGLWin(QOpenGLWidget):
         )
         self.fps_label.setStyleSheet(style)
 
+    # noinspection PyUnresolvedReferences
     def init_mode_toolButton(self):
         self.mod1_button.setText("全视图1")
         self.mod2_button.setText("横剖面2")
@@ -834,54 +843,6 @@ class OpenGLWin(QOpenGLWidget):
         matrix = np.array(matrix).reshape(4, 4)
         return matrix
 
-    @staticmethod
-    def transform_points(fovy, pos, up, angle, width, height, points):
-        """
-        将世界坐标系中的点转换为屏幕坐标系中的点，暂时不用
-        :param fovy:
-        :param pos: QVector
-        :param up: 相机的正方向，一般为 [0, 1, 0]
-        :param angle:
-        :param width:
-        :param height:
-        :param points:
-        :return:
-        """
-        pos = np.array([pos.x(), pos.y(), pos.z()])
-        up = np.array([up.x(), up.y(), up.z()])
-        angle = np.array([angle.x(), angle.y(), angle.z()])
-        points = np.array(points)
-        # 计算相机坐标系的基向量
-        forward = angle / np.linalg.norm(angle)
-        right = np.cross(up, forward)
-        up = np.cross(forward, right)
-        # 计算投影矩阵
-        f = 1 / np.tan(np.radians(fovy) / 2)
-        aspect_ratio = width / height
-        near = 0.1
-        far = 1000
-        projection_matrix = np.array([
-            [f / aspect_ratio, 0, 0, 0],
-            [0, f, 0, 0],
-            [0, 0, (near + far) / (near - far), (2 * near * far) / (near - far)],
-            [0, 0, -1, 0]
-        ])
-        world_to_camera = np.array([
-            [right[0], right[1], right[2], -np.dot(right, pos)],
-            [up[0], up[1], up[2], -np.dot(up, pos)],
-            [-forward[0], -forward[1], -forward[2], np.dot(forward, pos)],
-            [0, 0, 0, 1]
-        ])
-        points_camera = np.dot(world_to_camera, np.hstack([points, np.ones((points.shape[0], 1))]).T)
-        # 应用投影矩阵，得到屏幕坐标
-        points_screen = np.dot(projection_matrix, points_camera)
-        # 归一化坐标
-        points_screen /= points_screen[3]
-        # 将屏幕坐标从[-1, 1]映射到屏幕像素坐标
-        screen_x = (1 - points_screen[0]) * width / 2
-        screen_y = (1 - points_screen[1]) * height / 2
-        return np.vstack([screen_x, screen_y]).T
-
     # ----------------------------------------------------------------------------------------------事件
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -1181,6 +1142,7 @@ class DesignTabGLWinMenu(QMenu):
             action.setEnabled(available)
             self.addAction(action)
 
+    # noinspection PyUnresolvedReferences
     def connect_basic_funcs(self, undo_func, redo_func, delete_func, add_func, import_func, export_func):
         self.undo_A.triggered.connect(undo_func)
         self.redo_A.triggered.connect(redo_func)
@@ -1189,6 +1151,7 @@ class DesignTabGLWinMenu(QMenu):
         self.import_selected_objects_A.triggered.connect(import_func)
         self.export_selected_objects_A.triggered.connect(export_func)
 
+    # noinspection PyUnresolvedReferences
     def connect_expand_select_area_funcs(self, add2xzLayer_func, add2xyLayer_func):
         self.add_selected_objects_A_y.triggered.connect(add2xzLayer_func)
         self.add_selected_objects_A_z.triggered.connect(add2xyLayer_func)
@@ -1315,10 +1278,14 @@ class OpenGLWin2(QOpenGLWidget):
             GL_POINTS: {"dots": QByteArray(), "normal": QByteArray()},
         }
         self.vbo_all = {
-            GL_QUADS: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer), "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
-            GL_TRIANGLES: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer), "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
-            GL_LINES: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer), "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
-            GL_POINTS: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer), "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
+            GL_QUADS: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer),
+                       "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
+            GL_TRIANGLES: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer),
+                           "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
+            GL_LINES: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer),
+                       "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
+            GL_POINTS: {"dots": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer),
+                        "normal": QOpenGLBuffer(QOpenGLBuffer.VertexBuffer)},
         }
         # ========================================================================================视角
         self.width = QOpenGLWidget.width(self)
@@ -1408,14 +1375,16 @@ class OpenGLWin2(QOpenGLWidget):
         for _draw_method, vbo_map in self.vbo_all.items():
             if _draw_method == GL_QUADS:
                 self.plot_data[_draw_method]["dots"] = QByteArray(struct.pack('f' * len(self.vertices), *self.vertices))
-                self.plot_data[_draw_method]["normal"] = QByteArray(struct.pack('f' * len(self.quads_normals), *self.quads_normals))
+                self.plot_data[_draw_method]["normal"] = QByteArray(
+                    struct.pack('f' * len(self.quads_normals), *self.quads_normals))
             for vbo_type, vbo in vbo_map.items():
                 if _draw_method != GL_QUADS:
                     continue
                 vbo.create()
                 vbo.bind()
                 vbo.setUsagePattern(QOpenGLBuffer.StaticDraw)
-                vbo.allocate(self.plot_data[_draw_method][vbo_type].data(), self.plot_data[_draw_method][vbo_type].size())
+                vbo.allocate(self.plot_data[_draw_method][vbo_type].data(),
+                             self.plot_data[_draw_method][vbo_type].size())
                 self.shaderProgram.enableAttributeArray(i)  # 启用顶点属性数组
                 self.shaderProgram.setAttributeBuffer(i, GL.GL_FLOAT, 0, 3, 0)  # 设置顶点属性数组
                 vbo.release()
@@ -1476,6 +1445,7 @@ class OpenGLWin2(QOpenGLWidget):
             self.show_statu_func("切换至节点模式 (2)", "success")
         self.update()
 
+    # noinspection PyUnresolvedReferences
     def init_mode_toolButton(self):
         self.mod1_button.setText("全视图1")
         self.mod2_button.setText("横剖面2")
@@ -1546,9 +1516,9 @@ class OpenGLWin2(QOpenGLWidget):
         return model
 
     def projectionMatrix(self):
-        projection = QMatrix4x4()
-        projection.perspective(self.camera.fovy, self.width / self.height, 0.1, 10000.0)
-        return projection
+        pj = QMatrix4x4()
+        pj.perspective(self.camera.fovy, self.width / self.height, 0.1, 10000.0)
+        return pj
 
     def init_render(self):
         glClearColor(*self.theme_color["背景"])

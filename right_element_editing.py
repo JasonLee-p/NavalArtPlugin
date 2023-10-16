@@ -63,18 +63,16 @@ class Mod1AllPartsEditing(QWidget):
     @staticmethod
     def remap_all_parts():
         _p = list(NAPart.hull_design_tab_id_map.values())[0]
+        i = 0
+        while type(_p) != AdjustableHull and i < len(NAPart.hull_design_tab_id_map):
+            i += 1
+            _p = list(NAPart.hull_design_tab_id_map.values())[i]
         part_relation_map = _p.allParts_relationMap
         # 重新绑定零件关系
-        _p.read_na_obj.xzLayers = []
-        _p.read_na_obj.xyLayers = []
-        _p.read_na_obj.leftViews = []
-        part_relation_map.remap(_p.read_na_obj)
+        part_relation_map.remap()
         # 重新绘制层
-        _p.read_na_obj.get_layers()
-        glWin = _p.glWin
-        glWin.xz_layer_obj = _p.read_na_obj.xzLayers
-        glWin.xy_layer_obj = _p.read_na_obj.xyLayers
-        glWin.left_view_obj = _p.read_na_obj.leftViews
+        _p.glWin.xz_layer_obj, _p.glWin.xy_layer_obj, _p.glWin.left_view_obj = _p.read_na_obj.get_layers()
+        _p.glWin.paintGL()
 
     def update_context(self):
         pass
@@ -248,7 +246,11 @@ class Mod1SinglePartEditing(QWidget):
 
     def add_y(self):
         # y轴细分
-        pass
+        if self.selected_obj:
+            self.selected_obj.only_self_add_y(smooth=True)
+            self.selected_obj = None
+        # 隐藏自己
+        self.hide()
 
     def add_front_layer(self):
         # 向前添加层
@@ -502,7 +504,163 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
 
     def add_y(self):
+        up_parts = []
+        down_parts = []
+        glWin = self.selected_objs[0].glWin
+        for part in self.selected_objs:
+            UP, DP = part.add_y_without_relation(smooth=True)
+            if UP or DP:
+                up_parts.append(UP)
+                down_parts.append(DP)
+        # 处理零件关系图
+        relation_map = self.selected_objs[0].allParts_relationMap
+        self.selected_objs = []
+        # TODO: 未完成
+        # 重新渲染
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = True
+        glWin.paintGL()
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = False
+        glWin.update()
+
+    def add_front_layer(self):
         ...
+
+    def add_back_layer(self):
+        ...
+
+    def add_up_layer(self):
+        ...
+
+    def add_down_layer(self):
+        ...
+
+    def mouse_wheel(self, event):
+        self.wheelEvent(event)
+
+
+class Mod1HorizontalPartSetEditing(QWidget):
+    def __init__(self):
+        """
+        全视图模式，水平截块编辑器
+        """
+        super().__init__()
+        self.title = MyLabel("水平截块", FONT_10, side=Qt.AlignCenter)
+        # 图标
+        self.ADD_Y = QPixmap.fromImage(QImage.fromData(ADD_Y))
+        self.ADD_Z = QPixmap.fromImage(QImage.fromData(ADD_Z))
+        self.ADD_Y = self.ADD_Y.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.ADD_Z = self.ADD_Z.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        # 转化为控件
+        self.add_y_label = QLabel()
+        self.add_z_label = QLabel()
+        self.add_y_label.setPixmap(self.ADD_Y)
+        self.add_z_label.setPixmap(self.ADD_Z)
+        # 选择的对象
+        self.selected_objs: List[AdjustableHull] = []
+        self.allow_update_obj_when_editing = True
+        # 下方其他编辑
+        self.down_layout = QGridLayout()
+        # 按钮（包括前后细分，上下细分，向前添加层，向后添加层，向上添加层，向下添加层）
+        self.add_z_button = QPushButton()
+        self.add_y_button = QPushButton()
+        self.add_front_layer_button = QPushButton()
+        self.add_back_layer_button = QPushButton()
+        self.add_up_layer_button = QPushButton()
+        self.add_down_layer_button = QPushButton()
+        self.buttons = [self.add_z_button, self.add_y_button, self.add_front_layer_button, self.add_back_layer_button,
+                        self.add_up_layer_button, self.add_down_layer_button]
+        # grid
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+        self.init_layout()
+        # 绑定滚轮事件
+        self.wheelEvent = self.mouse_wheel
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        # 按照tab1_content0的内容，添加控件
+        # 只添加类型的结果，并且放大一个字号占据所有列
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
+        # 添加下方其他编辑
+        self.layout.addLayout(self.down_layout, 1, 0, 1, 4)
+        self.down_layout.setSpacing(7)
+        self.down_layout.setContentsMargins(0, 0, 0, 0)
+        # 设置按钮样式
+        style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:hover{{background-color: {BG_COLOR2};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
+                    f"QPushButton:pressed{{background-color: {BG_COLOR3};color: {FG_COLOR0};"
+                    f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}")
+        for i in range(len(self.buttons)):
+            self.buttons[i].setStyleSheet(style)
+            self.buttons[i].setLayout(QHBoxLayout())
+            self.buttons[i].layout().setSpacing(0)
+            self.buttons[i].layout().setContentsMargins(3, 3, 3, 3)
+            self.buttons[i].setFixedSize(90, 50)
+            self.down_layout.addWidget(self.buttons[i], 2 * (i // 2), i % 2)
+        # 按钮内添加控件
+        self.add_z_button.layout().addWidget(self.add_z_label)
+        self.add_y_button.layout().addWidget(self.add_y_label)
+        self.add_z_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
+        self.add_y_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
+        self.add_front_layer_button.layout().addWidget(MyLabel("向前添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_back_layer_button.layout().addWidget(MyLabel("向后添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_up_layer_button.layout().addWidget(MyLabel("向上添加层", FONT_9, side=Qt.AlignCenter))
+        self.add_down_layer_button.layout().addWidget(MyLabel("向下添加层", FONT_9, side=Qt.AlignCenter))
+        # 绑定按钮事件
+        self.add_z_button.clicked.connect(self.add_z)
+        self.add_y_button.clicked.connect(self.add_y)
+        self.add_front_layer_button.clicked.connect(self.add_front_layer)
+        self.add_back_layer_button.clicked.connect(self.add_back_layer)
+        self.add_up_layer_button.clicked.connect(self.add_up_layer)
+        self.add_down_layer_button.clicked.connect(self.add_down_layer)
+
+    def add_z(self):
+        front_parts = []
+        back_parts = []
+        glWin = self.selected_objs[0].glWin
+        for part in self.selected_objs:
+            FP, BP = part.add_z_without_relation(smooth=True)
+            if FP or BP:
+                front_parts.append(FP)
+                back_parts.append(BP)
+        # 处理零件关系图
+        relation_map = self.selected_objs[0].allParts_relationMap
+        self.selected_objs = []
+        # TODO: 未完成
+        # 重新渲染
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = True
+        glWin.paintGL()
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = False
+        glWin.update()
+
+    def add_y(self):
+        up_parts = []
+        down_parts = []
+        glWin = self.selected_objs[0].glWin
+        for part in self.selected_objs:
+            UP, DP = part.add_y_without_relation(smooth=True)
+            if UP or DP:
+                up_parts.append(UP)
+                down_parts.append(DP)
+        # 处理零件关系图
+        relation_map = self.selected_objs[0].allParts_relationMap
+        self.selected_objs = []
+        # TODO: 未完成
+        # 重新渲染
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = True
+        glWin.paintGL()
+        for mode in glWin.gl_commands.keys():
+            glWin.gl_commands[mode][1] = False
+        glWin.update()
 
     def add_front_layer(self):
         ...
