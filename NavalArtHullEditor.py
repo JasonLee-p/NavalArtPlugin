@@ -2,7 +2,6 @@
 """
 NavalArt Hull Editor
 NavalArt 船体编辑器
-Version: va0.0.1
 Author: @JasonLee
 Date: 2023-9-18
 """
@@ -18,6 +17,7 @@ try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
     # 本地库
+    from connection import Connection, extract_number_from_version
     from state_history import StateHistory, operation_wrapper
     from util_funcs import *
     from ship_reader import *
@@ -36,6 +36,8 @@ except Exception as e:
     print(e)
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
+
+VERSION = "va0.0.2.0"
 
 
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
@@ -61,6 +63,18 @@ def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] 
     else:
         label_.setStyleSheet(f'color: {FG_COLOR0};')
     label_.setText(txt)
+
+
+def check_version():
+    show_state("正在检查更新...", 'process')
+    latest_version, links = Connection.get_latest_version()
+    show_state("检查更新完成", 'success')
+    if extract_number_from_version(latest_version) > extract_number_from_version(VERSION):
+        dialog = NewVersionDialog(Handler.window, VERSION, latest_version)
+        dialog.exec_()
+        if dialog.download:
+            webbrowser.open(links[1])
+            webbrowser.open(links[0])
 
 
 # noinspection PyUnresolvedReferences
@@ -716,6 +730,7 @@ class MainHandler:
                 "切换视图": self.switch_view,
             },
             " 帮助": {
+                "检查更新": check_version,
                 "查看教程": user_guide,
                 "关于我们": self.about
             }
@@ -2213,6 +2228,8 @@ if __name__ == '__main__':
         else:
             pass
         QtWindow.showMaximized()
+        # 检查版本
+        check_version()
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:

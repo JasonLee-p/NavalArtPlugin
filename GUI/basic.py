@@ -386,6 +386,8 @@ class BasicDialog(QDialog):
         self.cancel_button = QPushButton('取消')
         self.ensure_button = QPushButton('确定')
         self.add_bottom_bar()
+        # 移动到屏幕中央
+        self.move((WinWid - self.width()) / 2, 3 * (WinHei - self.height()) / 7)
         # 给top_layout的区域添加鼠标拖动功能
         self.m_flag = False
         self.m_Position = None

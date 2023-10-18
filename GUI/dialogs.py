@@ -25,6 +25,64 @@ def front_completion(string, length, add_char):
     return front_completion(string, length, add_char)
 
 
+class NewVersionDialog(BasicDialog):
+    def __init__(self, parent, current_version, latest_version, title="新版本", size=QSize(300, 250)):
+        self.current_version = current_version
+        self.latest_version = latest_version
+        self.center_layout = QGridLayout()
+        self.label_current_text = QLabel("当前版本：")
+        self.label_current_version = QLabel(self.current_version)
+        self.label_latest_text = QLabel("最新版本：")
+        self.label_latest_version = QLabel(self.latest_version)
+        self.label_update_text = QLabel("确定前往官网更新？")
+        self.set_layout()
+        super().__init__(parent, title, size, self.center_layout)
+        self.download = False
+
+    def set_layout(self):
+        """
+        设置布局
+        :return:
+        """
+        self.center_layout.setContentsMargins(60, 30, 60, 0)
+        self.center_layout.setSpacing(10)
+        self.center_layout.addWidget(self.label_current_text, 0, 0)
+        self.center_layout.addWidget(self.label_current_version, 0, 1)
+        self.center_layout.addWidget(self.label_latest_text, 1, 0)
+        self.center_layout.addWidget(self.label_latest_version, 1, 1)
+        self.center_layout.addWidget(self.label_update_text, 2, 0, 1, 2)
+        self.label_current_version.setFixedSize(100, 30)
+        self.label_latest_version.setFixedSize(100, 30)
+        self.label_update_text.setFixedSize(200, 50)
+        # 设置QLabel的样式
+        RED = "#FF4444"
+        GREEN = "#00FF00"
+        self.label_current_version.setStyleSheet(f"background-color: {BG_COLOR2};"
+                                                 f"border-radius: 5px; font-family: {YAHEI}; font-size: 18px; color: {RED};")
+        self.label_latest_version.setStyleSheet(f"background-color: {BG_COLOR2};"
+                                                f"border-radius: 5px; font-family: {YAHEI}; font-size: 18px; color: {GREEN};")
+        TextStyleSheet = f"color: {FG_COLOR0}; font-size: 18px; font-family: {YAHEI};"
+        self.label_current_text.setStyleSheet(TextStyleSheet)
+        self.label_latest_text.setStyleSheet(TextStyleSheet)
+        self.label_update_text.setStyleSheet(TextStyleSheet)
+        # 设置字体
+        for label in [self.label_current_text, self.label_current_version,
+                      self.label_latest_text, self.label_latest_version,
+                      self.label_update_text]:
+            label.setFont(FONT_14)
+
+        # 居中
+        self.label_current_text.setAlignment(Qt.AlignCenter)
+        self.label_current_version.setAlignment(Qt.AlignCenter)
+        self.label_latest_text.setAlignment(Qt.AlignCenter)
+        self.label_latest_version.setAlignment(Qt.AlignCenter)
+        self.label_update_text.setAlignment(Qt.AlignCenter)
+
+    def ensure(self):
+        self.download = True
+        super().ensure()
+
+
 class NewProjectDialog(BasicDialog):
     current = None
 
