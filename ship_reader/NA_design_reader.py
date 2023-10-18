@@ -1,6 +1,7 @@
 """
 读取NA设计文件的模块
 """
+import copy
 import time
 import xml.etree.ElementTree as ET
 from typing import Union, List, Dict, Callable
@@ -470,8 +471,6 @@ class NAPart:
     id_map = {}  # 储存零件ID与零件实例的映射
     hull_design_tab_id_map = {}  # 在na_hull中清空和初始化
 
-    operation_history = {}  # 储存操作历史，格式为 {new_part_data: original_part_data}
-
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.glWin = None  # 用于绘制的窗口
         self.read_na_obj = read_na
@@ -492,6 +491,9 @@ class NAPart:
         self.update_transparentList = False
         self.selected_genList = None
         self.update_selectedList = False
+
+    def __deepcopy__(self, memo):
+        return self
 
     def set_basic_attributes(self, armor):
         self.Amr = armor
@@ -596,6 +598,9 @@ class AdjustableHull(NAPart):
         self.vertex_coordinates = self.get_initial_vertex_coordinates()
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
+
+    def __deepcopy__(self, memo):
+        return self
 
     def get_plot_faces(self):
         """
@@ -1124,7 +1129,7 @@ class AdjustableHull(NAPart):
             return None, None
         # 添加到关系图
         if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
-            self.allParts_relationMap.replace(FP, BP, self, None)
+            self.allParts_relationMap.replace_2(FP, BP, self, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
@@ -1146,7 +1151,7 @@ class AdjustableHull(NAPart):
             return None, None
         # 添加到关系图
         if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
-            self.allParts_relationMap.replace(UP, DP, self, None)
+            self.allParts_relationMap.replace_2(UP, DP, self, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
@@ -1284,35 +1289,6 @@ class AdjustableHull(NAPart):
         BP = AdjustableHull(
             self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
             self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
-        # 在数据中删除原来的零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
-        # 往read_na的drawMap中添加零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(FP)
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(BP)
-        # 更新显示的被选中的零件
-        if self.glWin:
-            try:
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(FP)
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(BP)
-            except ValueError:
-                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
-                replaced = False
-                while not replaced:
-                    for mode in self.glWin.selected_gl_objects.keys():
-                        try:
-                            self.glWin.selected_gl_objects[mode].remove(self)
-                            self.glWin.selected_gl_objects[mode].append(FP)
-                            self.glWin.selected_gl_objects[mode].append(BP)
-                            replaced = True
-                            break
-                        except ValueError:
-                            continue
-        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
-        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
-        # 向hull_design_tab_id_map（绘制所需）添加新的零件
-        NAPart.hull_design_tab_id_map[id(FP) % 4294967296] = FP
-        NAPart.hull_design_tab_id_map[id(BP) % 4294967296] = BP
         return FP, BP
 
     def add_y_without_relation(self, smooth=False):
@@ -1425,35 +1401,35 @@ class AdjustableHull(NAPart):
         DP = AdjustableHull(
             self.read_na_obj, self.Id, D_Pos, self.Rot, self.Scl, self.Col, self.Amr,
             self.Len, self.Hei / 2, self.FWid, self.BWid, D_FSpr, D_BSpr, 0, self.DCur, 1, 0)
-        # 在数据中删除原来的零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
-        # 往read_na的drawMap中添加零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(UP)
-        self.read_na_obj.DrawMap[f"#{self.Col}"].append(DP)
-        # 更新显示的被选中的零件
-        if self.glWin:
-            try:
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(UP)
-                self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(DP)
-            except ValueError:
-                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
-                replaced = False
-                while not replaced:
-                    for mode in self.glWin.selected_gl_objects.keys():
-                        try:
-                            self.glWin.selected_gl_objects[mode].remove(self)
-                            self.glWin.selected_gl_objects[mode].append(UP)
-                            self.glWin.selected_gl_objects[mode].append(DP)
-                            replaced = True
-                            break
-                        except ValueError:
-                            continue
-        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
-        NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
-        # 向hull_design_tab_id_map（绘制所需）添加新的零件
-        NAPart.hull_design_tab_id_map[id(UP) % 4294967296] = UP
-        NAPart.hull_design_tab_id_map[id(DP) % 4294967296] = DP
+        # # 在数据中删除原来的零件
+        # self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self)
+        # # 往read_na的drawMap中添加零件
+        # self.read_na_obj.DrawMap[f"#{self.Col}"].append(UP)
+        # self.read_na_obj.DrawMap[f"#{self.Col}"].append(DP)
+        # # 更新显示的被选中的零件
+        # if self.glWin:
+        #     try:
+        #         self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].remove(self)
+        #         self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(UP)
+        #         self.glWin.selected_gl_objects[self.glWin.show_3d_obj_mode].append(DP)
+        #     except ValueError:
+        #         # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
+        #         replaced = False
+        #         while not replaced:
+        #             for mode in self.glWin.selected_gl_objects.keys():
+        #                 try:
+        #                     self.glWin.selected_gl_objects[mode].remove(self)
+        #                     self.glWin.selected_gl_objects[mode].append(UP)
+        #                     self.glWin.selected_gl_objects[mode].append(DP)
+        #                     replaced = True
+        #                     break
+        #                 except ValueError:
+        #                     continue
+        # # 从hull_design_tab_id_map（绘制所需）删除原来的零件
+        # NAPart.hull_design_tab_id_map.pop(id(self) % 4294967296)
+        # # 向hull_design_tab_id_map（绘制所需）添加新的零件
+        # NAPart.hull_design_tab_id_map[id(UP) % 4294967296] = UP
+        # NAPart.hull_design_tab_id_map[id(DP) % 4294967296] = DP
         return UP, DP
 
     def scale(self, ratio: list, update=False):
@@ -1872,6 +1848,8 @@ class PartRelationMap:
     BACK_DOWN_LEFT = "back_down_left"
     BACK_DOWN_RIGHT = "back_down_right"
 
+    last_map = None
+
     def __init__(self, read_na, show_statu_func):
         """
         建立有向图，6种关系，上下左右前后，权重等于距离（按照从小到大的顺序，越近索引越小，越远索引越大）
@@ -1913,6 +1891,7 @@ class PartRelationMap:
             PartRelationMap.LEFT: {},
             PartRelationMap.SAME: {}
         }
+        PartRelationMap.last_map = self
 
     def opposite_direction(self, direction):
         """
@@ -1944,6 +1923,7 @@ class PartRelationMap:
         :param other_part_relation: 与之关系的零件的关系映射
         :param raw_direction: 毛方向，前后，上下，左右
         """
+        PartRelationMap.last_map = self
         if raw_direction == self.SAME:
             other_part_relation[self.SAME][part] = 0
             for relation in (self.FRONT, self.BACK, self.UP, self.DOWN, self.LEFT, self.RIGHT):
@@ -2092,7 +2072,7 @@ class PartRelationMap:
         relation_t = round(time.time() - st, 4)
         return layer_t, relation_t, dot_t
 
-    def replace(self, part0, part1, replaced_part, direction):
+    def replace_2(self, part0, part1, replaced_part, direction):
         """
 
         :param part0: 在该方向值大的零件，注意，不是在原零件坐标系的方向，而是在世界坐标系的方向
@@ -2101,6 +2081,7 @@ class PartRelationMap:
         :param direction:
         :return:
         """
+        PartRelationMap.last_map = self
         # if replaced_part not in self.basicMap.keys():
         #     return # 如果被替换零件不在basicMap中，就不替换
         if not direction:
@@ -2137,6 +2118,8 @@ class PartRelationMap:
         new_map1[direction_map[direction][0]] = {
             part0: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
         # 获取被替换零件的关系图
+        if replaced_part not in self.basicMap.keys():  # TODO: 这里不明原因，被替换零件不在basicMap中，可能是因为撤回操作DrawMap取深拷贝的问题
+            return
         replaced_relation_map = self.basicMap[replaced_part]
         for part in replaced_relation_map[direction_map[direction][0]].keys():
             # 给新零件添加关系
@@ -2183,12 +2166,25 @@ class PartRelationMap:
         # 删除被替换零件
         del self.basicMap[replaced_part]
 
+    def back_replace_2(self, part0, part1, replaced_part, direction):
+        """
+        逆向操作replace_2
+        :param part0:
+        :param part1:
+        :param replaced_part:
+        :param direction:
+        :return:
+        """
+        # TODO: 暂时先重置关系图
+        self.remap()
+
     def del_part(self, part):
         """
         删除零件
         :param part:
         :return:
         """
+        PartRelationMap.last_map = self
         # 遍历自身的相关零件，将自身从其关系中删除
         for direction, other_parts in self.basicMap[part].items():
             for other_part in other_parts.keys():
@@ -2197,6 +2193,7 @@ class PartRelationMap:
         self.basicMap[part] = {}
 
     def remap(self):
+        PartRelationMap.last_map = self
         # 清空所有数据
         NAPartNode.all_dots.clear()
         NAPartNode.id_map.clear()
@@ -2240,6 +2237,7 @@ class PartRelationMap:
         :param init: 如果为False，这个函数则仅用于drawMap的初始化后调用，用来指示代码位置方便Debug
         :return:
         """
+        PartRelationMap.last_map = self
         if not init:
             return
         self.na_hull = na_hull
@@ -2266,6 +2264,7 @@ class PartRelationMap:
         self.show_statu_func(f"零件关系图排序完成! 耗时：{time.time() - st}s", "success")
 
     def sort(self):
+        PartRelationMap.last_map = self
         self.show_statu_func("正在加载LayerMaps", "process")
         self.xzDotsLayerMap = dict(sorted(self.xzDotsLayerMap.items(), key=lambda item: item[0]))
         self.xyDotsLayerMap = dict(sorted(self.xyDotsLayerMap.items(), key=lambda item: item[0]))
@@ -2283,3 +2282,19 @@ class PartRelationMap:
                     self.show_statu_func(f"正在排序第{i}个零件，进度：{process} %", "process")
                 i += 1
                 part_relation[direction] = dict(sorted(others_direction_relation.items(), key=lambda item: item[1]))
+
+    def get_DotsLayerMap(self):
+        """
+        获取DotsLayerMap的副本
+        :return: xyDotsLayerMap, xzDotsLayerMap, yzDotsLayerMap
+        """
+        return copy.deepcopy(self.xyDotsLayerMap), copy.deepcopy(self.xzDotsLayerMap), copy.deepcopy(
+            self.yzDotsLayerMap)
+
+    def get_PartsLayerMap(self):
+        """
+        获取PartsLayerMap的副本
+        :return: xyPartsLayerMap, xzPartsLayerMap, yzPartsLayerMap
+        """
+        return copy.deepcopy(self.xyPartsLayerMap), copy.deepcopy(self.xzPartsLayerMap), copy.deepcopy(
+            self.yzPartsLayerMap)

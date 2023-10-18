@@ -130,9 +130,24 @@ class MainWindow(QWidget):
     def init_sub_menu(self, menu_name, menu_map):
         menu = QMenu()
         for sub_menu_name in menu_map[menu_name]:
-            sub_menu = QAction(sub_menu_name, self)
-            sub_menu.triggered.connect(menu_map[menu_name][sub_menu_name])
-            menu.addAction(sub_menu)
+            if isinstance(menu_map[menu_name][sub_menu_name], dict):
+                # 添加子菜单
+                sub_menu = menu.addMenu(sub_menu_name)
+                for sub_sub_menu_name in menu_map[menu_name][sub_menu_name]:
+                    sub_sub_menu = QAction(sub_sub_menu_name, self)
+                    sub_sub_menu.triggered.connect(menu_map[menu_name][sub_menu_name][sub_sub_menu_name])
+                    sub_menu.addAction(sub_sub_menu)
+            else:
+                sub_menu = QAction(sub_menu_name, self)
+                sub_menu.triggered.connect(menu_map[menu_name][sub_menu_name])
+                menu.addAction(sub_menu)
+            # else:
+            #     # 添加子菜单
+            #     sub_menu = menu.addMenu(sub_menu_name)
+            #     for sub_sub_menu_name in menu_map[menu_name][sub_menu_name]:
+            #         sub_sub_menu = QAction(sub_sub_menu_name, self)
+            #         sub_sub_menu.triggered.connect(menu_map[menu_name][sub_menu_name][sub_sub_menu_name])
+            #         sub_menu.addAction(sub_sub_menu)
         return menu
 
     def set_button_style(self, button, icon, icon_size, color, hover_color):

@@ -1,12 +1,179 @@
 # -*- coding: utf-8 -*-
 """
-右侧元素编辑
+右侧的元素编辑界面
+Mod表示模式，1表示全视图模式，2表示水平截面模式，3表示竖直截面模式，4表示左视图模式
+
 """
+import copy
 from typing import Union, List
 
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
 from ship_reader.NA_design_reader import PartRelationMap
+from state_history import operation_wrapper, operationObj_wrapper
+
+
+class SinglePartOperation:
+    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool):
+        self.name = "单零件编辑"
+        self.event = event
+        self.active_textEdit = active_textEdit
+        self.step = step
+        self.step_type = type(self.step)
+        self.origin_value = self.step_type(self.active_textEdit.text())
+        self.new_value = self.origin_value + self.step
+        self.circle_bt_isChecked: bool = circle_bt_isChecked
+
+    def execute(self):
+        singlePart_e = Mod1SinglePartEditing.current
+        # 修改输入框的值
+        if self.step_type == int:
+            self.active_textEdit.setText(str(self.new_value))
+        elif self.step_type == float:
+            if self.active_textEdit in [singlePart_e.content["坐标"]["QLineEdit"][0],
+                                        singlePart_e.content["坐标"]["QLineEdit"][1],
+                                        singlePart_e.content["坐标"]["QLineEdit"][2]] and \
+                    singlePart_e.selected_obj.allParts_relationMap.basicMap[singlePart_e.selected_obj]:
+                # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
+                # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
+                reply = QMessageBox.warning(None, "警告", str("更改单个零件的位置，会解除与其他所有零件的方位关系！\n"
+                                                              "我们非常不建议您这么做！\n"
+                                                              "是否继续？"),
+                                            QMessageBox.Yes | QMessageBox.No | QMessageBox.Help)
+                if reply == QMessageBox.No:
+                    return
+                elif reply == QMessageBox.Help:
+                    # TODO: 弹出帮助窗口
+                    return
+                elif reply == QMessageBox.Yes:
+                    # 解除关系
+                    relation_map = singlePart_e.selected_obj.allParts_relationMap
+                    relation_map.del_part(singlePart_e.selected_obj)
+            elif self.active_textEdit in [singlePart_e.content["上弧度"]["QLineEdit"][0],
+                                          singlePart_e.content["下弧度"]["QLineEdit"][0]] \
+                    and (self.new_value < 0 or self.new_value > 1):
+                # 弧度值不在0-1之间，直接不修改
+                return
+            self.active_textEdit.setText(str(round(self.new_value, 3)))
+            if not self.circle_bt_isChecked:  # 扩散随着宽度变换
+                if self.active_textEdit == singlePart_e.content["前宽度"]["QLineEdit"][0]:
+                    txt = singlePart_e.content["前扩散"]["QLineEdit"][0].text()
+                    singlePart_e.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - self.step, 3)))
+                elif self.active_textEdit == singlePart_e.content["后宽度"]["QLineEdit"][0]:
+                    txt = singlePart_e.content["后扩散"]["QLineEdit"][0].text()
+                    singlePart_e.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - self.step, 3)))
+        update_success = singlePart_e.update_obj_when_editing()
+
+    def undo(self):
+        singlePart_e = Mod1SinglePartEditing.current
+        step_type = type(self.step)
+        # 修改输入框的值
+        if step_type == int:
+            self.active_textEdit.setText(str(self.origin_value))
+        elif step_type == float:
+            self.active_textEdit.setText(str(round(self.origin_value, 3)))
+            if not self.circle_bt_isChecked:  # 扩散随着宽度变换
+                if self.active_textEdit == singlePart_e.content["前宽度"]["QLineEdit"][0]:
+                    txt = singlePart_e.content["前扩散"]["QLineEdit"][0].text()
+                    singlePart_e.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) + self.step, 3)))
+                elif self.active_textEdit == singlePart_e.content["后宽度"]["QLineEdit"][0]:
+                    txt = singlePart_e.content["后扩散"]["QLineEdit"][0].text()
+                    singlePart_e.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) + self.step, 3)))
+        update_success = singlePart_e.update_obj_when_editing()
+
+    def redo(self):
+        self.execute()
+
+
+class CutSinglePartOperation:
+    """
+    分割零件，用于细分单零件操作
+    """
+
+    def __init__(self, original_part, new_parts: List[AdjustableHull]):
+        self.name = "分割零件"
+        self.original_part: AdjustableHull = original_part
+        self.allParts_relationMap: PartRelationMap = original_part.allParts_relationMap
+        self.Col = self.original_part.Col
+        self.read_na_obj = self.original_part.read_na_obj
+        self.glWin = self.original_part.glWin
+        self.glWinMode = copy.copy(self.glWin.show_3d_obj_mode)
+        self.new_parts: List[AdjustableHull] = new_parts
+
+    def execute(self):
+        P1, P2 = self.new_parts[0], self.new_parts[1]
+        # 在数据中删除原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self.original_part)
+        # 往read_na的drawMap中添加零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(P1)
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(P2)
+        # 更新显示的被选中的零件
+        if self.glWin:
+            try:
+                self.glWin.selected_gl_objects[self.glWinMode].remove(self.original_part)
+                self.glWin.selected_gl_objects[self.glWinMode].append(P1)
+                self.glWin.selected_gl_objects[self.glWinMode].append(P2)
+            except ValueError:
+                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
+                replaced = False
+                while not replaced:
+                    for mode in self.glWin.selected_gl_objects.keys():
+                        try:
+                            self.glWin.selected_gl_objects[mode].remove(self.original_part)
+                            self.glWin.selected_gl_objects[mode].append(P1)
+                            self.glWin.selected_gl_objects[mode].append(P2)
+                            self.glWinMode = mode
+                            replaced = True
+                            break
+                        except ValueError:
+                            continue
+        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
+        NAPart.hull_design_tab_id_map.pop(id(self.original_part) % 4294967296)
+        # 向hull_design_tab_id_map（绘制所需）添加新的零件
+        NAPart.hull_design_tab_id_map[id(P1) % 4294967296] = P1
+        NAPart.hull_design_tab_id_map[id(P2) % 4294967296] = P2
+        # 添加到关系图
+        if self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and self.original_part.Rot[
+            2] % 90 == 0:
+            self.allParts_relationMap.replace_2(P1, P2, self.original_part, None)
+        # 重新渲染
+        for _mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[_mode][1] = True
+        self.glWin.paintGL()
+        for _mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[_mode][1] = False
+        self.glWin.update()
+
+    def undo(self):
+        P1, P2 = self.new_parts[0], self.new_parts[1]
+        # 在数据中恢复原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(self.original_part)
+        # 往read_na的drawMap中添加零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(P1)
+        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(P2)
+        # 更新显示的被选中的零件
+        if self.glWin:
+            self.glWin.selected_gl_objects[self.glWinMode] = [self.original_part]
+
+        # 向hull_design_tab_id_map（绘制所需）删除新的零件
+        NAPart.hull_design_tab_id_map.pop(id(P1) % 4294967296)
+        NAPart.hull_design_tab_id_map.pop(id(P2) % 4294967296)
+        # 从hull_design_tab_id_map（绘制所需）恢复原来的零件
+        NAPart.hull_design_tab_id_map[id(self.original_part) % 4294967296] = self.original_part
+        # 恢复关系图
+        if self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and self.original_part.Rot[
+            2] % 90 == 0:
+            self.allParts_relationMap.back_replace_2(P1, P2, self.original_part, None)
+        # 重新渲染
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = True
+        self.glWin.paintGL()
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = False
+        self.glWin.update()
+
+    def redo(self):
+        self.execute()
 
 
 class Mod1AllPartsEditing(QWidget):
@@ -52,14 +219,15 @@ class Mod1AllPartsEditing(QWidget):
         self.layout.addWidget(self.scale_button)
         self.layout.addWidget(self.remap_button)
 
-    def trans_all_parts(self):
+    def trans_all_parts(self, event=None):
         ...
 
-    def scale_all_parts(self):
+    def scale_all_parts(self, event=None):
         ...
 
     @staticmethod
-    def remap_all_parts():
+    @operation_wrapper
+    def remap_all_parts(event=None):
         _p = list(NAPart.hull_design_tab_id_map.values())[0]
         i = 0
         while type(_p) != AdjustableHull and i < len(NAPart.hull_design_tab_id_map):
@@ -77,6 +245,8 @@ class Mod1AllPartsEditing(QWidget):
 
 
 class Mod1SinglePartEditing(QWidget):
+    current = None
+
     def __init__(self):
         """
         全视图模式，单零件编辑器
@@ -142,6 +312,7 @@ class Mod1SinglePartEditing(QWidget):
         self.init_layout()
         # 绑定滚轮事件
         self.wheelEvent = self.mouse_wheel
+        Mod1SinglePartEditing.current = self
 
     def init_layout(self):
         self.layout.setSpacing(7)
@@ -235,22 +406,34 @@ class Mod1SinglePartEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer)
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
-    def add_z(self):
+    @operationObj_wrapper
+    def add_z(self, event=None):
+        cso = None
         if self.selected_obj:
-            self.selected_obj.only_self_add_z(smooth=True)
+            FP, BP = self.selected_obj.add_z_without_relation(smooth=True)
+            if FP is None or BP is None:
+                return cso
+            cso = CutSinglePartOperation(self.selected_obj, [FP, BP])
             self.selected_obj = None
         # 隐藏自己
         self.hide()
+        return cso
 
-    def add_y(self):
-        # y轴细分
+    @operationObj_wrapper
+    def add_y(self, event=None):
+        cso = None
         if self.selected_obj:
-            self.selected_obj.only_self_add_y(smooth=True)
+            UP, DP = self.selected_obj.add_y_without_relation(smooth=True)
+            if UP is None or DP is None:
+                return cso
+            cso = CutSinglePartOperation(self.selected_obj, [UP, DP])
             self.selected_obj = None
         # 隐藏自己
         self.hide()
+        return cso
 
-    def add_front_layer(self):
+    @operation_wrapper
+    def add_front_layer(self, event=None):
         # 向前添加层
         relation_map = self.selected_obj.allParts_relationMap.basicMap
         if relation_map[self.selected_obj][PartRelationMap.FRONT]:
@@ -267,7 +450,8 @@ class Mod1SinglePartEditing(QWidget):
         else:
             ...
 
-    def add_back_layer(self):
+    @operation_wrapper
+    def add_back_layer(self, event=None):
         # 向后添加层
         relation_map = self.selected_obj.allParts_relationMap.basicMap
         if relation_map[self.selected_obj][PartRelationMap.BACK]:
@@ -283,15 +467,22 @@ class Mod1SinglePartEditing(QWidget):
         else:
             ...
 
-    def add_up_layer(self):
+    @operation_wrapper
+    def add_up_layer(self, event=None):
         # 向上添加层
         pass
 
-    def add_down_layer(self):
+    @operation_wrapper
+    def add_down_layer(self, event=None):
         # 向下添加层
         pass
 
-    def mouse_wheel(self, event):
+    def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
+        """
+        鼠标滚轮事件
+        :param event:
+        :return:
+        """
         if type(event) == list:  # [QTextEdit, QWheelEvent]
             # 是自己的程序在其他地方的调用，第一项就是需要修改的输入框
             active_textEdit = event[0]
@@ -307,51 +498,22 @@ class Mod1SinglePartEditing(QWidget):
                             active_textEdit = textEdit
                             break
         if active_textEdit is None:
-            return
+            return None
         step = self.wheel_change_value_map[active_textEdit]
-        step_type = type(step)
         # 获取输入框的值
-        value = step_type(active_textEdit.text())
         if event.angleDelta().y() < 0:
-            step = - step  # 滚轮向下滚动，值减小
-        value += step
-        # 修改输入框的值
-        if step_type == int:
-            active_textEdit.setText(str(value))
-        elif step_type == float:
-            if active_textEdit in [self.content["坐标"]["QLineEdit"][0], self.content["坐标"]["QLineEdit"][1],
-                                   self.content["坐标"]["QLineEdit"][2]] and \
-                    self.selected_obj.allParts_relationMap.basicMap[self.selected_obj]:
-                # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
-                # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
-                reply = QMessageBox.warning(None, "警告", "更改单个零件的位置，会解除与其他所有零件的方位关系！\n"
-                                                        "我们非常不建议您这么做！\n"
-                                                        "是否继续？",
-                                            QMessageBox.Yes | QMessageBox.No | QMessageBox.Help)
-                if reply == QMessageBox.No:
-                    return
-                elif reply == QMessageBox.Help:
-                    # TODO: 弹出帮助窗口
-                    return
-                elif reply == QMessageBox.Yes:
-                    # 解除关系
-                    relation_map = self.selected_obj.allParts_relationMap
-                    relation_map.del_part(self.selected_obj)
-            elif active_textEdit in [self.content["上弧度"]["QLineEdit"][0], self.content["下弧度"]["QLineEdit"][0]] \
-                    and (value < 0 or value > 1):
-                # 弧度值不在0-1之间，直接不修改
-                return
-            active_textEdit.setText(str(round(value, 3)))
-            if not self.circle_bt.isChecked():  # 扩散随着宽度变换
-                if active_textEdit == self.content["前宽度"]["QLineEdit"][0]:
-                    txt = self.content["前扩散"]["QLineEdit"][0].text()
-                    self.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
-                elif active_textEdit == self.content["后宽度"]["QLineEdit"][0]:
-                    txt = self.content["后扩散"]["QLineEdit"][0].text()
-                    self.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
-        update_success = self.update_obj_when_editing()
+            step = - step
+        if step != 0:
+            self.update_(event, step, active_textEdit)
 
-    def update_obj_when_editing(self):
+    @operationObj_wrapper
+    def update_(self, event, step, active_textEdit):
+        spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()))
+        # spo.execute()
+        return spo
+
+    @operation_wrapper
+    def update_obj_when_editing(self, event=None):
         if not self.allow_update_obj_when_editing:
             return False
         # 当值被修改，更新被绘制对象的值
@@ -480,7 +642,9 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer)
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
-    def add_z(self):
+    @operation_wrapper
+    def add_z(self, event=None):
+        return
         front_parts = []
         back_parts = []
         glWin = self.selected_objs[0].glWin
@@ -502,7 +666,9 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    def add_y(self):
+    @operation_wrapper
+    def add_y(self, event=None):
+        return
         up_parts = []
         down_parts = []
         glWin = self.selected_objs[0].glWin
@@ -524,16 +690,20 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    def add_front_layer(self):
+    @operation_wrapper
+    def add_front_layer(self, event=None):
         ...
 
-    def add_back_layer(self):
+    @operation_wrapper
+    def add_back_layer(self, event=None):
         ...
 
-    def add_up_layer(self):
+    @operation_wrapper
+    def add_up_layer(self, event=None):
         ...
 
-    def add_down_layer(self):
+    @operation_wrapper
+    def add_down_layer(self, event=None):
         ...
 
     def mouse_wheel(self, event):
@@ -620,7 +790,9 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer)
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
-    def add_z(self):
+    @operation_wrapper
+    def add_z(self, event=None):
+        return
         front_parts = []
         back_parts = []
         glWin = self.selected_objs[0].glWin
@@ -642,7 +814,9 @@ class Mod1HorizontalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    def add_y(self):
+    @operation_wrapper
+    def add_y(self, event=None):
+        return
         up_parts = []
         down_parts = []
         glWin = self.selected_objs[0].glWin
@@ -664,16 +838,20 @@ class Mod1HorizontalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    def add_front_layer(self):
+    @operation_wrapper
+    def add_front_layer(self, event=None):
         ...
 
-    def add_back_layer(self):
+    @operation_wrapper
+    def add_back_layer(self, event=None):
         ...
 
-    def add_up_layer(self):
+    @operation_wrapper
+    def add_up_layer(self, event=None):
         ...
 
-    def add_down_layer(self):
+    @operation_wrapper
+    def add_down_layer(self, event=None):
         ...
 
     def mouse_wheel(self, event):

@@ -5,7 +5,7 @@
 import json
 import os
 import time
-from typing import Union
+from typing import Union, Literal
 
 from PyQt5.QtWidgets import QMessageBox
 from path_utils import find_na_root_path
@@ -83,7 +83,8 @@ class ProjectFile:
 
     def __init__(
             self, name, path, original_na_file_path,
-            na_parts_data=None, operations=None, mode="空白", code='', save_time='',
+            na_parts_data=None, operations=None, mode=Literal["空白", "NA", "预设", "PTB", "自定义", "从文件加载"],  # 工程创建模式
+            code='', save_time=''
     ):
         """
         工程文件类，用于处理工程文件的读写

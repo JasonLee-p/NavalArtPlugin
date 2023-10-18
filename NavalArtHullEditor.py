@@ -18,6 +18,7 @@ try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
     # 本地库
+    from state_history import StateHistory, operation_wrapper
     from util_funcs import *
     from ship_reader import *
     from GUI import *
@@ -40,9 +41,9 @@ except Exception as e:
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
     """
     显示状态栏信息
-    :param txt:
-    :param msg_type:
-    :param label:
+    :param txt: 状态栏信息
+    :param msg_type: 状态栏信息类型
+    :param label: 状态栏标签
     :return:
     """
     color_map = {
@@ -108,6 +109,7 @@ def after_open():
     Handler.hull_design_tab.ThreeDFrame.paintGL()
     for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
         _l[1] = False
+    StateHistory.current.init_stack()
     Handler.LoadingProject = False
 
 
@@ -146,6 +148,10 @@ class ProjectOpeningThread(QThread):
 
 # noinspection PyUnresolvedReferences
 def new_project():
+    """
+    新建工程，弹出对话框，获取工程名称和路径，以及其他相关信息
+    :return:
+    """
     # 弹出对话框，获取工程名称和路径，以及其他相关信息
     NewProjectDialog(parent=Handler.window)
     NewProjectDialog.current.exec_()
@@ -197,7 +203,8 @@ class ReadNAHullThread(QThread):
                 _prj_path = NewProjectDialog.current.ProjectPath
                 _original_na_path = NewProjectDialog.current.OriginalNAPath
                 # 开启ProjectLoadingNewThread线程，读取工程
-                Handler.window.new_project_thread = ProjectLoadingNewThread(self.na_hull, _name, _prj_path, _original_na_path)
+                Handler.window.new_project_thread = ProjectLoadingNewThread(self.na_hull, _name, _prj_path,
+                                                                            _original_na_path)
                 Handler.window.new_project_thread.update_state.connect(show_state)
                 Handler.window.new_project_thread.finished.connect(after_new)
                 Handler.window.new_project_thread.start()
@@ -211,6 +218,7 @@ def after_new():
     Handler.hull_design_tab.ThreeDFrame.paintGL()
     for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
         _l[1] = False
+    StateHistory.current.init_stack()
     Handler.LoadingProject = False
 
 
@@ -244,65 +252,11 @@ class ProjectLoadingNewThread(QThread):
             raise _e
 
 
-class Operation:
-    # 定义可用的操作
-    Select = 1
-    DisSelect = 2
-    ShowAdHull = 3
-
-    # 操作历史记录
-    history = []
-    index = 0
-
-    def __init__(self, operation_type, operation_data):
-        """
-        记录用户操作
-        :param operation_type:
-        :param operation_data:
-        """
-        self.operation_type = operation_type
-        self.operation_data = operation_data
-        Operation.history.append(self)
-        Operation.index += 1
-
-    @classmethod
-    def undo(cls):
-        if cls.index > 0:
-            cls.index -= 1
-            cls.history[cls.index].undo()
-            return True
-        else:
-            return False
-
-    @classmethod
-    def redo(cls):
-        if cls.index < len(cls.history):
-            cls.history[cls.index].redo()
-            cls.index += 1
-            return True
-        else:
-            return False
-
-    @classmethod
-    def operation(cls, func):
-        """
-        将函数func包装成操作
-        :param func:
-        :return:
-        """
-
-        def wrapper(*args, **kwargs):
-            func(*args, **kwargs)
-            cls(func.__name__, (args, kwargs))
-
-        return wrapper
-
-
 class ProjectHandler(PF):
     current = None
 
     def __init__(self, name, path, original_na_file_path,
-                 na_parts_data=None, na_hull=None, operations=None, mode='空白', code='', save_time=''):
+                 na_parts_data=None, na_hull=None, operations=None, mode=PF.EMPTY, code='', save_time=''):
         self.na_hull = na_hull
         if ProjectHandler.current:  # 保存上一个工程文件，清空当前所有被绘制的对象
             show_state(f"正在保存{ProjectHandler.current.Path}...", 'process')
@@ -330,8 +284,7 @@ class ProjectHandler(PF):
         NAPart.ShipsAllParts = []
         # 更新静态变量
         ProjectHandler.current = self
-        # # 保存
-        # self.save(ignore_loading=True)
+        self.stateHistory = StateHistory(show_state)
 
     @staticmethod
     def load_project(path) -> Union[None, 'ProjectHandler', 'PF']:
@@ -374,7 +327,8 @@ class ProjectHandler(PF):
             return None
         try:
             project_file = ProjectHandler(
-                data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], None, data['Operations'], mode=PF.LOAD,
+                data['Name'], path, data['OriginalFilePath'], data['NAPartsData'], None, data['Operations'],
+                mode=PF.LOAD,
                 code=data['Code'], save_time=data['SaveTime'])
         except KeyError:
             # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
@@ -449,6 +403,30 @@ class ProjectHandler(PF):
         finally:
             Handler.SavingProject = False
 
+    def undo(self):
+        self.stateHistory.undo()
+
+    def redo(self):
+        self.stateHistory.redo()
+
+
+class NewEmptyPrj(ProjectHandler):
+    def __init__(self, name, path):
+        super().__init__(name, path, None, None, None, None, mode=PF.EMPTY)
+        self.stateHistory = StateHistory(show_state)
+        self.na_hull = NAHull(
+            show_statu_func=show_state,
+            design_tab=True,
+            data={"#999999": [{
+                "Typ": "AdjustableHull",
+                "Id": "0",
+                "Pos": [0., 0., 0.], "Rot": [0., 0., 0.], "Scl": [1., 1., 1.], "Col": "999999", "Amr": 5,
+                "Len": 6., "Hei": 6., "FWid": 6., "BWid": 6., "FSpr": 0., "BSpr": 0.,
+                "UCur": 0., "DCur": 1., "HScl": 1., "HOff": 0.
+            }]},
+            glWin=Handler.hull_design_tab.ThreeDFrame,
+        )
+
 
 class MainWin(MainWindow):
     def __init__(self, parent=None):
@@ -501,6 +479,9 @@ class GLWin(OpenGLWin):
         for b in self.button_pos_map.keys():
             set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
+
+    def __deepcopy__(self, memo):
+        return self
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         for key in self.key_state.keys():
@@ -713,14 +694,12 @@ class MainHandler:
         # -------------------------------------------------------------------------------------信号与槽
         self.LoadingProject = False
         self.SavingProject = False
-        self.OperationHistory = Operation.history  # 用于记录操作的列表
-        self.OperationIndex = Operation.index
         # -------------------------------------------------------------------------------------GUI设置
         self.window = window
         self.MenuMap = {
             " 设计": {
                 "打开工程": self.open_project,
-                "新建工程": self.new_project,
+                "新建工程": {"从NavalArt": self.new_prj_from_na, "空白": self.new_prj_empty},
                 "导出为": self.export_file,
                 "保存工程": self.save,
                 "另存为": self.save_as
@@ -804,6 +783,122 @@ class MainHandler:
     @staticmethod
     def new_project(event):
         new_project()
+
+    def new_prj_from_na(self, event):
+        if self.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
+        if self.SavingProject:
+            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            return
+        # 如果用户没有安装NavalArt:
+        if NAPath == os.path.join(os.path.expanduser("~"), "Desktop"):
+            # 打开文件选择窗口，目录为NavalArt目录 ===================================================
+            file_dialog = QFileDialog(self.window, "选择图纸", NAPath)
+            file_dialog.setNameFilter("na files (*.na)")
+            file_dialog.exec_()
+            try:
+                _original_na_p = file_dialog.selectedFiles()[0]  # 获取选择的文件路径
+            except IndexError:
+                return
+        else:  # 如果用户安装了NavalArt:
+            file_dialog = SelectNaDialog(parent=Handler.window)
+            file_dialog.exec_()
+            if not file_dialog.selected_na_design:
+                show_state("未选择船体设计文件", 'error')
+                return
+            _original_na_p = os.path.join(NAPath, f"{file_dialog.selected_na_design}.na")
+        try:
+            # 开启读取工程的线程
+            self.LoadingProject = True
+            self.window.read_na_hull_thread = ReadNAHullThread(_original_na_p)
+            self.window.read_na_hull_thread.update_state.connect(show_state)
+            self.window.read_na_hull_thread.finished.connect(
+                lambda: self.read_na_hull_thread_finished(_original_na_p, Handler.window.read_na_hull_thread.na_hull))
+            self.window.read_na_hull_thread.start()
+        except AttributeError:
+            _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
+            # 白色背景的提示框
+            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            return
+        except PermissionError:
+            _txt = "该文件已被其他程序打开或不存在，请关闭后重试"
+            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            return
+
+    # noinspection PyUnresolvedReferences
+    def read_na_hull_thread_finished(self, _original_na_p, _na_hull):
+        try:
+            show_state(f"{_original_na_p}读取成功", 'success')
+            # 获取用户选择的工程路径 ==========================================================================
+            chosen_path = find_na_root_path() if Config.Projects == {} else Config.ProjectsFolder
+            default_name = _original_na_p.split('/')[-1].split('.')[0]
+            try:
+                save_dialog = QFileDialog(self.window, "选择工程保存路径", chosen_path)
+                save_dialog.setFileMode(QFileDialog.AnyFile)
+                save_dialog.setAcceptMode(QFileDialog.AcceptSave)
+                save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+                save_dialog.selectFile(default_name)
+                save_dialog.exec_()
+            except Exception as _e:
+                show_state(f"保存工程失败：{_e}", 'error')
+                MyMessageBox().information(None, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
+                return
+            # 获取选择的文件路径
+            try:
+                _prj_path = save_dialog.selectedFiles()[0]
+                _name = _prj_path.split('/')[-1].split('.')[0]
+            except IndexError:
+                show_state(f"保存工程失败：未选择文件", 'error')
+                return
+            # 检测颜色种类，弹出对话框，选择颜色
+            color_dialog = ColorDialog(self.window, _na_hull)
+            color_dialog.exec_()
+            # 生成工程文件对象
+            self.window.new_project_thread = ProjectLoadingNewThread(_na_hull, _name, _prj_path, _original_na_p)
+            self.window.new_project_thread.update_state.connect(show_state)
+            self.window.new_project_thread.finished.connect(after_new)
+            self.window.new_project_thread.start()
+        except Exception as _e:
+            raise _e
+
+    def new_prj_empty(self, event):
+        if self.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
+        if self.SavingProject:
+            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            return
+        # 获取用户选择的工程路径 ==========================================================================
+        chosen_path = find_na_root_path() if Config.Projects == {} else Config.ProjectsFolder
+        default_name = "新建工程"
+        try:
+            save_dialog = QFileDialog(self.window, "选择工程保存路径", chosen_path)
+            save_dialog.setFileMode(QFileDialog.AnyFile)
+            save_dialog.setAcceptMode(QFileDialog.AcceptSave)
+            save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+            save_dialog.selectFile(default_name)
+            save_dialog.exec_()
+        except Exception as _e:
+            show_state(f"保存工程失败：{_e}", 'error')
+            MyMessageBox().information(None, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
+            return
+        # 获取选择的文件路径
+        try:
+            _prj_path = save_dialog.selectedFiles()[0]
+            _name = _prj_path.split('/')[-1].split('.')[0]
+        except IndexError:
+            show_state(f"保存工程失败：未选择文件", 'error')
+            return
+        # 新建空白工程文件对象
+        prj = NewEmptyPrj(_name, _prj_path)
+        na_hull = prj.na_hull
+        Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)
+        # 在这里继续执行后续操作，如下所示
+        show_state(f"新建 {_name}", 'success')
+        after_new()
+        Handler.LoadingProject = False
+        # 在右侧窗口显示初步调整新建工程的界面
 
     @staticmethod
     def open_project(event):
@@ -1446,6 +1541,7 @@ class HullDesignTab(QWidget):
         self.left_tool_bar = QToolBar()
         self.init_layout()
         self.save_button = QPushButton("保存")
+        self.open_button = QPushButton("打开")
         self.read_from_na_button = QPushButton("从NA新建")
         self.convertAdhull_button = QPushButton("从PTB转换")
         self.init_buttons()
@@ -1499,23 +1595,32 @@ class HullDesignTab(QWidget):
         if ProjectHandler.current:
             ProjectHandler.current.save()
 
+    @staticmethod
+    def open():
+        open_project()
+
     def expand(self):
         # 检查当前被选中的物体的数量和形式
         _len = len(self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode])
         if _len == 0:
             return
 
-    def edit(self):
+    @staticmethod
+    def edit():
         show_state(f"编辑选区", 'success')
         # 右边栏切换到属性编辑器（第二个标签，索引为1）
         Handler.right_widget.setCurrentIndex(1)
         Handler.right_widget.update_tab()
 
-    def undo(self):
-        show_state(f"撤销", 'success')
+    @staticmethod
+    def undo():
+        if ProjectHandler.current:
+            ProjectHandler.current.undo()
 
-    def redo(self):
-        show_state(f"重做", 'success')
+    @staticmethod
+    def redo():
+        if ProjectHandler.current:
+            ProjectHandler.current.redo()
 
     def copy(self):
         show_state(f"复制 {self.ThreeDFrame.selected_gl_objects[self.ThreeDFrame.show_3d_obj_mode]}", 'success')
@@ -1587,6 +1692,9 @@ class HullDesignTab(QWidget):
         set_top_button_style(self.save_button, 50)  # 保存按钮
         self.save_button.clicked.connect(self.save)
         self.up_layout.addWidget(self.save_button, alignment=Qt.AlignLeft)
+        set_top_button_style(self.open_button, 50)  # 打开按钮
+        self.open_button.clicked.connect(self.open)
+        self.up_layout.addWidget(self.open_button, alignment=Qt.AlignLeft)
         set_top_button_style(self.read_from_na_button, 100)  # 从NA读取按钮
         self.read_from_na_button.clicked.connect(self.read_from_na_button_pressed)
         self.up_layout.addWidget(self.read_from_na_button, alignment=Qt.AlignLeft)

@@ -10,8 +10,9 @@ from OpenGL import GL
 from PyQt5.QtCore import QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtGui import QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer, \
-    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat
+from PyQt5.QtGui import (
+    QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer,
+    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat)
 from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -819,6 +820,8 @@ class OpenGLWin(QOpenGLWidget):
         if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
             if len(self.selected_gl_objects[self.show_3d_obj_mode]) >= 1:
                 for part in self.selected_gl_objects[self.show_3d_obj_mode]:
+                    if part not in part.allParts_relationMap.basicMap:  # TODO: 这里不明原因，零件不在basicMap中，可能是因为撤回操作DrawMap取深拷贝的问题
+                        continue
                     relation_map = part.allParts_relationMap.basicMap[part]
                     # 先向上下
                     for sub_part in relation_map[PRM.UP]:

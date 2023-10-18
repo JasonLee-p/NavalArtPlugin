@@ -1,7 +1,7 @@
 """
 定义了NavalArt内物体的绘制对象
 """
-
+import copy
 import math
 from typing import Union
 
@@ -250,6 +250,9 @@ class NaHullXZLayer(SolidObject):
         self.Pos_list = self.get_pos_list()  # 所有面的点集合
         NaHullXZLayer.id_map[id(self) % 4294967296] = self
 
+    def __deepcopy__(self, memo):
+        return self
+
     def get_partsDotsMap(self):
         result = {}
         for part in self.y_parts:
@@ -327,6 +330,9 @@ class NaHullXYLayer(SolidObject):
         self.Pos_list = self.get_pos_list()  # 所有面的点集合
         NaHullXYLayer.id_map[id(self) % 4294967296] = self
 
+    def __deepcopy__(self, memo):
+        return self
+
     def get_partsDotsMap(self):
         result = {}
         for part in self.z_parts:
@@ -389,6 +395,9 @@ class NaHullLeftView:
 
     def __init__(self):
         NaHullLeftView.id_map[id(self) % 4294967296] = self
+
+    def __deepcopy__(self, memo):
+        return self
 
     def draw(self):
         ...
