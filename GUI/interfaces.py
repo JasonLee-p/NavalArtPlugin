@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-
+主界面
 """
 # 第三方库
 from PyQt5.QtWidgets import QSplitter, QMenu, QAction, QTabWidget

@@ -11,21 +11,31 @@ from GUI import *
 from ship_reader import NAPart, AdjustableHull
 from ship_reader.NA_design_reader import PartRelationMap
 from state_history import operation_wrapper, operationObj_wrapper
+from util_funcs import not_implemented
 
 
 class SinglePartOperation:
-    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool):
+    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool, original_data=None, change_data=None):
         self.name = "单零件编辑"
-        self.event = event
         self.active_textEdit = active_textEdit
-        self.step = step
-        self.step_type = type(self.step)
-        self.origin_value = self.step_type(self.active_textEdit.text())
-        self.new_value = self.origin_value + self.step
-        self.circle_bt_isChecked: bool = circle_bt_isChecked
+        self.original_data = original_data
+        self.data = change_data
+        if not self.data:
+            self.event = event
+            self.step = step
+            self.step_type = type(self.step)
+            self.origin_value = self.step_type(self.active_textEdit.text())
+            self.new_value = self.origin_value + self.step
+            self.circle_bt_isChecked: bool = circle_bt_isChecked
 
     def execute(self):
         singlePart_e = Mod1SinglePartEditing.current
+        if self.data:
+            singlePart_e.selected_obj.change_attrs(*self.data, update=True)
+            singlePart_e.selected_obj.update_selectedList = True
+            singlePart_e.selected_obj.glWin.paintGL()
+            singlePart_e.selected_obj.update_selectedList = False
+            return
         # 修改输入框的值
         if self.step_type == int:
             self.active_textEdit.setText(str(self.new_value))
@@ -66,6 +76,12 @@ class SinglePartOperation:
 
     def undo(self):
         singlePart_e = Mod1SinglePartEditing.current
+        if self.data:
+            singlePart_e.selected_obj.change_attrs(*self.original_data, update=True)
+            singlePart_e.selected_obj.update_selectedList = True
+            singlePart_e.selected_obj.glWin.paintGL()
+            singlePart_e.selected_obj.update_selectedList = False
+            return
         step_type = type(self.step)
         # 修改输入框的值
         if step_type == int:
@@ -219,9 +235,11 @@ class Mod1AllPartsEditing(QWidget):
         self.layout.addWidget(self.scale_button)
         self.layout.addWidget(self.remap_button)
 
+    @not_implemented
     def trans_all_parts(self, event=None):
         ...
 
+    @not_implemented
     def scale_all_parts(self, event=None):
         ...
 
@@ -432,6 +450,7 @@ class Mod1SinglePartEditing(QWidget):
         self.hide()
         return cso
 
+    @not_implemented
     @operation_wrapper
     def add_front_layer(self, event=None):
         # 向前添加层
@@ -450,6 +469,7 @@ class Mod1SinglePartEditing(QWidget):
         else:
             ...
 
+    @not_implemented
     @operation_wrapper
     def add_back_layer(self, event=None):
         # 向后添加层
@@ -467,11 +487,13 @@ class Mod1SinglePartEditing(QWidget):
         else:
             ...
 
+    @not_implemented
     @operation_wrapper
     def add_up_layer(self, event=None):
         # 向上添加层
         pass
 
+    @not_implemented
     @operation_wrapper
     def add_down_layer(self, event=None):
         # 向下添加层
@@ -512,28 +534,53 @@ class Mod1SinglePartEditing(QWidget):
         # spo.execute()
         return spo
 
-    @operation_wrapper
     def update_obj_when_editing(self, event=None):
         if not self.allow_update_obj_when_editing:
             return False
-        # 当值被修改，更新被绘制对象的值
-        changed = self.selected_obj.change_attrs(
-            [self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
-             self.content["坐标"]["QLineEdit"][2].text()],
-            self.content["装甲"]["QLineEdit"][0].text(),
-            self.content["原长度"]["QLineEdit"][0].text(),
-            self.content["原高度"]["QLineEdit"][0].text(),
-            self.content["前宽度"]["QLineEdit"][0].text(),
-            self.content["后宽度"]["QLineEdit"][0].text(),
-            self.content["前扩散"]["QLineEdit"][0].text(),
-            self.content["后扩散"]["QLineEdit"][0].text(),
-            self.content["上弧度"]["QLineEdit"][0].text(),
-            self.content["下弧度"]["QLineEdit"][0].text(),
-            self.content["高缩放"]["QLineEdit"][0].text(),
-            self.content["高偏移"]["QLineEdit"][0].text(),
-            update=True
-        )
-        return changed  # bool
+        if event is None:  # 被鼠标滚轮后的调用，不存进undo_stack
+            # 当值被修改，更新被绘制对象的值
+            changed = self.selected_obj.change_attrs(
+                [self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
+                 self.content["坐标"]["QLineEdit"][2].text()],
+                self.content["装甲"]["QLineEdit"][0].text(),
+                self.content["原长度"]["QLineEdit"][0].text(),
+                self.content["原高度"]["QLineEdit"][0].text(),
+                self.content["前宽度"]["QLineEdit"][0].text(),
+                self.content["后宽度"]["QLineEdit"][0].text(),
+                self.content["前扩散"]["QLineEdit"][0].text(),
+                self.content["后扩散"]["QLineEdit"][0].text(),
+                self.content["上弧度"]["QLineEdit"][0].text(),
+                self.content["下弧度"]["QLineEdit"][0].text(),
+                self.content["高缩放"]["QLineEdit"][0].text(),
+                self.content["高偏移"]["QLineEdit"][0].text(),
+                update=True
+            )
+            return changed  # bool
+        else:  # 被连接的直接修改信号的调用，存进undo_stack
+            self.change_part_attrs(event)
+
+    @operationObj_wrapper
+    def change_part_attrs(self, event):
+        original_data = [self.selected_obj.Pos.copy(), self.selected_obj.Amr, self.selected_obj.Len,
+                         self.selected_obj.Hei, self.selected_obj.FWid, self.selected_obj.BWid, self.selected_obj.FSpr,
+                         self.selected_obj.BSpr, self.selected_obj.UCur, self.selected_obj.DCur, self.selected_obj.HScl,
+                         self.selected_obj.HOff]
+        changed = [[self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
+                    self.content["坐标"]["QLineEdit"][2].text()],
+                   self.content["装甲"]["QLineEdit"][0].text(),
+                   self.content["原长度"]["QLineEdit"][0].text(),
+                   self.content["原高度"]["QLineEdit"][0].text(),
+                   self.content["前宽度"]["QLineEdit"][0].text(),
+                   self.content["后宽度"]["QLineEdit"][0].text(),
+                   self.content["前扩散"]["QLineEdit"][0].text(),
+                   self.content["后扩散"]["QLineEdit"][0].text(),
+                   self.content["上弧度"]["QLineEdit"][0].text(),
+                   self.content["下弧度"]["QLineEdit"][0].text(),
+                   self.content["高缩放"]["QLineEdit"][0].text(),
+                   self.content["高偏移"]["QLineEdit"][0].text()]
+        spo = SinglePartOperation(event, 0, None, bool(self.circle_bt.isChecked()),
+                                  original_data=original_data, change_data=changed)
+        return spo
 
     def update_context(self, selected_obj):
         self.selected_obj = selected_obj
@@ -642,6 +689,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer)
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
+    @not_implemented
     @operation_wrapper
     def add_z(self, event=None):
         return
@@ -666,6 +714,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
+    @not_implemented
     @operation_wrapper
     def add_y(self, event=None):
         return
@@ -690,18 +739,22 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
+    @not_implemented
     @operation_wrapper
     def add_front_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_back_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_up_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_down_layer(self, event=None):
         ...
@@ -790,6 +843,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer)
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
+    @not_implemented
     @operation_wrapper
     def add_z(self, event=None):
         return
@@ -814,6 +868,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
+    @not_implemented
     @operation_wrapper
     def add_y(self, event=None):
         return
@@ -838,18 +893,22 @@ class Mod1HorizontalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
+    @not_implemented
     @operation_wrapper
     def add_front_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_back_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_up_layer(self, event=None):
         ...
 
+    @not_implemented
     @operation_wrapper
     def add_down_layer(self, event=None):
         ...

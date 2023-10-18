@@ -3,6 +3,17 @@
 """
 
 import ctypes
+from PyQt5.QtWidgets import QMessageBox
+
+
+def not_implemented(func):
+    """
+    装饰未完成的功能
+    :return:
+    """
+    def wrapper(*args, **kwargs):
+        QMessageBox.information(None, "提示", "该功能暂未实现，敬请期待！", QMessageBox.Ok)
+    return wrapper
 
 
 def empty_func(*args, **kwargs):
