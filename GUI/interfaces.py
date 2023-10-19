@@ -6,6 +6,7 @@
 from PyQt5.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
 # 本地库
 from .basic import *
+
 if Theme == "Day":
     from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z
 elif Theme == "Night":
@@ -42,7 +43,7 @@ class MainWindow(QWidget):
         # 设置窗口属性
         self.setWindowTitle('NavalArt Plugin')
         self.setWindowIcon(self.ICO)
-        self.set_bg_color(BG_COLOR1)
+        self.set_style()
         self.setWindowFlags(Qt.FramelessWindowHint)  # 隐藏标题栏
         self.setMinimumSize(0.7 * WinWid, 0.7 * WinHei)
         self.setMaximumSize(WinWid, WinHei)
@@ -80,8 +81,35 @@ class MainWindow(QWidget):
         self.m_Position = None
         self.drag = None  # 初始化拖动条
 
-    def set_bg_color(self, color):
-        self.setStyleSheet(f"background-color: {color};")
+    def set_style(self):
+        self.setStyleSheet(
+            f"background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            # 设置以自己为父的QMessageBox的样式
+            f"QMessageBox{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的按钮样式
+            f"QMessageBox QPushButton{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            f"QMessageBox QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的输入框样式
+            f"QMessageBox QLineEdit{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的输入框样式
+            f"QMessageBox QComboBox{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+        )
 
     def add_top_bar(self, menu_map):
         # 添加图片
@@ -130,6 +158,12 @@ class MainWindow(QWidget):
 
     def init_sub_menu(self, menu_name, menu_map):
         menu = QMenu()
+        menu.setStyleSheet(
+            f"QMenu{{background-color:{BG_COLOR1};color:{FG_COLOR0};border:1px solid {FG_COLOR2};}}"
+            f"QMenu::item{{padding:3px 28px 3px 20px;}}"
+            f"QMenu::item:selected{{background-color:{BG_COLOR3};color:{FG_COLOR0};}}"
+            f"QMenu::separator{{height:1px;background-color:{FG_COLOR2};margin-left:14px;margin-right:7px;}}"
+        )
         for sub_menu_name in menu_map[menu_name]:
             if isinstance(menu_map[menu_name][sub_menu_name], dict):
                 # 添加子菜单

@@ -15,15 +15,15 @@ from util_funcs import CONST, VECTOR_RELATION_MAP, rotate_quaternion, get_normal
 <root>
   <ship author="XXXXXXXXX" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
     <newPart id="0">
-      <data x_scl="4.5" y_scl="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
-      <add_direction x="0" y="0" z="114.75" />
+      <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <position x="0" y="0" z="114.75" />
       <rotation x="0" y="0" z="0" />
       <scale x="1" y="1" z="1" />
       <color hex="975740" />
       <armor value="5" />
     </newPart>
     <newPart id="190">
-      <add_direction x="0" y="-8.526513E-14" z="117.0312" />
+      <position x="0" y="-8.526513E-14" z="117.0312" />
       <rotation x="90" y="0" z="0" />
       <scale x="0.03333336" y="0.03333367" z="0.1666679" />
       <color hex="975740" />
@@ -695,7 +695,10 @@ class AdjustableHull(NAPart):
             self.glWin.list_id_selected = None
             # 修改零件本身的genList状态
             self.updateList = True
+            self.genList = None
             self.update_selectedList = True
+            self.selected_genList = None
+            # 重绘
             self.glWin.paintGL()
             self.glWin.update()
             # 修改glWin的genList状态
@@ -706,6 +709,34 @@ class AdjustableHull(NAPart):
             self.updateList = False
             self.update_selectedList = False
         return True
+
+    def redraw(self, func):
+
+        def wrapper(*args, **kwargs):
+            ret = func(*args, **kwargs)
+            # 修改glWin的genList状态
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = True
+            self.glWin.update_selected_list = True
+            self.glWin.list_id_selected = None
+            # 修改零件本身的genList状态
+            self.updateList = True
+            self.genList = None
+            self.update_selectedList = True
+            self.selected_genList = None
+            # 重绘
+            self.glWin.paintGL()
+            self.glWin.update()
+            # 修改glWin的genList状态
+            for mode in self.glWin.gl_commands.keys():
+                self.glWin.gl_commands[mode][1] = False
+            self.glWin.update_selected_list = False
+            # 修改零件本身的genList状态
+            self.updateList = False
+            self.update_selectedList = False
+            return ret
+
+        return wrapper
 
     def change_attrs_with_relative_parts(self, position, armor,
                                          length, height, frontWidth, backWidth, frontSpread, backSpread,
@@ -1589,7 +1620,7 @@ class ReadNA:
                     process = round(i / part_num * 100, 2)
                     self.show_statu_func(f"正在读取第{i}个零件，进度：{process} %", "process")
                 _id = str(part.attrib['id'])
-                _pos = part.find('add_direction').attrib
+                _pos = part.find('position').attrib
                 _rot = part.find('rotation').attrib
                 _scl = part.find('scale').attrib
                 _pos = (float(_pos['x']), float(_pos['y']), float(_pos['z']))
@@ -1603,7 +1634,7 @@ class ReadNA:
                     _data = part.find('data').attrib
                     obj = AdjustableHull(
                         self, _id, _pos, _rot, _scl, _col, _amr,
-                        float(_data['x_scl']), float(_data['y_scl']),
+                        float(_data['length']), float(_data['height']),
                         float(_data['frontWidth']), float(_data['backWidth']),
                         float(_data['frontSpread']), float(_data['backSpread']),
                         float(_data['upCurve']), float(_data['downCurve']),

@@ -44,6 +44,7 @@ WHITE = 'white'
 GOLD = 'gold'
 GRAY = '#808080'
 YAHEI = '微软雅黑'
+FONT_7 = QFont(YAHEI, 7)  # 设置字体
 FONT_8 = QFont(YAHEI, 8)  # 设置字体
 FONT_9 = QFont(YAHEI, 9)  # 设置字体
 FONT_10 = QFont(YAHEI, 10)  # 设置字体
@@ -165,21 +166,33 @@ def set_tool_bar_style(tool_bar: QToolBar):
 
 
 class MyMessageBox(QMessageBox):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setStyleSheet(
-            f"QMessageBox{{background-color:{BG_COLOR1};"
-            f"color:{FG_COLOR0};"
-            "border:1px solid gray;}}"
-            f"QMessageBox QPushButton{{background-color:{BG_COLOR0};"
-            f"color:{FG_COLOR0};"
-            "border:1px solid gray;}}"
-            f"QMessageBox QPushButton:hover{{background-color:{BG_COLOR3};"
-            f"color:{FG_COLOR0};"
-            "border:1px solid gray;}}"
-            f"QMessageBox QPushButton:pressed{{background-color:{BG_COLOR2};"
-            f"color:{FG_COLOR0};"
-            "border:1px solid gray;}}"
+            # 设置以自己为父的QMessageBox的样式
+            f"QMessageBox{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的按钮样式
+            f"QMessageBox QPushButton{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            f"QMessageBox QPushButton:hover{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的输入框样式
+            f"QMessageBox QLineEdit{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
+            # 设置QMessageBox的输入框样式
+            f"QMessageBox QComboBox{{background-color: {BG_COLOR1};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR2};"
+            f"border-radius: 5px;}}"
         )
         # 设置按钮
         self.setStandardButtons(QMessageBox.Yes)

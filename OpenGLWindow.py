@@ -451,19 +451,20 @@ class OpenGLWin(QOpenGLWidget):
         self.subMod2_button.clicked.connect(lambda: self.set_show_3d_obj_sub_mode(OpenGLWin.ShowDotNode))
         for button in self.mod_buttons + self.subMod_buttons:
             button.setCheckable(True)
-            button.setFont(FONT_8)
-            button.setStyleSheet(f"QToolButton{{"
-                                 f"color: {FG_COLOR0};"
-                                 f"background-color: {BG_COLOR1};"
-                                 f"border: 1px solid {BG_COLOR1};"
-                                 f"border-radius: 5px;}}"
-                                 # 按下时的样式
-                                 f"QToolButton:checked{{"
-                                 f"color: {FG_COLOR0};"
-                                 f"background-color: {BG_COLOR3};"
-                                 f"border: 1px solid {BG_COLOR3};"
-                                 f"border-radius: 5px;}}"
-                                 )
+            button.setFont(FONT_7)
+            button.setStyleSheet(
+                f"QToolButton{{"
+                f"color: {FG_COLOR0};"
+                f"background-color: {BG_COLOR1};"
+                f"border: 1px solid {BG_COLOR1};"
+                f"border-radius: 6px;}}"
+                # 按下时的样式
+                f"QToolButton:checked{{"
+                f"color: {FG_COLOR0};"
+                f"background-color: {BG_COLOR3};"
+                f"border: 1px solid {BG_COLOR3};"
+                f"border-radius: 6px;}}"
+            )
         self.mod1_button.setChecked(True)
         self.subMod1_button.setChecked(True)
 

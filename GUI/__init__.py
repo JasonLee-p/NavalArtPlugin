@@ -18,7 +18,7 @@ from .basic import BG_COLOR0, BG_COLOR1, BG_COLOR2, BG_COLOR3
 from .basic import FG_COLOR0, FG_COLOR1, FG_COLOR2
 # 字体
 from .basic import YAHEI
-from .basic import FONT_8, FONT_9, FONT_10, FONT_11, FONT_12, FONT_13, FONT_14, FONT_15
+from .basic import FONT_7, FONT_8, FONT_9, FONT_10, FONT_11, FONT_12, FONT_13, FONT_14, FONT_15
 from .basic import FONT_16, FONT_17, FONT_18, FONT_19, FONT_20, FONT_21, FONT_22
 # 目录和屏幕
 from .basic import LOCAL_ADDRESS
@@ -51,7 +51,7 @@ __all__ = [
     "FG_COLOR0", "FG_COLOR1", "FG_COLOR2",
     # 字体
     "YAHEI",
-    "FONT_8", "FONT_9", "FONT_10", "FONT_11", "FONT_12", "FONT_13", "FONT_14", "FONT_15",
+    "FONT_7", "FONT_8", "FONT_9", "FONT_10", "FONT_11", "FONT_12", "FONT_13", "FONT_14", "FONT_15",
     "FONT_16", "FONT_17", "FONT_18", "FONT_19", "FONT_20", "FONT_21", "FONT_22",
     # 目录和屏幕
     "LOCAL_ADDRESS",

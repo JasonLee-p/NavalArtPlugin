@@ -95,10 +95,10 @@ def open_project(file_path=None):
     :return:
     """
     if Handler.LoadingProject:
-        MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+        MyMessageBox.information(Handler.window, "提示", "正在读取工程，请稍后再试！")
         return
     if Handler.SavingProject:
-        MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+        MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
         return
     Handler.LoadingProject = True
     # 选择路径
@@ -184,10 +184,10 @@ def new_project():
     if NewProjectDialog.current.create_new_project:
         if NewProjectDialog.current.generate_mode == 'NA':
             if Handler.LoadingProject:
-                MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在读取工程，请稍后再试！")
                 return
             if Handler.SavingProject:
-                MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
                 return
             Handler.LoadingProject = True
             # 获取对话框返回的数据
@@ -341,14 +341,11 @@ class ProjectHandler(PF):
         """
         # 判断是否为json
         if not path.endswith('.json'):
-            # 提示错误
-            # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
             return None
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
         except FileNotFoundError:
-            # QMessageBox(QMessageBox.Warning, '警告', '工程文件不存在！').exec_()
             return None
         try:
             project_file = ProjectHandler(
@@ -356,7 +353,6 @@ class ProjectHandler(PF):
                 mode=PF.LOAD,
                 code=data['Code'], save_time=data['SaveTime'])
         except KeyError:
-            # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
             return None
         if project_file._succeed_init:
             return project_file
@@ -367,10 +363,10 @@ class ProjectHandler(PF):
         try:  # 保存
             # Handler状态操作
             if Handler.LoadingProject and not ignore_loading:
-                MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在读取工程，请稍后再试！")
                 return
             if Handler.SavingProject:
-                MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
                 return
             Handler.SavingProject = True
             # 保存
@@ -395,10 +391,10 @@ class ProjectHandler(PF):
         try:
             # Handler状态操作
             if Handler.LoadingProject:
-                MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在读取工程，请稍后再试！")
                 return
             if Handler.SavingProject:
-                MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+                MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
                 return
             Handler.SavingProject = True
             # 打开文件夹对话框，获取保存路径（文件夹）
@@ -812,10 +808,10 @@ class MainHandler:
 
     def new_prj_from_na(self, event):
         if self.LoadingProject:
-            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在读取工程，请稍后再试！")
             return
         if self.SavingProject:
-            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在保存工程，请稍后再试！")
             return
         # 如果用户没有安装NavalArt:
         if NAPath == os.path.join(os.path.expanduser("~"), "Desktop"):
@@ -845,11 +841,11 @@ class MainHandler:
         except AttributeError:
             _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
             # 白色背景的提示框
-            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            MyMessageBox().information(self.window, "提示", _txt, MyMessageBox.Ok)
             return
         except PermissionError:
             _txt = "该文件已被其他程序打开或不存在，请关闭后重试"
-            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            MyMessageBox().information(self.window, "提示", _txt, MyMessageBox.Ok)
             return
 
     # noinspection PyUnresolvedReferences
@@ -868,7 +864,7 @@ class MainHandler:
                 save_dialog.exec_()
             except Exception as _e:
                 show_state(f"保存工程失败：{_e}", 'error')
-                MyMessageBox().information(None, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
+                MyMessageBox().information(self.window, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
                 return
             # 获取选择的文件路径
             try:
@@ -890,10 +886,10 @@ class MainHandler:
 
     def new_prj_empty(self, event):
         if self.LoadingProject:
-            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在读取工程，请稍后再试！")
             return
         if self.SavingProject:
-            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在保存工程，请稍后再试！")
             return
         # 获取用户选择的工程路径 ==========================================================================
         chosen_path = find_na_root_path() if Config.Projects == {} else Config.ProjectsFolder
@@ -907,7 +903,7 @@ class MainHandler:
             save_dialog.exec_()
         except Exception as _e:
             show_state(f"保存工程失败：{_e}", 'error')
-            MyMessageBox().information(None, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
+            MyMessageBox().information(self.window, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
             return
         # 获取选择的文件路径
         try:
@@ -932,10 +928,10 @@ class MainHandler:
 
     def export_file(self, event=None):
         if Handler.LoadingProject:
-            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在读取工程，请稍后再试！")
             return
         if Handler.SavingProject:
-            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            MyMessageBox.information(self.window, "提示", "正在保存工程，请稍后再试！")
             return
         # # 打开ExportDialog
         # export_dialog = ExportDialog(parent=self.window)
@@ -1009,7 +1005,7 @@ class MainHandler:
         theme_dialog = ThemeDialog(config=Config, show_state_func=show_state, parent=self.window)
         theme_dialog.exec_()
         # 让用户确认是否重启程序
-        reply = MyMessageBox().question(None, "提示", "是否重启程序？\n我们将会为您保存进度",
+        reply = MyMessageBox().question(self.window, "提示", "是否重启程序？\n我们将会为您保存进度",
                                         MyMessageBox.Yes | MyMessageBox.No)
         if reply == QMessageBox.No:
             return
@@ -1029,12 +1025,12 @@ class MainHandler:
 
     def set_lines(self, event):
         # 提示用户功能未实现
-        MyMessageBox.information(None, "提示", "该功能暂未实现！")
+        MyMessageBox.information(self.window, "提示", "该功能暂未实现！")
 
     def switch_view(self, event):
         # 将hull_design_tab.ThreeDFrame的视图进行切换（透视或者正交）
         # 提示用户功能未实现
-        MyMessageBox.information(None, "提示", "该功能暂未实现！")
+        MyMessageBox.information(self.window, "提示", "该功能暂未实现！")
         # self.hull_design_tab.ThreeDFrame.change_view_mode()
 
     @staticmethod
@@ -1045,7 +1041,7 @@ class MainHandler:
 
     def close(self) -> bool:
         # 重写关闭事件
-        reply = MyMessageBox().question(None, "关闭编辑器", "是否保存当前工程？",
+        reply = MyMessageBox().question(self.window, "关闭编辑器", "是否保存当前工程？",
                                         MyMessageBox.Yes | MyMessageBox.No | MyMessageBox.Cancel)
         if reply == QMessageBox.Yes:
             Config.save_config()  # 保存配置文件
@@ -1687,10 +1683,10 @@ class HullDesignTab(QWidget):
     # noinspection PyUnresolvedReferences
     def read_from_na_button_pressed(self):
         if Handler.LoadingProject:
-            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            MyMessageBox.information(self, "提示", "正在读取工程，请稍后再试！")
             return
         if Handler.SavingProject:
-            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            MyMessageBox.information(self, "提示", "正在保存工程，请稍后再试！")
             return
         # 如果用户没有安装NavalArt:
         if self.NAPath == os.path.join(os.path.expanduser("~"), "Desktop"):
@@ -1720,11 +1716,11 @@ class HullDesignTab(QWidget):
         except AttributeError:
             _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
             # 白色背景的提示框
-            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
         except PermissionError:
             _txt = "该文件已被其他程序打开或不存在，请关闭后重试"
-            MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+            MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
             return
 
     # noinspection PyUnresolvedReferences
@@ -1743,7 +1739,7 @@ class HullDesignTab(QWidget):
                 save_dialog.exec_()
             except Exception as _e:
                 show_state(f"保存工程失败：{_e}", 'error')
-                MyMessageBox().information(None, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
+                MyMessageBox().information(self, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
                 return
             # 获取选择的文件路径
             try:
@@ -1768,7 +1764,7 @@ class HullDesignTab(QWidget):
         功能暂未实现
         :return:
         """
-        MyMessageBox().information(None, "提示", "该功能暂未实现哦", MyMessageBox.Ok)
+        MyMessageBox().information(self, "提示", "该功能暂未实现哦", MyMessageBox.Ok)
         # # 打开文件选择窗口，目录为PTB目录
         # file_dialog = QFileDialog(self, "选择图纸", self.PTBPath)
         # file_dialog.setNameFilter("xml files (*.xml)")
@@ -1983,11 +1979,11 @@ class ReadPTBAdHullTab(QWidget):
             except AttributeError:
                 _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
                 # 白色背景的提示框
-                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
                 return
             except PermissionError:
                 _txt = "该文件已被其他程序打开，请关闭后重试"
-                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
                 return
             if adhull.result["adHull"]:  # 如果存在进阶船壳
                 for mt, objs in self.all_3d_obj.items():
@@ -1997,7 +1993,7 @@ class ReadPTBAdHullTab(QWidget):
                 show_state(f"{self.PTBDesignPath}读取成功", 'success')
             else:
                 _txt = "该设计不含进阶船体外壳，请重新选择哦"
-                MyMessageBox.information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox.information(self, "提示", _txt, MyMessageBox.Ok)
                 self.convertAdhull_button_pressed()
                 return
         except Exception as _e:
@@ -2113,11 +2109,11 @@ class ReadNAHullTab(QWidget):
             except AttributeError:
                 _txt = f"该文件不是有效的船体设计文件，请重新选择哦"
                 # 白色背景的提示框
-                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(Handler.window, "提示", _txt, MyMessageBox.Ok)
                 return
             except PermissionError:
                 _txt = "该文件已被其他程序打开，请关闭后重试"
-                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(Handler.window, "提示", _txt, MyMessageBox.Ok)
                 return
             for mt, objs in self.all_3d_obj.items():
                 objs.clear()
@@ -2149,7 +2145,7 @@ def user_guide():
     """
     # 弹出对话框，询问是否保存当前设计
     _txt = "是否保存当前设计？"
-    reply = MyMessageBox().question(None, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
+    reply = MyMessageBox().question(Handler.window, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
     if reply == MyMessageBox.Ok:
         ProjectHandler.current.save()
     # 弹出UserGuideDialog
@@ -2191,7 +2187,7 @@ if __name__ == '__main__':
                 open_project(list(Config.Projects.values())[-1])
             except Exception as e:
                 show_state(f"读取配置文件失败：{e}", 'error')
-                MyMessageBox().information(None, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
+                MyMessageBox().information(Handler.window, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
         else:
             pass
         QtWindow.showMaximized()
