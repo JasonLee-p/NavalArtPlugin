@@ -65,7 +65,7 @@ class StateHistory:
     def __init__(self, show_statu_func):
         # 初始化一个定长的状态栈
         self.max_length = 10000
-        self.stateStack: List[Union[Memento, "SinglePartOperation", None]] = [None] * self.max_length
+        self.stateStack: List[Union[Memento, "Operation", None]] = [None] * self.max_length
         self.current_index = None
         self.show_statu_func = show_statu_func
         self.operating = False
@@ -144,6 +144,8 @@ class StateHistory:
         else:
             self.show_statu_func("Ctrl+Shift+Z 没有更多的历史记录", "warning")
 
+    # 由于是动态绑定的，所以pycharm无法识别，但是实际上是存在的
+    # noinspection PyUnresolvedReferences
     def reset_information(self):
         """
         重置所有类的信息
@@ -169,9 +171,10 @@ class StateHistory:
         NALeftViewNode.id_map = {id(node) % 4294967296: node for node in memento_.naLeftViewNodes}
 
 
-def operation_wrapper(func):
+def push_global_statu(func):
     """
-    用于装饰器，用于执行命令后保存状态
+    装饰器，用于执行函数形式的命令后保存全局状态
+    注意，这个功能并不被推荐，因为保存全局状态非常耗时，而且容易出错
     :param func:
     :return:
     """
@@ -185,10 +188,10 @@ def operation_wrapper(func):
     return wrapper
 
 
-def operationObj_wrapper(func):
+def push_operation(func):
     """
-    用于装饰器，用于执行命令后保存状态
-    :param func:
+    装饰器，用于获取操作对象，保存到操作栈中。
+    :param func: 函数返回值必须为操作对象（基类为 Operation）或者 None
     :return:
     """
 

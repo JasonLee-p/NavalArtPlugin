@@ -181,8 +181,9 @@ class OpenGLWin(QOpenGLWidget):
         super(OpenGLWin, self).__init__()
         # ===================================================================================设置基本参数
         self.setMouseTracking(True)
-        # 设置十字光标
-        self.setCursor(Qt.CrossCursor)
+        # 设置十字光标（颜色为反色）
+        self.cs = Qt.CrossCursor
+        self.setCursor(self.cs)
         self.setFocusPolicy(Qt.StrongFocus)  # 设置焦点策略
         self.setContextMenuPolicy(Qt.CustomContextMenu)  # 设置右键菜单策略
         self.width = QOpenGLWidget.width(self)
@@ -601,7 +602,7 @@ class OpenGLWin(QOpenGLWidget):
         # # 获取选择框的坐标和尺寸
         # x1, y1 = self.select_start.x(), self.select_start.y()
         # x2, y2 = self.select_end.x(), self.select_end.y()
-        # width, height = abs(x2 - x1), abs(y2 - y1)
+        # width, y_scl = abs(x2 - x1), abs(y2 - y1)
         # # 创建QPainter对象
         #
         # painter = QPainter(self)
@@ -614,12 +615,12 @@ class OpenGLWin(QOpenGLWidget):
         # pen.setDashPattern([6, 6])
         # painter.setPen(pen)
         # # 绘制选择框
-        # print(x1, y1, width, height)
-        # painter.drawRect(x1, y1, width, height)
+        # print(x1, y1, width, y_scl)
+        # painter.drawRect(x1, y1, width, y_scl)
         # # 绘制中间的半透明填充
         # _col2 = QColor(255, 255, 255, 32)
-        # print(x1, y1, width, height)
-        # painter.fillRect(x1, y1, width, height, _col2)
+        # print(x1, y1, width, y_scl)
+        # painter.fillRect(x1, y1, width, y_scl, _col2)
         # # 结束绘制
         # painter.end()
 
@@ -964,16 +965,30 @@ class OpenGLWin(QOpenGLWidget):
                 self.paintGL()
             self.select_end = event.pos() if self.operation_mode == OpenGLWin.Selectable else None
             self.lastPos = event.pos() if self.operation_mode == OpenGLWin.UnSelectable else None
-        elif event.buttons() == Qt.MidButton:  # 中键平移
-            dx = event.x() - self.lastPos.x()
-            dy = event.y() - self.lastPos.y()
-            self.camera.translate(dx, dy)
-            self.lastPos = event.pos()
-        elif event.buttons() == Qt.RightButton:  # 右键旋转
-            dx = event.x() - self.lastPos.x()
-            dy = event.y() - self.lastPos.y()
-            self.camera.rotate(dx, dy)
-            self.lastPos = event.pos()
+        elif event.buttons() == Qt.RightButton or event.buttons() == Qt.MidButton:  # 右键或中键旋转
+            # 如果鼠标到达屏幕边缘，光标位置就移动到另一侧
+            if event.x() < 0:
+                QCursor.setPos(self.mapToGlobal(QPoint(self.width - 1, event.y())))
+                self.lastPos = QPoint(self.width - 1, event.y())
+            elif event.x() > self.width - 1:
+                QCursor.setPos(self.mapToGlobal(QPoint(0, event.y())))
+                self.lastPos = QPoint(0, event.y())
+            elif event.y() < 0:
+                QCursor.setPos(self.mapToGlobal(QPoint(event.x(), self.height - 1)))
+                self.lastPos = QPoint(event.x(), self.height - 1)
+            elif event.y() > self.height - 1:
+                QCursor.setPos(self.mapToGlobal(QPoint(event.x(), 0)))
+                self.lastPos = QPoint(event.x(), 0)
+            elif event.buttons() == Qt.MidButton:  # 中键平移
+                dx = event.x() - self.lastPos.x()
+                dy = event.y() - self.lastPos.y()
+                self.camera.translate(dx, dy)
+                self.lastPos = event.pos()
+            elif event.buttons() == Qt.RightButton:  # 右键旋转
+                dx = event.x() - self.lastPos.x()
+                dy = event.y() - self.lastPos.y()
+                self.camera.rotate(dx, dy)
+                self.lastPos = event.pos()
         self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:

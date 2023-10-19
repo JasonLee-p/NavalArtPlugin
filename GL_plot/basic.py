@@ -135,25 +135,25 @@ class GridLine(LineGroupObject):
         self.line_width1 = 0.6
         super(GridLine, self).__init__(gl)
         for i in range(-num, num + 1):
-            if i % 10 == 0 or i == num + 1 or i == -num:
+            if i % 5 == 0 or i == num + 1 or i == -num:
                 self.lines[f"{i}"] = [
                     self.color, self.line_width1,
                     [(i * scale + central[0], central[1], -num * scale + central[2]),
                      (i * scale + central[0], central[1], num * scale + central[2])]
                 ]
-                self.lines[f"{i + num * 2}"] = [
+                self.lines[f"{i + num * 2 + 1}"] = [
                     self.color, self.line_width1,
                     [(-num * scale + central[0], central[1], i * scale + central[2]),
                      (num * scale + central[0], central[1], i * scale + central[2])]
                 ]
             else:
-                pass
+                ...
                 # self.lines[f"{i}"] = [
                 #     self.color, self.line_width0,
                 #     [(i * scale + central[0], central[1], -num * scale + central[2]),
                 #      (i * scale + central[0], central[1], num * scale + central[2])]
                 # ]
-                # self.lines[f"{i + num * 2}"] = [
+                # self.lines[f"{i + num * 2 + 1}"] = [
                 #     self.color, self.line_width0,
                 #     [(-num * scale + central[0], central[1], i * scale + central[2]),
                 #      (num * scale + central[0], central[1], i * scale + central[2])]

@@ -691,7 +691,7 @@ class ColorDialog(BasicDialog):
             choose_box = QCheckBox()
             choose_box.setFixedSize(60, 16)
             # 居中
-            choose_box.setStyleSheet("QCheckBox::indicator {width: 60px;height: 16px;}")
+            choose_box.setStyleSheet("QCheckBox::indicator {width: 60px;y_scl: 16px;}")
             self.color_choose_map[color] = choose_box
             # 添加到布局
             i_vertical = lines * 4

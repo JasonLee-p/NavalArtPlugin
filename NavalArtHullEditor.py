@@ -11,14 +11,16 @@ import os.path
 import sys
 import time
 import webbrowser
-from typing import Union, Literal
+from typing import Union
+
+from operation import AddLayerOperation
 
 try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
     # 本地库
     from connection import Connection, extract_number_from_version
-    from state_history import StateHistory, operation_wrapper
+    from state_history import StateHistory, push_global_statu
     from util_funcs import *
     from ship_reader import *
     from GUI import *
@@ -26,9 +28,12 @@ try:
     from GL_plot import *
     from path_utils import find_ptb_path, find_na_root_path
     from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu
-    from right_element_view import Mod1SinglePartView
+    from right_element_view import (
+        Mod1AllPartsView, Mod1SinglePartView, Mod1VerticalPartSetView, Mod1HorizontalPartSetView,
+        Mod1VerHorPartSetView)
     from right_element_editing import (
-        Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing)
+        Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing,
+        Mod1VerHorPartSetEditing)
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
 
@@ -71,7 +76,7 @@ def check_version():
         latest_version, links = Connection.get_latest_version()
     except TypeError:
         show_state("检查更新完成", 'success')
-        return 
+        return
     show_state("检查更新完成", 'success')
     if not latest_version:
         return
@@ -1071,14 +1076,10 @@ class RightTabWidget(QTabWidget):
         self.tab2_main_layout = QVBoxLayout()
         # ======================================================================查看模式tab1_mod1的三种界面
         self.tab1_mod1_widget_singlePart = Mod1SinglePartView()
-        self.tab1_mod1_widget_verticalPartSet = QWidget()
-        self.tab1_mod1_widget_horizontalPartSet = QWidget()
-        self.tab1_mod1_widget_verHorPartSet = QWidget()
-        self.tab1_mod1_widget_allParts = QWidget()
-
-        self.tab1_mod1_grid_verticalPartSet = QGridLayout()
-        self.tab1_mod1_grid_horizontalPartSet = QGridLayout()
-        self.tab1_mod1_grid_verHorPartSet = QGridLayout()
+        self.tab1_mod1_widget_verticalPartSet = Mod1VerticalPartSetView()
+        self.tab1_mod1_widget_horizontalPartSet = Mod1HorizontalPartSetView()
+        self.tab1_mod1_widget_verHorPartSet = Mod1VerHorPartSetView()
+        self.tab1_mod1_widget_allParts = Mod1AllPartsView()
         # ===========================================================================tab1_mod2的两种界面
         self.tab1_mod2_widget_singleLayer = QWidget()
         self.tab1_mod2_widget_multiLayer = QWidget()
@@ -1088,18 +1089,18 @@ class RightTabWidget(QTabWidget):
         self.tab2_mod1_widget_singlePart = Mod1SinglePartEditing()
         self.tab2_mod1_widget_verticalPartSet = Mod1VerticalPartSetEditing()
         self.tab2_mod1_widget_horizontalPartSet = Mod1HorizontalPartSetEditing()
-        self.tab2_mod1_widget_verHorPartSet = QWidget()
+        self.tab2_mod1_widget_verHorPartSet = Mod1VerHorPartSetEditing()
         self.tab2_mod1_widget_allParts = Mod1AllPartsEditing()
-
-        self.tab2_mod1_grid_horizontalPartSet = QGridLayout()
-        self.tab2_mod1_grid_verHorPartSet = QGridLayout()
         # ===========================================================================tab2_mod2的两种界面
         self.tab2_mod2_widget_singleLayer = QWidget()
         self.tab2_mod2_widget_multiLayer = QWidget()
         self.tab2_mod2_grid_singleLayer = QGridLayout()
         self.tab2_mod2_grid_multiLayer = QGridLayout()
-        # =============================================================================当前显示的widget
-        self.tab1_current_widget = self.tab1_mod1_widget_singlePart
+        # 00000000000000000000000000000000000000000000000000000000000000000000000000 操作
+        self.tab2_operation_addPartLayer = AddLayerOperation.right_frame
+
+        # 当前显示的widget
+        self.tab1_current_widget = self.tab1_mod1_widget_allParts
         self.tab2_current_widget = self.tab2_mod1_widget_allParts
         # GUI绑定和样式
         self.init_style()
@@ -1184,12 +1185,12 @@ class RightTabWidget(QTabWidget):
                 root_relation_map = relation_map.basicMap[root_node_part]
                 # 按顺序向前后左右搜寻零件
                 dir_index_map = {
-                    PRM.FRONT: 0,
-                    PRM.BACK: 0,
-                    PRM.LEFT: 0,
-                    PRM.RIGHT: 0,
-                    PRM.UP: 0,
-                    PRM.DOWN: 0,
+                    CONST.FRONT: 0,
+                    CONST.BACK: 0,
+                    CONST.LEFT: 0,
+                    CONST.RIGHT: 0,
+                    CONST.UP: 0,
+                    CONST.DOWN: 0,
                 }
                 # 获取整个selected_parts的上下左右范围
                 for direction, part_value_map in root_relation_map.items():
@@ -1200,9 +1201,9 @@ class RightTabWidget(QTabWidget):
                         else:
                             break
                 # 分别统计前后，左右，上下，如果为0正好被判定为False，用作布尔值
-                front_back = dir_index_map[PRM.FRONT] + dir_index_map[PRM.BACK]
-                left_right = dir_index_map[PRM.LEFT] + dir_index_map[PRM.RIGHT]
-                up_down = dir_index_map[PRM.UP] + dir_index_map[PRM.DOWN]
+                front_back = dir_index_map[CONST.FRONT] + dir_index_map[CONST.BACK]
+                left_right = dir_index_map[CONST.LEFT] + dir_index_map[CONST.RIGHT]
+                up_down = dir_index_map[CONST.UP] + dir_index_map[CONST.DOWN]
                 if not front_back:  # 纵截块
                     if not left_right:  # 竖直截块
                         if selected_num == up_down + 1:
@@ -1214,15 +1215,15 @@ class RightTabWidget(QTabWidget):
                             self.tab2_mod1_widget_verticalPartSet.selected_objs = selected_parts.copy()
                     else:  # 纵截块
                         # 往左右两边遍历切换根节点，搜寻上下零件
-                        for i in range(dir_index_map[PRM.LEFT]):
-                            _temp_root = list(root_relation_map[PRM.LEFT].keys())[i]
+                        for i in range(dir_index_map[CONST.LEFT]):
+                            _temp_root = list(root_relation_map[CONST.LEFT].keys())[i]
                             _temp_root_relation_map = relation_map.basicMap[_temp_root]
-                            _temp_root_up_map = _temp_root_relation_map[PRM.UP]
-                            _temp_root_down_map = _temp_root_relation_map[PRM.DOWN]
-                            for j in range(dir_index_map[PRM.UP]):
+                            _temp_root_up_map = _temp_root_relation_map[CONST.UP]
+                            _temp_root_down_map = _temp_root_relation_map[CONST.DOWN]
+                            for j in range(dir_index_map[CONST.UP]):
                                 if list(_temp_root_up_map.keys())[j] not in selected_parts:
                                     break
-                            for j in range(dir_index_map[PRM.DOWN]):
+                            for j in range(dir_index_map[CONST.DOWN]):
                                 if list(_temp_root_down_map.keys())[j] not in selected_parts:
                                     break
                             else:
@@ -1243,15 +1244,15 @@ class RightTabWidget(QTabWidget):
                             self.tab2_mod1_widget_horizontalPartSet.selected_objs = selected_parts.copy()
                     else:  # 水平截块
                         # 往左右两边遍历切换根节点，搜寻前后零件
-                        for i in range(dir_index_map[PRM.LEFT]):
-                            _temp_root = list(root_relation_map[PRM.LEFT].keys())[i]
+                        for i in range(dir_index_map[CONST.LEFT]):
+                            _temp_root = list(root_relation_map[CONST.LEFT].keys())[i]
                             _temp_root_relation_map = relation_map.basicMap[_temp_root]
-                            _temp_root_front_map = _temp_root_relation_map[PRM.FRONT]
-                            _temp_root_back_map = _temp_root_relation_map[PRM.BACK]
-                            for j in range(dir_index_map[PRM.FRONT]):
+                            _temp_root_front_map = _temp_root_relation_map[CONST.FRONT]
+                            _temp_root_back_map = _temp_root_relation_map[CONST.BACK]
+                            for j in range(dir_index_map[CONST.FRONT]):
                                 if list(_temp_root_front_map.keys())[j] not in selected_parts:
                                     break
-                            for j in range(dir_index_map[PRM.BACK]):
+                            for j in range(dir_index_map[CONST.BACK]):
                                 if list(_temp_root_back_map.keys())[j] not in selected_parts:
                                     break
                             else:
@@ -1369,42 +1370,6 @@ class RightTabWidget(QTabWidget):
                 ...
                 # TODO: 其他类型的物体
 
-    def init_tab1_mod1_grid_verticalPartSet(self):
-        self.tab1_mod1_grid_verticalPartSet.setSpacing(7)
-        self.tab1_mod1_grid_verticalPartSet.setContentsMargins(0, 0, 0, 0)
-        self.tab1_mod1_grid_verticalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        # 添加title，说明当前显示的是纵向排列的船体截块
-        title = MyLabel("竖直截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
-        title.setFixedSize(70, 25)
-        self.tab1_mod1_grid_verticalPartSet.addWidget(title, 0, 0, 1, 4)
-
-    def init_tab1_mod1_grid_horizontalPartSet(self):
-        self.tab1_mod1_grid_horizontalPartSet.setSpacing(7)
-        self.tab1_mod1_grid_horizontalPartSet.setContentsMargins(0, 0, 0, 0)
-        self.tab1_mod1_grid_horizontalPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        # 添加title，说明当前显示的是横向排列的船体截块
-        title = MyLabel("水平截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
-        title.setFixedSize(70, 25)
-        self.tab1_mod1_grid_horizontalPartSet.addWidget(title, 0, 0, 1, 4)
-
-    def init_tab1_mod1_grid_verHorPartSet(self):
-        self.tab1_mod1_grid_verHorPartSet.setSpacing(7)
-        self.tab1_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
-        self.tab1_mod1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        # 添加title，说明当前显示的是集成块
-        title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
-        title.setFixedSize(70, 25)
-        self.tab1_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
-
-    def init_tab2_mod1_grid_verHorPartSet(self):
-        self.tab2_mod1_grid_verHorPartSet.setSpacing(7)
-        self.tab2_mod1_grid_verHorPartSet.setContentsMargins(0, 0, 0, 0)
-        self.tab2_mod1_grid_verHorPartSet.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        # 添加title，说明当前显示的是集成块
-        title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
-        title.setFixedSize(70, 25)
-        self.tab2_mod1_grid_verHorPartSet.addWidget(title, 0, 0, 1, 4)
-
     def tab1_grid_qte_mouse_wheel(self, event=None):
         # 寻找当前鼠标所在的输入框
         active_textEdit = None
@@ -1436,6 +1401,8 @@ class RightTabWidget(QTabWidget):
             f"color:{FG_COLOR0};"
             "padding:4px;"
             "min-height:30ex;"
+            "border-top-right-radius:8px;"
+            "border-bottom-right-radius:8px;"
             f"border-right:0px solid {FG_COLOR2};"
             f"border-left:1px solid {FG_COLOR2};}}"
             # 设置选中标签栏样式
@@ -1443,6 +1410,8 @@ class RightTabWidget(QTabWidget):
             f"color:{FG_COLOR0};"
             "padding:4px;"
             "min-height:30ex;"
+            "border-top-right-radius:8px;"
+            "border-bottom-right-radius:8px;"
             f"border-right:0px solid {FG_COLOR2};"
             f"border-left:1px solid {FG_COLOR2};}}"
             # 设置鼠标悬停标签栏样式
@@ -1450,6 +1419,8 @@ class RightTabWidget(QTabWidget):
             f"color:{FG_COLOR0};"
             "padding:4px;"
             "min-height:30ex;"
+            "border-top-right-radius:0px;"
+            "border-bottom-right-radius:0px;"
             f"border-right:0px solid {FG_COLOR2};"
             f"border-left:1px solid {FG_COLOR1};}}"
         )
@@ -1464,10 +1435,6 @@ class RightTabWidget(QTabWidget):
 
     def bind_widget(self):
         # ===================================================================================tab1
-        # tab1_mod1
-        self.tab1_mod1_widget_verticalPartSet.setLayout(self.tab1_mod1_grid_verticalPartSet)
-        self.tab1_mod1_widget_horizontalPartSet.setLayout(self.tab1_mod1_grid_horizontalPartSet)
-        self.tab1_mod1_widget_verHorPartSet.setLayout(self.tab1_mod1_grid_verHorPartSet)
         # tab1_mod2
         self.tab1_mod2_widget_singleLayer.setLayout(self.tab1_mod2_grid_singleLayer)
         self.tab1_mod2_widget_multiLayer.setLayout(self.tab1_mod2_grid_multiLayer)
@@ -1479,10 +1446,6 @@ class RightTabWidget(QTabWidget):
         self.tab1_main_layout.addWidget(self.tab1_mod1_widget_allParts)
         self.tab1_main_layout.addWidget(self.tab1_mod2_widget_singleLayer)  # mod2
         self.tab1_main_layout.addWidget(self.tab1_mod2_widget_multiLayer)
-        # 初始化控件
-        self.init_tab1_mod1_grid_verticalPartSet()
-        self.init_tab1_mod1_grid_horizontalPartSet()
-        self.init_tab1_mod1_grid_verHorPartSet()
         # 隐藏
         self.tab1_mod1_widget_singlePart.hide()  # mod1
         self.tab1_mod1_widget_verticalPartSet.hide()
@@ -1491,8 +1454,6 @@ class RightTabWidget(QTabWidget):
         self.tab1_mod2_widget_singleLayer.hide()  # mod2
         self.tab1_mod2_widget_multiLayer.hide()
         # ===================================================================================tab2
-        # tab2_mod1
-        self.tab2_mod1_widget_verHorPartSet.setLayout(self.tab2_mod1_grid_verHorPartSet)
         # tab2_mod2
         self.tab2_mod2_widget_singleLayer.setLayout(self.tab2_mod2_grid_singleLayer)
         self.tab2_mod2_widget_multiLayer.setLayout(self.tab2_mod2_grid_multiLayer)
@@ -1504,8 +1465,8 @@ class RightTabWidget(QTabWidget):
         self.tab2_main_layout.addWidget(self.tab2_mod1_widget_allParts)
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_singleLayer)  # mod2
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_multiLayer)
-        # 初始化控件
-        self.init_tab2_mod1_grid_verHorPartSet()
+        # 00000000000000000000000000000000000000000000000000000000000000000000000 操作
+        self.tab2_main_layout.addWidget(self.tab2_operation_addPartLayer)
         # 隐藏
         self.tab2_mod1_widget_singlePart.hide()  # mod1
         self.tab2_mod1_widget_verticalPartSet.hide()

@@ -7,6 +7,10 @@ from abc import abstractmethod
 
 class Operation:
     def __init__(self):
+        """
+        操作栈中的操作基类
+        在state_history.py中，
+        """
         pass
 
     @abstractmethod

@@ -4,18 +4,20 @@
 """
 # 系统库
 import copy
-from typing import List, Literal
+from typing import List, Literal, Union
 # 包内文件
 from .basic import Operation
 # 其他本地库
 from GUI import QMessageBox
 from ship_reader import NAPart, AdjustableHull
-from state_history import operationObj_wrapper
-from util_funcs import not_implemented
+from state_history import push_operation
+from util_funcs import CONST, not_implemented, get_part_world_dirs
+from right_operation_editing import AddLayerEditing
 
 
 class SinglePartOperation(Operation):
-    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool, singlePart_e, original_data=None, change_data=None):
+    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool, singlePart_e, original_data=None,
+                 change_data=None):
         super().__init__()
         self.name = "单零件编辑"
         self.active_textEdit = active_textEdit
@@ -196,23 +198,84 @@ class CutSinglePartOperation(Operation):
 
 
 class AddLayerOperation(Operation):
-    def __init__(self, position: Literal["front", "back", "up", "down"],
-                 base_parts: List[AdjustableHull]):
-        super().__init__()
-        self.position = position
-        self.base_parts = base_parts
+    right_frame: Union[AddLayerEditing, None] = None
+    VERTICAL_DIR_MAP = {
+        "front": ["left", "right", "up", "down"],
+        "back": ["left", "right", "up", "down"],
+        "up": ["left", "right", "front", "back"],
+        "down": ["left", "right", "front", "back"],
+        "left": ["front", "back", "up", "down"],
+        "right": ["front", "back", "up", "down"],
+    }
 
+    def __init__(self, direction: Literal["front", "back", "up", "down", "left", "right"],
+                 base_parts: List[AdjustableHull]):
+        """
+
+        :param direction: 添加方向（全局坐标系）
+        :param base_parts: 被选中的零件
+        """
+        # 初始化右侧编辑器
+        if not AddLayerOperation.right_frame:
+            AddLayerOperation.right_frame = AddLayerEditing()
+        super().__init__()
+        self.add_direction = direction  # 全局坐标系
+        self.transformed_position_map = get_part_world_dirs(base_parts[0].Rot)  # 获取零件的全局坐标系方向
+        self.base_parts = base_parts
+        self.partRelationMap = None
+        self.original_parts_data = {}  # 零件在世界坐标系中的数据
         if len(self.base_parts) == 1:
             _p = self.base_parts[0]
-            # 寻找该单零件垂直于添加方向的所有关系零件
-            ...
             # 如果原零件不在关系图中，那么就不需要考虑关系图
-            if _p not in
+            if _p not in _p.allParts_relationMap.basicMap.keys():
+                self._original_parts = base_parts
+            else:  # 寻找该单零件垂直于添加方向的所有关系零件:
+                self.partRelationMap = self.base_parts[0].allParts_relationMap
+                self.find_original_parts(_p)
         else:
-            self.original_parts = base_parts
             self.partRelationMap = self.base_parts[0].allParts_relationMap
-        self.added_parts = []
+            self._original_parts = base_parts
+        self.get_data_in_world_coordinate()
+        # 初始化需要添加的零件
+        self.added_parts = self.generate_added_parts(self.original_parts_data, self.add_direction)
 
+    def find_original_parts(self, base_part):
+        outer_parts = [self.base_parts[0]]
+        self._original_parts = [self.base_parts[0]]
+
+        # 此处不需要转置方向，因为需要寻找全局方向
+        for _dir in self.VERTICAL_DIR_MAP[self.add_direction][:2]:
+            # 此时_dir是全局左右或前后方向
+            _dir_parts = self.partRelationMap.basicMap[base_part][_dir]
+            if _dir_parts:
+                self._original_parts.extend(_dir_parts)
+                outer_parts.extend(_dir_parts)
+        for _outer_p in outer_parts:
+            # 此处不需要转置方向，因为需要寻找全局方向
+            for _dir in self.VERTICAL_DIR_MAP[self.add_direction][2:]:
+                # 此时_dir是全局上下或前后方向
+                _dir_parts = self.partRelationMap.basicMap[_outer_p][_dir]
+                if _dir_parts:
+                    self._original_parts.extend(_dir_parts)
+
+    def get_data_in_world_coordinate(self):
+        for part in self._original_parts:
+            _data = part.get_data_in_coordinate()
+            self.original_parts_data[part] = _data
+
+    @staticmethod
+    def generate_added_parts(original_parts_data, add_direction):
+        """
+        生成需要添加的零件
+        :param original_parts_data: 源零件的数据
+        :param add_direction: 添加方向（全局坐标系）
+        :return:
+        """
+        # 打开右侧编辑器
+        result: List[AdjustableHull] = []
+        for part, data in original_parts_data.items():
+            ...
+        return result
 
     def execute(self):
         pass
@@ -221,24 +284,18 @@ class AddLayerOperation(Operation):
         pass
 
     def redo(self):
-        pass
+        self.execute()
 
     @staticmethod
-    @operationObj_wrapper
-    def add_front_layer(original_parts):
-        return AddLayerOperation("front", original_parts)
-
-    @staticmethod
-    @operationObj_wrapper
-    def add_back_layer(original_parts):
-        return AddLayerOperation("back", original_parts)
-
-    @staticmethod
-    @operationObj_wrapper
-    def add_up_layer(original_parts):
-        return AddLayerOperation("up", original_parts)
-
-    @staticmethod
-    @operationObj_wrapper
-    def add_down_layer(original_parts):
-        return AddLayerOperation("down", original_parts)
+    @not_implemented
+    @push_operation
+    def add_layer(original_parts, direction):
+        """
+        将操作推入操作栈
+        :param original_parts:
+        :param direction:
+        :return:
+        """
+        AddLayerOperation.right_frame.update_direction(direction)
+        AddLayerOperation.right_frame.show()
+        return AddLayerOperation(direction, original_parts)

@@ -7,23 +7,23 @@ import xml.etree.ElementTree as ET
 from typing import Union, List, Dict, Callable
 
 import numpy as np
-from PyQt5.QtGui import QVector3D
 from quaternion import quaternion
+from util_funcs import CONST, VECTOR_RELATION_MAP, rotate_quaternion, get_normal, fit_bezier
 
 """
 文件格式：
 <root>
   <ship author="XXXXXXXXX" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
     <newPart id="0">
-      <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
-      <position x="0" y="0" z="114.75" />
+      <data x_scl="4.5" y_scl="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+      <add_direction x="0" y="0" z="114.75" />
       <rotation x="0" y="0" z="0" />
       <scale x="1" y="1" z="1" />
       <color hex="975740" />
       <armor value="5" />
     </newPart>
     <newPart id="190">
-      <position x="0" y="-8.526513E-14" z="117.0312" />
+      <add_direction x="0" y="-8.526513E-14" z="117.0312" />
       <rotation x="90" y="0" z="0" />
       <scale x="0.03333336" y="0.03333367" z="0.1666679" />
       <color hex="975740" />
@@ -31,31 +31,8 @@ from quaternion import quaternion
     </newPart>
   </root>
 """
-orders = ["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
-RotateOrder = orders[2]
 
-
-def get_normal(dot1, dot2, dot3, center=None):
-    """
-    计算三角形的法向量，输入为元组
-    :param dot1: 元组，三角形的第一个点
-    :param dot2: 元组，三角形的第二个点
-    :param dot3: 元组，三角形的第三个点
-    :param center: QVector3D，三角形的中心点
-    :return: QVector3D
-    """
-    if type(center) == tuple:
-        center = QVector3D(*center)
-    v1 = QVector3D(*dot2) - QVector3D(*dot1)
-    v2 = QVector3D(*dot3) - QVector3D(*dot1)
-    if center is None:
-        return QVector3D.crossProduct(v1, v2).normalized()
-    triangle_center = QVector3D(*dot1) + QVector3D(*dot2) + QVector3D(*dot3)
-    # 如果法向量与视线夹角大于90度，翻转法向量
-    if QVector3D.dotProduct(QVector3D.crossProduct(v1, v2), triangle_center - center) > 0:
-        return QVector3D.crossProduct(v1, v2).normalized()
-    else:
-        return QVector3D.crossProduct(v1, v2).normalized()
+RotateOrder = CONST.ROTATE_ORDER
 
 
 def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
@@ -130,49 +107,6 @@ def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
         return 'l'
     else:
         return None
-
-
-def rotate_quaternion(vec, rot):
-    """
-    对np.array类型的向量进行四元数旋转
-    :param vec:
-    :param rot:
-    :return:
-    """
-    if rot == [0, 0, 0]:
-        # 标准化为单位向量
-        return vec / np.linalg.norm(vec)
-    # 转换为弧度
-    rot = np.radians(rot)
-    # 计算旋转的四元数
-    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
-    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
-    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
-
-    # 合并三个旋转四元数
-    q = quaternion(1, 0, 0, 0)
-    if RotateOrder == "XYZ":
-        q = q * quaternion(*q_x) * quaternion(*q_y) * quaternion(*q_z)
-    elif RotateOrder == "XZY":
-        q = q * quaternion(*q_x) * quaternion(*q_z) * quaternion(*q_y)
-    elif RotateOrder == "YXZ":
-        q = q * quaternion(*q_y) * quaternion(*q_x) * quaternion(*q_z)
-    elif RotateOrder == "YZX":
-        q = q * quaternion(*q_y) * quaternion(*q_z) * quaternion(*q_x)
-    elif RotateOrder == "ZXY":
-        q = q * quaternion(*q_z) * quaternion(*q_x) * quaternion(*q_y)
-    elif RotateOrder == "ZYX":
-        q = q * quaternion(*q_z) * quaternion(*q_y) * quaternion(*q_x)
-    else:
-        raise ValueError("Invalid RotateOrder!")
-
-    # 进行四元数旋转
-    rotated_point_quat = q * np.quaternion(0, *vec) * np.conj(q)
-    # 提取旋转后的点坐标
-    rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
-    # 标准化为单位向量
-    rotated_point = rotated_point / np.linalg.norm(rotated_point)
-    return rotated_point
 
 
 def rotate_quaternion2(dot_dict, scl, rot):
@@ -338,90 +272,6 @@ def rotate_quaternion1(dot_dict, scl, rot):
     return rotated_dot_dict
 
 
-def get_bezier(start, s_control, back, b_control, x):
-    """
-    计算贝塞尔曲线上的点的坐标，用np.array类型表示
-    :param start: 起点
-    :param s_control: 起点控制点
-    :param back: 终点
-    :param b_control: 终点控制点
-    :param x: 点的x坐标，x在start[0]和back[0]之间
-    :return: 返回贝塞尔曲线上的点坐标
-    """
-    # 计算 t 值
-    t = (x - start[0]) / (back[0] - start[0])
-
-    # 贝塞尔曲线公式
-    result = (1 - t) ** 3 * start + 3 * (1 - t) ** 2 * t * s_control + 3 * (1 - t) * t ** 2 * b_control + t ** 3 * back
-
-    return np.array(result)
-
-
-def fit_bezier(front_k, back_k, length, height, n, draw=False):
-    # 过滤n值>=2
-    if n < 2:
-        raise ValueError("n must be greater than or equal to 2")
-
-    # 计算控制点位置
-    distance = length / 4
-    start = np.array([0, 0])
-    end = np.array([length, height])
-    dir_s = np.array([1, front_k])
-    dir_b = np.array([1, back_k])
-    # 标准化后乘以距离
-    dir_s = dir_s * distance / np.linalg.norm(dir_s)
-    dir_b = dir_b * distance / np.linalg.norm(dir_b)
-    start_control = start + dir_s
-    end_control = end - dir_b
-    if draw:
-        # 在matplotlib绘制贝塞尔曲线：
-        import matplotlib.pyplot as plt
-        # 从0到length之间生成100个点
-        t_values = np.linspace(0, length, 100)
-        # 初始化存储曲线上点的空数组
-        curve_points = []
-        # 计算贝塞尔曲线上的点
-        for t in t_values:
-            point = get_bezier(start, start_control, end, end_control, t / length)
-            curve_points.append(point)
-        # 转换为NumPy数组以便于绘图
-        curve_points = np.array(curve_points)
-        # 绘制贝塞尔曲线
-        plt.figure(figsize=(8, 6))
-        plt.plot(curve_points[:, 0], curve_points[:, 1], label='Bezier Curve', color='blue')
-        plt.scatter([start[0], start_control[0], end[0], end_control[0]],
-                    [start[1], start_control[1], end[1], end_control[1]],
-                    color='red', marker='o', label='Control Points')
-        plt.title('Bezier Curve')
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-    # 存储斜率的列表
-    slopes = []
-    # 计算每段的长度
-    last_point = None
-    step = length / n
-    # 计算每段的斜率
-    for i in range(n):
-        # 计算当前参数值
-        x = (i + 1) * step
-        # 计算贝塞尔曲线上的点坐标
-        point = get_bezier(start, start_control, end, end_control, x)
-        # 计算与前一个点的斜率，如果为第一个点则计算与起点的斜率
-        if i == 0:
-            slope = (point[1] - start[1]) / step
-        else:
-            slope = (point[1] - last_point[1]) / step
-        # 将斜率添加到列表中
-        slopes.append(slope)
-        # 保存上一个点的坐标
-        last_point = point
-
-    return slopes
-
-
 class NAPartNode:
     id_map = {}
     all_dots = []  # 不储存对象，储存所有点的坐标列表
@@ -430,14 +280,14 @@ class NAPartNode:
         self.pos = pos
         self.glWin = None
         self.near_parts = {  # 八个卦限
-            PartRelationMap.FRONT_UP_LEFT: [],
-            PartRelationMap.FRONT_UP_RIGHT: [],
-            PartRelationMap.FRONT_DOWN_LEFT: [],
-            PartRelationMap.FRONT_DOWN_RIGHT: [],
-            PartRelationMap.BACK_UP_LEFT: [],
-            PartRelationMap.BACK_UP_RIGHT: [],
-            PartRelationMap.BACK_DOWN_LEFT: [],
-            PartRelationMap.BACK_DOWN_RIGHT: [],
+            CONST.FRONT_UP_LEFT: [],
+            CONST.FRONT_UP_RIGHT: [],
+            CONST.FRONT_DOWN_LEFT: [],
+            CONST.FRONT_DOWN_RIGHT: [],
+            CONST.BACK_UP_LEFT: [],
+            CONST.BACK_UP_RIGHT: [],
+            CONST.BACK_DOWN_LEFT: [],
+            CONST.BACK_DOWN_RIGHT: [],
         }
         NAPartNode.id_map[id(self) % 4294967296] = self
         NAPartNode.all_dots.append(self.pos)
@@ -891,12 +741,11 @@ class AdjustableHull(NAPart):
         # 对前后左右的可能需要修改的对象进行同步修改
         relation_map = self.allParts_relationMap.basicMap[self]
         # 对方向关系映射进行遍历
-        for direction in [PartRelationMap.FRONT, PartRelationMap.BACK, PartRelationMap.LEFT, PartRelationMap.RIGHT,
-                          PartRelationMap.UP, PartRelationMap.DOWN]:
+        for direction in [CONST.FRONT, CONST.BACK, CONST.LEFT, CONST.RIGHT, CONST.UP, CONST.DOWN]:
             if relation_map[direction] == {}:  # 该方向没有零件，跳过
                 continue
             # 零件移动的情况（目前仅考虑所有零件x=0的情况）
-            if direction in (PartRelationMap.FRONT, PartRelationMap.BACK  # 只有y轴变化
+            if direction in (CONST.FRONT, CONST.BACK  # 只有y轴变化
                              ) and pos_diff[1] != 0 and pos_diff[0] == pos_diff[2] == 0:
                 for part in relation_map[direction].keys():
                     part.change_attrs(
@@ -904,10 +753,10 @@ class AdjustableHull(NAPart):
                         part.Len, part.Hei, part.FWid, part.BWid, part.FSpr,
                         part.BSpr, part.UCur, part.DCur, part.HScl,
                         part.HOff)
-            if direction in (PartRelationMap.LEFT, PartRelationMap.RIGHT  # 只有x轴变化
+            if direction in (CONST.LEFT, CONST.RIGHT  # 只有x轴变化
                              ) and pos_diff[0] != 0 and pos_diff[1] == pos_diff[2] == 0:
                 pass
-            if direction in (PartRelationMap.UP, PartRelationMap.DOWN  # 只有z轴变化
+            if direction in (CONST.UP, CONST.DOWN  # 只有z轴变化
                              ) and pos_diff[2] != 0 and pos_diff[0] == pos_diff[1] == 0:
                 for part in relation_map[direction].keys():
                     part.change_attrs(
@@ -916,7 +765,7 @@ class AdjustableHull(NAPart):
                         part.BSpr, part.UCur, part.DCur, part.HScl,
                         part.HOff)
             # 改变高度的情况
-            if direction in (PartRelationMap.FRONT, PartRelationMap.BACK) and height_diff != 0:
+            if direction in (CONST.FRONT, CONST.BACK) and height_diff != 0:
                 if tuple(self.Pos) in ((0, 0, 0), (0, 180, 0)):
                     for part in relation_map[direction].keys():
                         if tuple(part.Pos) in ((0, 0, 0), (0, 180, 0)):
@@ -1001,7 +850,7 @@ class AdjustableHull(NAPart):
             #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
             self.glWin.update()
 
-    def get_part_data(self, other_part=None):
+    def get_data_in_coordinate(self, other_part=None):
         """
         将零件的前后左右上下节点信息转化到世界坐标或其他零件的坐标系中
         例如一个零件在绕y轴旋转180度后，其左前下节点变为右后下节点
@@ -1009,24 +858,6 @@ class AdjustableHull(NAPart):
         dict = {
         "FLU": self.FWid + self.FSpr, "FRU": self.FWid + self.FSpr, "FLD": self.FWid, "FRD": self.FWid,
         "BLU": self.BWid + self.BSpr, "BRU": self.BWid + self.BSpr, "BLD": self.BWid, "BRD": self.BWid,
-        "H": self.Hei
-        }
-        当零件绕y轴旋转180度（前后左右颠倒）：
-        dict = {
-        "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.BWid, "FRD": self.BWid,
-        "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.FWid, "BRD": self.FWid,
-        "H": self.Hei
-        }
-        当零件向上抬头90度（y+为上）：
-        dict = {
-        "FLU": self.FWid, "FRU": self.FWid, "FLD": self.BWid, "FRD": self.BWid,
-        "BLU": self.FWid + self.FSpr, "BRU": self.FWid + self.FSpr, "BLD": self.BWid + self.BSpr, "BRD": self.BWid + self.BSpr,
-        "H": self.Len
-        }
-        当零件左转90度（x+为左）：
-        dict = {
-        "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
-        "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
         "H": self.Hei
         }
         """
@@ -1170,20 +1001,12 @@ class AdjustableHull(NAPart):
             return None, None
         front_vector = np.array([0., 0., 1.])
         front_vector = rotate_quaternion(front_vector, self.Rot)
-        Vector_relation_map = {
-            (0., 0., 1.): {"Larger": PartRelationMap.FRONT, "Smaller": PartRelationMap.BACK},
-            (0., 0., -1.): {"Larger": PartRelationMap.BACK, "Smaller": PartRelationMap.FRONT},
-            (1., 0., 0.): {"Larger": PartRelationMap.LEFT, "Smaller": PartRelationMap.RIGHT},
-            (-1., 0., 0.): {"Larger": PartRelationMap.RIGHT, "Smaller": PartRelationMap.LEFT},
-            (0., 1., 0.): {"Larger": PartRelationMap.UP, "Smaller": PartRelationMap.DOWN},
-            (0., -1., 0.): {"Larger": PartRelationMap.DOWN, "Smaller": PartRelationMap.UP},
-        }
         # 寻找前后左右上下的零件
-        if self in self.allParts_relationMap.basicMap.keys() and tuple(front_vector) in Vector_relation_map.keys():
+        if self in self.allParts_relationMap.basicMap.keys() and tuple(front_vector) in VECTOR_RELATION_MAP.keys():
             # 转置关系映射
             relation_map = self.allParts_relationMap.basicMap[self]
-            front_parts = list(relation_map[Vector_relation_map[tuple(front_vector)]["Larger"]].keys())
-            back_parts = list(relation_map[Vector_relation_map[tuple(front_vector)]["Smaller"]].keys())
+            front_parts = list(relation_map[VECTOR_RELATION_MAP[tuple(front_vector)]["Larger"]].keys())
+            back_parts = list(relation_map[VECTOR_RELATION_MAP[tuple(front_vector)]["Smaller"]].keys())
         else:
             front_parts = []
             back_parts = []
@@ -1196,7 +1019,7 @@ class AdjustableHull(NAPart):
             for p in front_parts:
                 v1 = np.array(p.Pos) - np.array(self.Pos)
                 # 对后零件进行关于本零件的转置
-                f_data = p.get_part_data(self)
+                f_data = p.get_data_in_coordinate(self)
                 v2 = front_vector * self.Scl[2] * (self.Len / 2 + f_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.FWid * self.Scl[0] == f_data["BLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接
@@ -1206,7 +1029,7 @@ class AdjustableHull(NAPart):
             for p in back_parts:
                 v1 = np.array(self.Pos) - np.array(p.Pos)
                 # 对后零件进行关于本零件的转置
-                b_data = p.get_part_data(self)
+                b_data = p.get_data_in_coordinate(self)
                 v2 = front_vector * self.Scl[2] * (self.Len / 2 + b_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.BWid * self.Scl[0] == b_data["FLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接
@@ -1296,20 +1119,12 @@ class AdjustableHull(NAPart):
             return None, None
         up_vector = np.array([0., 1., 0.])
         up_vector = rotate_quaternion(up_vector, self.Rot)
-        Vector_relation_map = {
-            (0., 0., 1.): {"Larger": PartRelationMap.FRONT, "Smaller": PartRelationMap.BACK},
-            (0., 0., -1.): {"Larger": PartRelationMap.BACK, "Smaller": PartRelationMap.FRONT},
-            (1., 0., 0.): {"Larger": PartRelationMap.LEFT, "Smaller": PartRelationMap.RIGHT},
-            (-1., 0., 0.): {"Larger": PartRelationMap.RIGHT, "Smaller": PartRelationMap.LEFT},
-            (0., 1., 0.): {"Larger": PartRelationMap.UP, "Smaller": PartRelationMap.DOWN},
-            (0., -1., 0.): {"Larger": PartRelationMap.DOWN, "Smaller": PartRelationMap.UP},
-        }
         # 寻找前后左右上下的零件
-        if self in self.allParts_relationMap.basicMap.keys() and tuple(up_vector) in Vector_relation_map.keys():
+        if self in self.allParts_relationMap.basicMap.keys() and tuple(up_vector) in VECTOR_RELATION_MAP.keys():
             # 转置关系映射
             relation_map = self.allParts_relationMap.basicMap[self]
-            up_parts = list(relation_map[Vector_relation_map[tuple(up_vector)]["Larger"]].keys())
-            down_parts = list(relation_map[Vector_relation_map[tuple(up_vector)]["Smaller"]].keys())
+            up_parts = list(relation_map[VECTOR_RELATION_MAP[tuple(up_vector)]["Larger"]].keys())
+            down_parts = list(relation_map[VECTOR_RELATION_MAP[tuple(up_vector)]["Smaller"]].keys())
         else:
             up_parts = []
             down_parts = []
@@ -1322,7 +1137,7 @@ class AdjustableHull(NAPart):
             for p in up_parts:
                 v1 = np.array(p.Pos) - np.array(self.Pos)
                 # 对后零件进行关于本零件的转置
-                u_data = p.get_part_data(self)
+                u_data = p.get_data_in_coordinate(self)
                 v2 = up_vector * self.Scl[1] * (self.Hei + u_data["H"]) / 2
                 if np.linalg.norm(v1 - v2) < 0.001 and \
                         - 0.001 < (self.FWid + self.FSpr) * self.Scl[0] - u_data["FLD"] * p.Scl[0] < 0.001 and \
@@ -1335,7 +1150,7 @@ class AdjustableHull(NAPart):
             for p in down_parts:
                 v1 = np.array(self.Pos) - np.array(p.Pos)
                 # 对后零件进行关于本零件的转置
-                d_data = p.get_part_data(self)
+                d_data = p.get_data_in_coordinate(self)
                 v2 = up_vector * self.Scl[1] * (self.Hei + d_data["H"]) / 2
                 if np.linalg.norm(v1 - v2) < 0.001 and \
                         - 0.001 < self.FWid * self.Scl[0] - d_data["FLU"] * p.Scl[0] < 0.001 and \
@@ -1774,7 +1589,7 @@ class ReadNA:
                     process = round(i / part_num * 100, 2)
                     self.show_statu_func(f"正在读取第{i}个零件，进度：{process} %", "process")
                 _id = str(part.attrib['id'])
-                _pos = part.find('position').attrib
+                _pos = part.find('add_direction').attrib
                 _rot = part.find('rotation').attrib
                 _scl = part.find('scale').attrib
                 _pos = (float(_pos['x']), float(_pos['y']), float(_pos['z']))
@@ -1788,7 +1603,7 @@ class ReadNA:
                     _data = part.find('data').attrib
                     obj = AdjustableHull(
                         self, _id, _pos, _rot, _scl, _col, _amr,
-                        float(_data['length']), float(_data['height']),
+                        float(_data['x_scl']), float(_data['y_scl']),
                         float(_data['frontWidth']), float(_data['backWidth']),
                         float(_data['frontSpread']), float(_data['backSpread']),
                         float(_data['upCurve']), float(_data['downCurve']),
@@ -1824,29 +1639,29 @@ class ReadNA:
 
 
 class PartRelationMap:
-    # 具体方位
-    FRONT = "front"
-    BACK = "back"
-    UP = "up"
-    DOWN = "down"
-    LEFT = "left"
-    RIGHT = "right"
-    SAME = "same"
-
-    # 方位组合
-    FRONT_BACK = "front_back"
-    UP_DOWN = "up_down"
-    LEFT_RIGHT = "left_right"
-
-    # 八个卦限
-    FRONT_UP_LEFT = "front_up_left"
-    FRONT_UP_RIGHT = "front_up_right"
-    FRONT_DOWN_LEFT = "front_down_left"
-    FRONT_DOWN_RIGHT = "front_down_right"
-    BACK_UP_LEFT = "back_up_left"
-    BACK_UP_RIGHT = "back_up_right"
-    BACK_DOWN_LEFT = "back_down_left"
-    BACK_DOWN_RIGHT = "back_down_right"
+    # # 具体方位
+    # FRONT = "front"
+    # BACK = "back"
+    # UP = "up"
+    # DOWN = "down"
+    # LEFT = "left"
+    # RIGHT = "right"
+    # SAME = "same"
+    #
+    # # 方位组合
+    # FRONT_BACK = "front_back"
+    # UP_DOWN = "up_down"
+    # LEFT_RIGHT = "left_right"
+    #
+    # # 八个卦限
+    # FRONT_UP_LEFT = "front_up_left"
+    # FRONT_UP_RIGHT = "front_up_right"
+    # FRONT_DOWN_LEFT = "front_down_left"
+    # FRONT_DOWN_RIGHT = "front_down_right"
+    # BACK_UP_LEFT = "back_up_left"
+    # BACK_UP_RIGHT = "back_up_right"
+    # BACK_DOWN_LEFT = "back_down_left"
+    # BACK_DOWN_RIGHT = "back_down_right"
 
     last_map = None
 
@@ -1886,33 +1701,12 @@ class PartRelationMap:
         }  # 注意！生成完之后，会在OpenGL_objs.NaHull.getDrawMap()进行添加零件和排序，因为那个时候DrawMap才生成出来
         self.relationMap = {  # 以关系为基础的关系图，不包含距离关系，只包含映射关系
             # 方向0：{零件A：零件B, 零件C：零件D, ...}
-            PartRelationMap.FRONT: {},
-            PartRelationMap.UP: {},
-            PartRelationMap.LEFT: {},
-            PartRelationMap.SAME: {}
+            CONST.FRONT: {},
+            CONST.UP: {},
+            CONST.LEFT: {},
+            CONST.SAME: {}
         }
         PartRelationMap.last_map = self
-
-    def opposite_direction(self, direction):
-        """
-        获取相反的方向
-        :param direction:
-        :return:
-        """
-        if direction == self.FRONT:
-            return self.BACK
-        elif direction == self.BACK:
-            return self.FRONT
-        elif direction == self.UP:
-            return self.DOWN
-        elif direction == self.DOWN:
-            return self.UP
-        elif direction == self.LEFT:
-            return self.RIGHT
-        elif direction == self.RIGHT:
-            return self.LEFT
-        elif direction == self.SAME:
-            return self.SAME
 
     def _add_relation(self, part, other_part, part_relation, other_part_relation, raw_direction):
         """
@@ -1924,21 +1718,21 @@ class PartRelationMap:
         :param raw_direction: 毛方向，前后，上下，左右
         """
         PartRelationMap.last_map = self
-        if raw_direction == self.SAME:
-            other_part_relation[self.SAME][part] = 0
-            for relation in (self.FRONT, self.BACK, self.UP, self.DOWN, self.LEFT, self.RIGHT):
+        if raw_direction == CONST.SAME:
+            other_part_relation[CONST.SAME][part] = 0
+            for relation in (CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT):
                 part_relation[relation][other_part] = other_part_relation[relation][other_part]
-            part_relation[self.SAME][other_part] = 0
+            part_relation[CONST.SAME][other_part] = 0
             return
-        elif raw_direction == self.FRONT_BACK:
+        elif raw_direction == CONST.FRONT_BACK:
             pos_index = 2
-            other_add2_new_directions = (self.FRONT, self.BACK)
-        elif raw_direction == self.UP_DOWN:
+            other_add2_new_directions = (CONST.FRONT, CONST.BACK)
+        elif raw_direction == CONST.UP_DOWN:
             pos_index = 1
-            other_add2_new_directions = (self.UP, self.DOWN)
-        elif raw_direction == self.LEFT_RIGHT:
+            other_add2_new_directions = (CONST.UP, CONST.DOWN)
+        elif raw_direction == CONST.LEFT_RIGHT:
             pos_index = 0
-            other_add2_new_directions = (self.LEFT, self.RIGHT)
+            other_add2_new_directions = (CONST.LEFT, CONST.RIGHT)
         else:
             raise ValueError(f"非法的方向：{raw_direction}")
         value = abs(other_part.Pos[pos_index] - part.Pos[pos_index])
@@ -1985,25 +1779,25 @@ class PartRelationMap:
                     if newPart.Pos[0] > _x:
                         if newPart.Pos[1] > _y:
                             if newPart.Pos[2] > _z:
-                                node.near_parts[PartRelationMap.BACK_DOWN_LEFT].append(newPart)
+                                node.near_parts[CONST.BACK_DOWN_LEFT].append(newPart)
                             else:  # newPart.Pos[2] < _z
-                                node.near_parts[PartRelationMap.BACK_UP_LEFT].append(newPart)
+                                node.near_parts[CONST.BACK_UP_LEFT].append(newPart)
                         else:  # newPart.Pos[1] < _y
                             if newPart.Pos[2] > _z:
-                                node.near_parts[PartRelationMap.FRONT_DOWN_LEFT].append(newPart)
+                                node.near_parts[CONST.FRONT_DOWN_LEFT].append(newPart)
                             else:  # newPart.Pos[2] < _z
-                                node.near_parts[PartRelationMap.FRONT_UP_LEFT].append(newPart)
+                                node.near_parts[CONST.FRONT_UP_LEFT].append(newPart)
                     else:  # newPart.Pos[0] < _x
                         if newPart.Pos[1] > _y:
                             if newPart.Pos[2] > _z:
-                                node.near_parts[PartRelationMap.BACK_DOWN_RIGHT].append(newPart)
+                                node.near_parts[CONST.BACK_DOWN_RIGHT].append(newPart)
                             else:
-                                node.near_parts[PartRelationMap.BACK_UP_RIGHT].append(newPart)
+                                node.near_parts[CONST.BACK_UP_RIGHT].append(newPart)
                         else:  # newPart.Pos[1] < _y
                             if newPart.Pos[2] > _z:
-                                node.near_parts[PartRelationMap.FRONT_DOWN_RIGHT].append(newPart)
+                                node.near_parts[CONST.FRONT_DOWN_RIGHT].append(newPart)
                             else:  # newPart.Pos[2] < _z
-                                node.near_parts[PartRelationMap.FRONT_UP_RIGHT].append(newPart)
+                                node.near_parts[CONST.FRONT_UP_RIGHT].append(newPart)
                 # DotsLayerMap
                 if _x not in self.yzDotsLayerMap.keys():
                     self.yzDotsLayerMap[_x] = [newPart]
@@ -2021,10 +1815,10 @@ class PartRelationMap:
         # 零件集
         st = time.time()
         # 初始化零件的上下左右前后零件
-        newPart_relation = {self.FRONT: {}, self.BACK: {},
-                            self.UP: {}, self.DOWN: {},
-                            self.LEFT: {}, self.RIGHT: {},
-                            self.SAME: {}}
+        newPart_relation = {CONST.FRONT: {}, CONST.BACK: {},
+                            CONST.UP: {}, CONST.DOWN: {},
+                            CONST.LEFT: {}, CONST.RIGHT: {},
+                            CONST.SAME: {}}
         x_exist = []  # x相同的零件
         y_exist = []  # y相同的零件
         z_exist = []  # z相同的零件
@@ -2058,15 +1852,15 @@ class PartRelationMap:
             # 遍历点集，往NAPartNode中添加点
             # xy相同，前后关系
             if otherPart in xy_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.FRONT_BACK)
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.FRONT_BACK)
             # yz相同，左右关系
             elif otherPart in yz_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.LEFT_RIGHT)
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.LEFT_RIGHT)
             # xz相同，上下关系
             elif otherPart in xz_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.UP_DOWN)
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.UP_DOWN)
             elif otherPart.Pos == newPart.Pos:  # 同一位置
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, self.SAME)
+                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.SAME)
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
         relation_t = round(time.time() - st, 4)
@@ -2087,29 +1881,29 @@ class PartRelationMap:
         if not direction:
             # 自行判断方向
             if part0.Pos[0] == part1.Pos[0] and part0.Pos[1] == part1.Pos[1]:
-                direction = self.FRONT_BACK
+                direction = CONST.FRONT_BACK
                 if part0.Pos[2] < part1.Pos[2]:
                     part0, part1 = part1, part0
             elif part0.Pos[0] == part1.Pos[0] and part0.Pos[2] == part1.Pos[2]:
-                direction = self.UP_DOWN
+                direction = CONST.UP_DOWN
                 if part0.Pos[1] < part1.Pos[1]:
                     part0, part1 = part1, part0
             elif part0.Pos[1] == part1.Pos[1] and part0.Pos[2] == part1.Pos[2]:
-                direction = self.LEFT_RIGHT
+                direction = CONST.LEFT_RIGHT
                 if part0.Pos[0] < part1.Pos[0]:
                     part0, part1 = part1, part0
-        new_map0 = {self.FRONT: {}, self.BACK: {}, self.UP: {}, self.DOWN: {}, self.LEFT: {}, self.RIGHT: {}}
-        new_map1 = {self.FRONT: {}, self.BACK: {}, self.UP: {}, self.DOWN: {}, self.LEFT: {}, self.RIGHT: {}}
+        new_map0 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
+        new_map1 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
         # 定义一个方向映射，以便根据不同的方向进行操作
         direction_map = {
-            self.FRONT_BACK: (self.FRONT, self.BACK),
-            self.UP_DOWN: (self.UP, self.DOWN),
-            self.LEFT_RIGHT: (self.LEFT, self.RIGHT)
+            CONST.FRONT_BACK: (CONST.FRONT, CONST.BACK),
+            CONST.UP_DOWN: (CONST.UP, CONST.DOWN),
+            CONST.LEFT_RIGHT: (CONST.LEFT, CONST.RIGHT)
         }
         dir_index_map = {
-            self.FRONT_BACK: 2,
-            self.UP_DOWN: 1,
-            self.LEFT_RIGHT: 0
+            CONST.FRONT_BACK: 2,
+            CONST.UP_DOWN: 1,
+            CONST.LEFT_RIGHT: 0
         }
         if not direction:
             return
@@ -2188,7 +1982,7 @@ class PartRelationMap:
         # 遍历自身的相关零件，将自身从其关系中删除
         for direction, other_parts in self.basicMap[part].items():
             for other_part in other_parts.keys():
-                del self.basicMap[other_part][self.opposite_direction(direction)][part]
+                del self.basicMap[other_part][CONST.opposite_direction(direction)][part]
         # 删除自身
         self.basicMap[part] = {}
 
@@ -2205,10 +1999,10 @@ class PartRelationMap:
         self.xyPartsLayerMap.clear()
         self.yzPartsLayerMap.clear()
         self.relationMap = {
-            PartRelationMap.FRONT: {},
-            PartRelationMap.UP: {},
-            PartRelationMap.LEFT: {},
-            PartRelationMap.SAME: {}
+            CONST.FRONT: {},
+            CONST.UP: {},
+            CONST.LEFT: {},
+            CONST.SAME: {}
         }
 
         st = time.time()

@@ -219,7 +219,7 @@ class MySlider(QSlider):
         self.setStyleSheet(
             f"QSlider::groove:horizontal{{background-color:{BG_COLOR2};"  # 滑块背景颜色
             "border-radius:4px;"
-            "height:10px;"
+            "y_scl:10px;"
             "margin:1px 1px;}}"
             f"QSlider::handle:horizontal{{background-color:{BG_COLOR3};"  # 滑块颜色
             "border-radius:4px;"
@@ -227,10 +227,10 @@ class MySlider(QSlider):
             "margin:-10px 0px -10px 0px;}}"
             f"QSlider::add-page:horizontal{{background-color:{BG_COLOR3};"  # 滑块右边颜色
             "border-radius:4px;"
-            "height:10px;}}"
+            "y_scl:10px;}}"
             f"QSlider::sub-page:horizontal{{background-color:{BG_COLOR3};"  # 滑块左边颜色
             "border-radius:4px;"
-            "height:10px;}}"
+            "y_scl:10px;}}"
         )
         # 在滑块上显示当前值
         self.valueLabel = QLabel(str(self.value()))
@@ -360,6 +360,8 @@ class BasicDialog(QDialog):
         self.shadow.setColor(QColor(0, 0, 0, 100))
         self.shadow.setBlurRadius(10)
         self.setGraphicsEffect(self.shadow)
+        # 圆角
+        self.setStyleSheet(f"background-color:{BG_COLOR1};border-radius:10px;")
         # 设置主题
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)

@@ -5,6 +5,24 @@
 from GUI import *
 
 
+class Mod1AllPartsView(QWidget):
+    def __init__(self):
+        """
+        全视图模式，所有零件元素检视器
+        """
+        super().__init__()
+        self.title = MyLabel("所有可调节船体", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
+        self.layout = QGridLayout()
+        self.init_layout()
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.title.setFixedSize(70, 25)
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
+
+
 class Mod1SinglePartView(QWidget):
     def __init__(self):
         """
@@ -107,4 +125,58 @@ class Mod1SinglePartView(QWidget):
             self.content["下弧度"]["QLineEdit"][0].setText(str(selected_obj.DCur))
             self.content["高缩放"]["QLineEdit"][0].setText(str(selected_obj.HScl))
             self.content["高偏移"]["QLineEdit"][0].setText(str(selected_obj.HOff))
+
+
+class Mod1VerticalPartSetView(QWidget):
+    def __init__(self):
+        """
+        全视图模式，竖直截块元素检视器
+        """
+        super().__init__()
+        self.title = MyLabel("竖直截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
+        self.layout = QGridLayout()
+        self.init_layout()
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.title.setFixedSize(70, 25)
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
+
+
+class Mod1HorizontalPartSetView(QWidget):
+    def __init__(self):
+        """
+        全视图模式，水平截块元素检视器
+        """
+        super().__init__()
+        self.title = MyLabel("水平截块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
+        self.layout = QGridLayout()
+        self.init_layout()
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.title.setFixedSize(70, 25)
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
+
+
+class Mod1VerHorPartSetView(QWidget):
+    def __init__(self):
+        """
+        全视图模式，集成块元素检视器
+        """
+        super().__init__()
+        self.title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
+        self.layout = QGridLayout()
+        self.init_layout()
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.title.setFixedSize(70, 25)
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
 

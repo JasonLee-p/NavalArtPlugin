@@ -9,8 +9,8 @@ from typing import Union, List
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
 from ship_reader.NA_design_reader import PartRelationMap
-from state_history import operation_wrapper, operationObj_wrapper
-from util_funcs import not_implemented
+from state_history import push_global_statu, push_operation
+from util_funcs import not_implemented, CONST
 from operation import *
 
 
@@ -66,7 +66,7 @@ class Mod1AllPartsEditing(QWidget):
         ...
 
     @staticmethod
-    @operation_wrapper
+    @push_global_statu
     def remap_all_parts(event=None):
         _p = list(NAPart.hull_design_tab_id_map.values())[0]
         i = 0
@@ -246,7 +246,7 @@ class Mod1SinglePartEditing(QWidget):
         self.add_up_layer_button.clicked.connect(self.add_up_layer_pressed)
         self.add_down_layer_button.clicked.connect(self.add_down_layer_pressed)
 
-    @operationObj_wrapper
+    @push_operation
     def add_z(self, event=None):
         cso = None
         if self.selected_obj:
@@ -259,7 +259,7 @@ class Mod1SinglePartEditing(QWidget):
         self.hide()
         return cso
 
-    @operationObj_wrapper
+    @push_operation
     def add_y(self, event=None):
         cso = None
         if self.selected_obj:
@@ -272,29 +272,23 @@ class Mod1SinglePartEditing(QWidget):
         self.hide()
         return cso
 
-    @not_implemented
     def add_front_layer_pressed(self, event=None):
-        # 向前添加层
-        relation_map = self.selected_obj.allParts_relationMap.basicMap
-        if relation_map[self.selected_obj][PartRelationMap.FRONT]:  # 前方已经有零件
-            glWin = self.selected_obj.glWin
-            _next = list(relation_map[self.selected_obj][PartRelationMap.FRONT].keys())[0]
-            if type(_next) == NAPart:
-                return
-            glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
-            self.selected_obj = _next
-            self.update_context(self.selected_obj)
-            glWin.paintGL()
-            glWin.update()
-        else:
-            ...
+        self.add_layer_(CONST.FRONT)
 
-    @not_implemented
     def add_back_layer_pressed(self, event=None):
+        self.add_layer_(CONST.BACK)
+
+    def add_up_layer_pressed(self, event=None):
+        self.add_layer_(CONST.UP)
+
+    def add_down_layer_pressed(self, event=None):
+        self.add_layer_(CONST.DOWN)
+
+    def add_layer_(self, direction):
         relation_map = self.selected_obj.allParts_relationMap.basicMap
-        if relation_map[self.selected_obj][PartRelationMap.BACK]:  # 后方已经有零件
+        if relation_map[self.selected_obj][direction]:  # 已经有零件
             glWin = self.selected_obj.glWin
-            _next = list(relation_map[self.selected_obj][PartRelationMap.BACK].keys())[0]
+            _next = list(relation_map[self.selected_obj][direction].keys())[0]
             if type(_next) == NAPart:
                 return
             glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
@@ -302,19 +296,9 @@ class Mod1SinglePartEditing(QWidget):
             self.update_context(self.selected_obj)
             glWin.paintGL()
             glWin.update()
-        else:  # 后方没有零件，添加零件
-            # 遍历本零件上下方的所有零件
-            relation_map = self.selected_obj.allParts_relationMap.basicMap
-
-    @not_implemented
-    def add_up_layer_pressed(self, event=None):
-        # 向上添加层
-        pass
-
-    @not_implemented
-    def add_down_layer_pressed(self, event=None):
-        # 向下添加层
-        pass
+        else:  # 没有零件，添加零件
+            self.hide()
+            AddLayerOperation.add_layer(self.selected_obj, direction)
 
     def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
         """
@@ -345,7 +329,7 @@ class Mod1SinglePartEditing(QWidget):
         if step != 0:
             self.update_(event, step, active_textEdit)
 
-    @operationObj_wrapper
+    @push_operation
     def update_(self, event, step, active_textEdit):
         spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()), Mod1SinglePartEditing.current)
         # spo.execute()
@@ -376,7 +360,7 @@ class Mod1SinglePartEditing(QWidget):
         else:  # 被连接的直接修改信号的调用，存进undo_stack
             self.change_part_attrs(event)
 
-    @operationObj_wrapper
+    @push_operation
     def change_part_attrs(self, event):
         original_data = [self.selected_obj.Pos.copy(), self.selected_obj.Amr, self.selected_obj.Len,
                          self.selected_obj.Hei, self.selected_obj.FWid, self.selected_obj.BWid, self.selected_obj.FSpr,
@@ -507,7 +491,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
     @not_implemented
-    @operation_wrapper
+    @push_global_statu
     def add_z(self, event=None):
         return
         front_parts = []
@@ -532,7 +516,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.hide()
 
     @not_implemented
-    @operation_wrapper
+    @push_global_statu
     def add_y(self, event=None):
         return
         up_parts = []
@@ -556,25 +540,21 @@ class Mod1VerticalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    @not_implemented
-    @operation_wrapper
     def add_front_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.FRONT)
 
-    @not_implemented
-    @operation_wrapper
     def add_back_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.BACK)
 
-    @not_implemented
-    @operation_wrapper
     def add_up_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.UP)
 
-    @not_implemented
-    @operation_wrapper
     def add_down_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.DOWN)
+
+    def add_layer_(self, direction):
+        self.hide()
+        AddLayerOperation.add_layer(self.selected_objs, direction)
 
     def mouse_wheel(self, event):
         self.wheelEvent(event)
@@ -661,7 +641,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.add_down_layer_button.clicked.connect(self.add_down_layer)
 
     @not_implemented
-    @operation_wrapper
+    @push_global_statu
     def add_z(self, event=None):
         return
         front_parts = []
@@ -686,7 +666,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.hide()
 
     @not_implemented
-    @operation_wrapper
+    @push_global_statu
     def add_y(self, event=None):
         return
         up_parts = []
@@ -710,28 +690,42 @@ class Mod1HorizontalPartSetEditing(QWidget):
         glWin.update()
         self.hide()
 
-    @not_implemented
-    @operation_wrapper
     def add_front_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.FRONT)
 
-    @not_implemented
-    @operation_wrapper
     def add_back_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.BACK)
 
-    @not_implemented
-    @operation_wrapper
     def add_up_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.UP)
 
-    @not_implemented
-    @operation_wrapper
     def add_down_layer(self, event=None):
-        ...
+        self.add_layer_(CONST.DOWN)
+
+    def add_layer_(self, direction):
+        self.hide()
+        AddLayerOperation.add_layer(self.selected_objs, direction)
 
     def mouse_wheel(self, event):
         self.wheelEvent(event)
+
+
+class Mod1VerHorPartSetEditing(QWidget):
+    def __init__(self):
+        """
+        全视图模式，集成块编辑器
+        """
+        super().__init__()
+        self.title = MyLabel("集成块", FONT_10, side=Qt.AlignTop | Qt.AlignVCenter)
+        self.layout = QGridLayout()
+        self.init_layout()
+
+    def init_layout(self):
+        self.layout.setSpacing(7)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.title.setFixedSize(70, 25)
+        self.layout.addWidget(self.title, 0, 0, 1, 4)
 
 
 class Mod2SingleLayerEditing(QWidget):
