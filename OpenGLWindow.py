@@ -603,7 +603,7 @@ class OpenGLWin(QOpenGLWidget):
         # # 获取选择框的坐标和尺寸
         # x1, y1 = self.select_start.x(), self.select_start.y()
         # x2, y2 = self.select_end.x(), self.select_end.y()
-        # width, y_scl = abs(x2 - x1), abs(y2 - y1)
+        # width, height = abs(x2 - x1), abs(y2 - y1)
         # # 创建QPainter对象
         #
         # painter = QPainter(self)
@@ -616,12 +616,12 @@ class OpenGLWin(QOpenGLWidget):
         # pen.setDashPattern([6, 6])
         # painter.setPen(pen)
         # # 绘制选择框
-        # print(x1, y1, width, y_scl)
-        # painter.drawRect(x1, y1, width, y_scl)
+        # print(x1, y1, width, height)
+        # painter.drawRect(x1, y1, width, height)
         # # 绘制中间的半透明填充
         # _col2 = QColor(255, 255, 255, 32)
-        # print(x1, y1, width, y_scl)
-        # painter.fillRect(x1, y1, width, y_scl, _col2)
+        # print(x1, y1, width, height)
+        # painter.fillRect(x1, y1, width, height, _col2)
         # # 结束绘制
         # painter.end()
 

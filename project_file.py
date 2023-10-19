@@ -221,15 +221,15 @@ class ProjectFile:
         <root>
           <ship author="22222222222" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
             <part id="0">
-              <data x_scl="4.5" y_scl="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
-              <add_direction x="0" y="0" z="114.75" />
+              <data x_scl="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+              <position x="0" y="0" z="114.75" />
               <rotation x="0" y="0" z="0" />
               <scale x="1" y="1" z="1" />
               <color hex="975740" />
               <armor value="5" />
             </part>
             <part id="190">
-              <add_direction x="0" y="-8.526513E-14" z="117.0312" />
+              <position x="0" y="-8.526513E-14" z="117.0312" />
               <rotation x="90" y="0" z="0" />
               <scale x="0.03333336" y="0.03333367" z="0.1666679" />
               <color hex="975740" />
@@ -280,8 +280,8 @@ class ProjectFile:
                 _part = ET.SubElement(root, 'part')
                 _part.attrib['id'] = str(part["Id"])
                 _data = ET.SubElement(_part, 'data')
-                _data.attrib['x_scl'] = str(part["Len"])
-                _data.attrib['y_scl'] = str(part["Hei"])
+                _data.attrib['length'] = str(part["Len"])
+                _data.attrib['height'] = str(part["Hei"])
                 _data.attrib['frontWidth'] = str(part["FWid"])
                 _data.attrib['backWidth'] = str(part["BWid"])
                 _data.attrib['frontSpread'] = str(part["FSpr"])
@@ -290,7 +290,7 @@ class ProjectFile:
                 _data.attrib['downCurve'] = str(part["DCur"])
                 _data.attrib['heightScale'] = str(part["HScl"])
                 _data.attrib['heightOffset'] = str(part["HOff"])
-                _pos = ET.SubElement(_part, 'add_direction')
+                _pos = ET.SubElement(_part, 'position')
                 _pos.attrib['x'] = str(part["Pos"][0])
                 _pos.attrib['y'] = str(part["Pos"][1])
                 _pos.attrib['z'] = str(part["Pos"][2])
