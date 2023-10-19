@@ -80,4 +80,4 @@ class Connection:
                     latest_version = version
             return latest_version, links[latest_version]
         else:
-            return None
+            return None, None

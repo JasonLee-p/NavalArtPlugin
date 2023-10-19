@@ -67,8 +67,14 @@ def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] 
 
 def check_version():
     show_state("正在检查更新...", 'process')
-    latest_version, links = Connection.get_latest_version()
+    try:
+        latest_version, links = Connection.get_latest_version()
+    except TypeError:
+        show_state("检查更新完成", 'success')
+        return 
     show_state("检查更新完成", 'success')
+    if not latest_version:
+        return
     if extract_number_from_version(latest_version) > extract_number_from_version(VERSION):
         dialog = NewVersionDialog(Handler.window, VERSION, latest_version)
         dialog.exec_()
