@@ -221,7 +221,7 @@ class ProjectFile:
         <root>
           <ship author="22222222222" description="description" hornType="1" hornPitch="0.9475011" tracerCol="E53D4FFF">
             <part id="0">
-              <data x_scl="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
+              <data length="4.5" height="1" frontWidth="0.2" backWidth="0.5" frontSpread="0.05" backSpread="0.2" upCurve="0" downCurve="1" heightScale="1" heightOffset="0" />
               <position x="0" y="0" z="114.75" />
               <rotation x="0" y="0" z="0" />
               <scale x="1" y="1" z="1" />
