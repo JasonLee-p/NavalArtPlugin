@@ -10,6 +10,7 @@ import json
 import os.path
 import sys
 import time
+import traceback
 import webbrowser
 from typing import Union
 
@@ -2261,5 +2262,11 @@ if __name__ == '__main__':
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:
-        MyMessageBox().information(None, "错误", f"Fatal Error：{e}", MyMessageBox.Ok)
+        MyMessageBox().information(None, "致命错误，已复制到剪贴板", f"Fatal Error：{e}", MyMessageBox.Ok)
+        # 将报错信息和调用栈
+        clipboard = QApplication.clipboard()
+        clipboard.setText(f"Fatal Error：{e}\n{traceback.format_exc()}")
+        # 发送邮件
+        Connection.send_email(f"Fatal Error：{e}\n{traceback.format_exc()}")
+        # 退出程序
         raise e

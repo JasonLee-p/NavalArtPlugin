@@ -2,6 +2,7 @@
 """
 """
 import time
+import webbrowser
 
 import requests
 
@@ -87,3 +88,25 @@ class Connection:
             if extract_number_from_version(version) > extract_number_from_version(latest_version):
                 latest_version = version
         return latest_version, links[latest_version]
+
+    @classmethod
+    def send_email(cls, text):
+        """
+        打开QQ邮箱网页版，并发送邮件
+        :param text: 发送的内容
+        """
+        from selenium import webdriver
+        # 创建一个浏览器实例（这里使用Edge浏览器）
+        driver = webdriver.Edge()
+        # 打开网页
+        url = "https://mail.qq.com/"
+        driver.get(url)
+        # 获取网页内容
+        page_source = driver.page_source
+        # 找到登录入口
+        soup = BeautifulSoup(page_source, 'html.parser')
+        login = soup.find_all('a', class_="login_entry")
+
+
+if __name__ == "__main__":
+    Connection.send_email("test")
