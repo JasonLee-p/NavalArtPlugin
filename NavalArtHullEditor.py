@@ -2206,8 +2206,7 @@ if __name__ == '__main__':
         check_version()
         # 打开开始界面
         start_dialog = StartWelcomeDialog(None)
-        start_dialog.connect_funcs(
-            open_project_func=None, setting_func=None, help_func=user_guide, about_func=Handler.about)
+        start_dialog.connect_funcs(setting_func=None, help_func=user_guide, about_func=Handler.about)
         start_dialog.exec_()
         if start_dialog.close_program:
             Handler.close()
@@ -2218,16 +2217,16 @@ if __name__ == '__main__':
         mainWinAnimation.setEndValue(1)
         QtWindow.showMaximized()
         mainWinAnimation.start()
-        # 打开最近的工程
-        if start_dialog.open_recent_project and Config.Projects != {}:
+        if start_dialog.open_recent_project and Config.Projects != {}:  # 打开最近的工程
             try:
                 open_project(list(Config.Projects.values())[-1])
             except Exception as e:
                 show_state(f"读取配置文件失败：{e}", 'error')
                 MyMessageBox().information(Handler.window, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
-        elif start_dialog.create_new_project:
-            # 创建新工程
+        elif start_dialog.create_new_project:  # 创建新工程
             new_project()
+        elif start_dialog.open_project:  # 打开工程
+            open_project()
         # 检查是否需要引导
         if not Config.Config["Guided"]:
             # 运行引导程序

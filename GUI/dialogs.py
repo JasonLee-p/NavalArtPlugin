@@ -146,11 +146,16 @@ class StartWelcomeDialog(BasicDialog):
         self.create_new_project = True
         self.ensure()
 
+    def open_project_button_clicked(self):
+        self.open_project = True
+        self.ensure()
+
     def __init__(self, parent, title="", size=QSize(1100, 760)):
         # 信号
         self.close_program = True
         self.open_recent_project = False
         self.create_new_project = False
+        self.open_project = False
         # 控件
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
         self.center_layout = QHBoxLayout()
@@ -340,11 +345,9 @@ class StartWelcomeDialog(BasicDialog):
         self.right_layout.addStretch(1)
 
     # noinspection PyUnresolvedReferences
-    def connect_funcs(self, open_project_func=None,
-                      setting_func=None, help_func=None, about_func=None):
+    def connect_funcs(self, setting_func=None, help_func=None, about_func=None):
         """
         连接函数
-        :param open_project_func:
         :param setting_func:
         :param help_func:
         :param about_func:
@@ -352,8 +355,7 @@ class StartWelcomeDialog(BasicDialog):
         """
         self.buttons["最近打开"].clicked.connect(self.open_recent_button_clicked)
         self.buttons["新建工程"].clicked.connect(self.create_new_button_clicked)
-        if open_project_func is not None:
-            self.buttons["打开工程"].clicked.connect(open_project_func)
+        self.buttons["打开工程"].clicked.connect(self.open_project_button_clicked)
         if setting_func is not None:
             self.buttons["设置"].clicked.connect(setting_func)
         if help_func is not None:
