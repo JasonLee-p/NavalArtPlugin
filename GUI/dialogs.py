@@ -5,14 +5,17 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QPropertyAnimation, QRect
+from PyQt5.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation
 from PyQt5.QtGui import QTextBlockFormat
-from PyQt5.QtWidgets import QProgressBar
+from PyQt5.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget
 
 from util_funcs import open_url
 from path_utils import find_ptb_path, find_na_root_path
 from ship_reader import ReadPTB
 from GUI import *
+from GUI.basic import create_rounded_thumbnail
+
+from OpenGL.GL import *
 
 
 def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
@@ -154,15 +157,18 @@ class StartWelcomeDialog(BasicDialog):
         self.open_project = False
         # 控件
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
-        self.center_layout = QHBoxLayout()
+        self.ico = QLabel()
+        self.center_layout = QVBoxLayout()
+        self.main_layout = QHBoxLayout()
         self.left_widget = QWidget()
         self.left_layout = QVBoxLayout()
         self.right_widget = QWidget()
         self.right_layout = QVBoxLayout()
+        self.left_widget_main = QWidget()
         self.left_grid_layout = QGridLayout()
         self.title = MyLabel("欢迎使用 NavalArt 船体编辑器", font=FONT_20)
         self.buttons = {
-            "最近打开": QPushButton("最近打开"),
+            "上次编辑": QPushButton("上次编辑"),
             "新建工程": QPushButton("新建工程"),
             "打开工程": QPushButton("打开工程"),
             "设置": QPushButton("设置"),
@@ -172,6 +178,8 @@ class StartWelcomeDialog(BasicDialog):
         self.Hei = size.height()
         self.Wid = size.width()
         self.set_layout()
+        # 颜色动效
+        self.ico_color_animation = None
         super().__init__(parent, (10, 10, 116, 116), title, size, self.center_layout, hide_bottom=True)
         self.hide()
         # 图标
@@ -202,17 +210,22 @@ class StartWelcomeDialog(BasicDialog):
         设置布局
         :return:
         """
-        self.center_layout.addWidget(self.left_widget, stretch=2)
-        self.center_layout.addWidget(self.right_widget, stretch=1)
+        self.center_layout.addWidget(self.title)
+        self.title.setAlignment(Qt.AlignCenter)
+        self.center_layout.addLayout(self.main_layout)
+        self.main_layout.addWidget(self.left_widget, stretch=2, alignment=Qt.AlignTop)
+        self.main_layout.addWidget(self.right_widget, stretch=1, alignment=Qt.AlignTop)
         self.left_widget.setLayout(self.left_layout)
         self.right_widget.setLayout(self.right_layout)
-        self.right_widget.setFixedHeight(self.Hei - 100)
-        self.center_layout.setContentsMargins(60, 25, 40, 0)
-        self.left_layout.setContentsMargins(20, 10, 20, 0)
-        self.right_layout.setContentsMargins(15, 30, 15, 55)
-        self.center_layout.setSpacing(30)
+        self.left_widget.setFixedHeight(self.Hei - 120)
+        self.right_widget.setFixedHeight(self.Hei - 120)
+        self.center_layout.setContentsMargins(70, 25, 70, 0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.left_layout.setContentsMargins(5, 10, 5, 0)
+        self.right_layout.setContentsMargins(5, 30, 5, 0)
+        self.main_layout.setSpacing(30)
         self.left_layout.setSpacing(10)
-        self.right_layout.setSpacing(20)
+        self.right_layout.setSpacing(22)
         self.set_left_layout()
         self.set_right_layout()
 
@@ -221,9 +234,10 @@ class StartWelcomeDialog(BasicDialog):
         设置左侧布局
         :return:
         """
-        self.left_layout.addWidget(self.title)
-        self.left_layout.setAlignment(Qt.AlignCenter)
-        self.title.setAlignment(Qt.AlignCenter)
+        self.left_layout.setAlignment(Qt.AlignTop)
+        # 主要控件
+        self.left_layout.addWidget(self.left_widget_main, stretch=1)
+        self.set_left_widget_main()
         # 添加文本
         _text = "   NavalArt 船体编辑器，是一款基于颜色选取的船体编辑器。" \
                 "我们深知在 NavalArt 游戏内部编辑船体的痛点，" \
@@ -256,19 +270,43 @@ class StartWelcomeDialog(BasicDialog):
         text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         text_edit.setStyleSheet(
             f"background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
+            f"color: {GRAY};"
             f"padding-left: 22px;"
             f"padding-right: 22px;"
             f"padding-top: 10px;"
             f"padding-bottom: 5px;"
-            f"border-radius: 46px;"
+            f"border-top-left-radius: 0px;"
+            f"border-top-right-radius: 0px;"
+            f"border-bottom-left-radius: 35px;"
+            f"border-bottom-right-radius: 35px;"
         )
         text_edit.setFont(FONT_11)
         # 添加布局
-        self.left_layout.addStretch(1)
         self.left_layout.addWidget(text_edit)
         self.left_layout.addLayout(self.left_grid_layout)
         self.set_left_down_grid_layout()
+
+    def set_left_widget_main(self):
+        """
+        设置左侧主要控件
+        :return:
+        """
+        left_widget_main_layout = QHBoxLayout()
+        self.left_widget_main.setLayout(left_widget_main_layout)
+        left_widget_main_layout.setContentsMargins(0, 20, 0, 0)
+        left_widget_main_layout.setSpacing(20)
+        left_widget_main_layout.setAlignment(Qt.AlignCenter)
+        #
+        w0 = QWidget()
+        w0.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        w0.setStyleSheet(
+            f"background-color: {BG_COLOR0};"
+            f"border-top-left-radius: 55px;"
+            f"border-top-right-radius: 55px;"
+            f"border-bottom-left-radius: 0px;"
+            f"border-bottom-right-radius: 0px;"
+        )
+        left_widget_main_layout.addWidget(w0)
 
     def set_left_down_grid_layout(self):
         email_text = MyLabel("E-mail：", font=FONT_10)
@@ -282,7 +320,7 @@ class StartWelcomeDialog(BasicDialog):
         email_url = "mailto:2593292614@qq.com"
         # 设置样式
         styleSheet = f"""
-            color: {FG_COLOR0};
+            color: {GRAY};
             background-color: {BG_COLOR1};
             border-radius: 10px;
         """
@@ -326,17 +364,21 @@ class StartWelcomeDialog(BasicDialog):
         :return:
         """
         # 添加图标大图
-        ico = QLabel()
-        ico.setPixmap(self.ICO)
-        ico.setAlignment(Qt.AlignCenter)
+        self.ico.setPixmap(self.ICO)
+        self.ico.setAlignment(Qt.AlignCenter)
+        self.ico.setFixedSize(254, 254)
+        self.ico.setStyleSheet(f"background-color: #889998;"
+                               f"border-radius: 50px;")
+        # 颜色动效
+        self.init_ico_animation()
         # 添加布局
-        self.right_layout.addWidget(ico)
+        self.right_layout.addWidget(self.ico, alignment=Qt.AlignCenter)
         # 文字
-        _font = FONT_13
+        _font = FONT_12
         for button in self.buttons.values():
             self.right_layout.addWidget(button, alignment=Qt.AlignCenter)
             button.setFont(_font)
-            button.setFixedSize(220, 33)
+            button.setFixedSize(256, 33)
             # 设置左边间隔
             button.setStyleSheet(
                 # 三种状态
@@ -346,25 +388,34 @@ class StartWelcomeDialog(BasicDialog):
                 f"border-radius: 10px;"
                 f"}}"
                 f"QPushButton:hover{{"
-                f"background-color: {BG_COLOR1};"
+                f"background-color: {BG_COLOR3};"
                 f"color: {FG_COLOR0};"
                 f"border-radius: 10px;"
                 f"}}"
                 f"QPushButton:pressed{{"
-                f"background-color: {BG_COLOR2};"
+                f"background-color: {BG_COLOR1};"
                 f"color: {FG_COLOR0};"
                 f"border-radius: 10px;"
                 f"}}"
             )
-        self.right_widget.setStyleSheet(
-            f"background-color: {BG_COLOR0};"
-            f"color: {FG_COLOR0};"
-            f"border-top-left-radius: 78px;"
-            f"border-top-right-radius: 78px;"
-            f"border-bottom-left-radius: 78px;"
-            f"border-bottom-right-radius: 78px;"
-        )
-        self.right_layout.addStretch(1)
+        self.right_widget.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};")
+        self.right_layout.addStretch(2)
+
+    def init_ico_animation(self):
+        # 创建颜色动画
+        color_animation = QPropertyAnimation(self.ico, b"background-color")
+
+        # 设置动画的持续时间（毫秒）
+        color_animation.setDuration(5000)
+
+        # 设置动画的起始颜色和结束颜色
+        start_color = QColor("#aaeedd")
+        end_color = QColor("#ff0000")
+        color_animation.setStartValue(start_color)
+        color_animation.setEndValue(end_color)
+
+        # 启动动画
+        color_animation.start()
 
     # noinspection PyUnresolvedReferences
     def connect_funcs(self, setting_func=None, help_func=None, about_func=None):
@@ -375,7 +426,7 @@ class StartWelcomeDialog(BasicDialog):
         :param about_func:
         :return:
         """
-        self.buttons["最近打开"].clicked.connect(self.open_recent_button_clicked)
+        self.buttons["上次编辑"].clicked.connect(self.open_recent_button_clicked)
         self.buttons["新建工程"].clicked.connect(self.create_new_button_clicked)
         self.buttons["打开工程"].clicked.connect(self.open_project_button_clicked)
         if setting_func is not None:
@@ -786,6 +837,7 @@ class SelectNaDialog(BasicDialog):
             bt.setFixedSize(260, 220)
             bt.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
             bt_layout = QVBoxLayout()
+            bt_layout.setAlignment(Qt.AlignCenter)
             bt_layout.addWidget(thumbnail_label)
             bt_layout.addWidget(label)
             bt.setLayout(bt_layout)
@@ -808,6 +860,86 @@ class SelectNaDialog(BasicDialog):
         index = self.container_group.selected_bt_index
         self.selected_na_design = list(self.na_designs.keys())[index]
         super().ensure()
+
+
+class SelectPrjDialog(BasicDialog):
+
+    def __init__(self, parent, config_projects, title="选择您的工程文件", size=QSize(1300, 700)):
+        # 信号
+        self.config_projects = config_projects
+        self.selected_project_path = None
+        self.PrjThumbnailPath = os.path.join(find_na_root_path(), 'ProjectThumbnails')
+        # =======================================================================================布局
+        self.center_layout = QVBoxLayout()
+        # 滚动区，用于显示缩略图，缩略图下方是一个label，用于显示船体名称
+        self.scroll_area = QScrollArea()
+        self.scroll_area_widget = QWidget()
+        self.scroll_area_widget_layout = QGridLayout()
+        super().__init__(parent, 10, title, size, self.center_layout, resizable=True)
+        # 当鼠标移动到窗口边缘按下，添加缩放功能
+        self.setMouseTracking(True)
+        self.projects = {}
+        self.set_widgets()
+        self.container_group = SelectWidgetGroup(
+            list(self.projects.values()), self.scroll_area_widget,
+            original_style_sheet=f"background-color: {BG_COLOR0}; border-radius: 10px;",
+            selected_style_sheet=f"background-color: {BG_COLOR3}; border-radius: 10px;"
+        )
+
+    def set_widgets(self):
+        self.center_layout.setContentsMargins(25, 25, 25, 25)
+        self.center_layout.setSpacing(25)
+        self.center_layout.addWidget(self.scroll_area)
+        self.scroll_area.setWidget(self.scroll_area_widget)
+        self.scroll_area_widget.setLayout(self.scroll_area_widget_layout)
+        self.scroll_area_widget_layout.setAlignment(Qt.AlignCenter)
+        self.scroll_area_widget_layout.setContentsMargins(30, 30, 30, 30)
+        self.scroll_area_widget_layout.setSpacing(25)
+        # 遍历config_projects下的所有工程文件，在ThumbnailPath下找到对应的缩略图，显示在scroll_area中
+        total_num = 0
+        for prj_name, prj_path in self.config_projects.items():
+            # 生成文字label
+            label = MyLabel(prj_name, font=FONT_10)
+            label.setAlignment(Qt.AlignCenter)
+            # 生成图片label
+            thumbnail_label = QLabel()
+            # 检查是否有图片
+            if os.path.exists(os.path.join(self.PrjThumbnailPath, f"{prj_name}.png")):
+                thumbnail_path = os.path.join(self.PrjThumbnailPath, f"{prj_name}.png")
+                # 生成10px圆角的缩略图
+                thumbnail = create_rounded_thumbnail(thumbnail_path, 230, 130, 10)
+                thumbnail_label.setPixmap(thumbnail)
+            thumbnail_label.setAlignment(Qt.AlignCenter)
+            thumbnail_label.setFixedSize(230, 130)
+            thumbnail_label.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+            # 主容器（按钮，上图片下文字）
+            bt = QPushButton()
+            bt.setFixedSize(260, 180)
+            bt.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+            bt_layout = QVBoxLayout()
+            bt_layout.setAlignment(Qt.AlignCenter)
+            bt_layout.addWidget(thumbnail_label)
+            bt_layout.addWidget(label)
+            bt.setLayout(bt_layout)
+            # 将容器添加到布局中
+            self.projects[prj_name] = bt
+            self.scroll_area_widget_layout.addWidget(bt, total_num // 4, total_num % 4, Qt.AlignCenter)
+            total_num += 1
+        self.set_scroll_area_widget(total_num)
+
+    def set_scroll_area_widget(self, total_num):
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFixedSize(1250, 585)
+        self.scroll_area.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+        self.scroll_area_widget.setFixedSize(1200, 200 * (total_num // 4 + 1))
+        self.scroll_area_widget_layout.setAlignment(Qt.AlignTop)
+        style = str(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+        self.scroll_area_widget.setStyleSheet(style)
+
+    def ensure(self):
+        index = self.container_group.selected_bt_index
+        self.selected_project_path = self.config_projects[list(self.projects.keys())[index]]
+        self.close()
 
 
 class ThemeDialog(BasicDialog):
@@ -931,7 +1063,7 @@ class ColorDialog(BasicDialog):
     color_selected = pyqtSignal()
 
     def __init__(self, parent, na_hull):
-        self.canceled = False
+        self.canceled = True
         self.title = "选择：该设计中 船体独有的颜色"
         self.na_hull = na_hull
         self.color_parts_map = self.na_hull.ColorPartsMap
@@ -1076,6 +1208,7 @@ class ColorDialog(BasicDialog):
                 draw_map[color] = self.color_parts_map[color]
         self.na_hull.DrawMap = draw_map
         if draw_map:
+            self.canceled = False
             self.color_selected.emit()  # 发送自定义信号通知颜色选择完成
             self.close()
         else:

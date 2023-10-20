@@ -79,6 +79,8 @@ class Mod1AllPartsEditing(QWidget):
         # 重新绘制层
         _p.glWin.xz_layer_obj, _p.glWin.xy_layer_obj, _p.glWin.left_view_obj = _p.read_na_obj.get_layers()
         _p.glWin.paintGL()
+        # 更新状态栏
+        _p.read_na_obj.show_statu_func("重新绑定零件关系成功！", "success")
 
     def update_context(self):
         pass

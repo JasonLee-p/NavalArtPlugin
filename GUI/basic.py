@@ -11,7 +11,7 @@ from abc import abstractmethod
 from typing import List
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath
 from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
@@ -163,6 +163,22 @@ def set_tool_bar_style(tool_bar: QToolBar):
     tool_bar.setMovable(True)
     tool_bar.setFloatable(True)
     tool_bar.setAllowedAreas(Qt.LeftToolBarArea | Qt.RightToolBarArea)
+
+
+def create_rounded_thumbnail(image_path, width, height, corner_radius):
+    original_image = QPixmap(image_path).scaled(width, height, Qt.KeepAspectRatio)
+    rounded_thumbnail = QPixmap(width, height)
+    rounded_thumbnail.fill(Qt.transparent)  # 设置背景透明
+    painter = QPainter(rounded_thumbnail)
+    painter.setRenderHint(QPainter.Antialiasing)
+    # 创建一个椭圆路径来表示圆角
+    path = QPainterPath()
+    path.addRoundedRect(0, 0, width, height, corner_radius, corner_radius)
+    painter.setClipPath(path)  # 设置剪裁路径
+    # 在剪裁后的区域内绘制原始图像
+    painter.drawPixmap(0, 0, original_image)
+    painter.end()  # 结束绘制
+    return rounded_thumbnail
 
 
 class MyMessageBox(QMessageBox):

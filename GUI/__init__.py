@@ -30,9 +30,9 @@ from .basic import MyLabel, MyMessageBox, MyComboBox, MySlider, MyLineEdit
 from .basic import CircleSelectButton, CircleSelectButtonGroup, SelectWidgetGroup
 from .basic import BasicDialog, ShortCutWidget
 from .interfaces import MainWindow, MainTabWidget
-from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog
+from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog, SelectPrjDialog
 # 函数
-from .basic import set_tool_bar_style, set_top_button_style, set_button_style, getFG_fromBG, front_completion
+from .basic import set_tool_bar_style, set_top_button_style, set_button_style, getFG_fromBG, front_completion, create_rounded_thumbnail
 __all__ = [
     # 引入Qt库
     "Qt", "QThread", "pyqtSignal", "QSize", "QPoint",
@@ -63,7 +63,7 @@ __all__ = [
     "CircleSelectButton", "CircleSelectButtonGroup", "SelectWidgetGroup",
     "BasicDialog", "ShortCutWidget",
     "MainWindow", "MainTabWidget",
-    "CheckNewVersionDialog", "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog",
+    "CheckNewVersionDialog", "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog", "SelectPrjDialog",
     # 函数
-    "set_tool_bar_style", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion"
+    "set_tool_bar_style", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion", "create_rounded_thumbnail"
 ]

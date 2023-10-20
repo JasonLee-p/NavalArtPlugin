@@ -12,7 +12,7 @@ from PyQt5.QtCore import QByteArray
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import (
     QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer,
-    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat)
+    QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat, QOffscreenSurface, QOpenGLContext)
 from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -178,13 +178,39 @@ class OpenGLWin(QOpenGLWidget):
         :param prj_name: 项目名称
         :return:
         """
-        # 获取当前画面中物体图像，背景为透明，格式为png
-        width, height = self.width, self.height
-        data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
-        image = QImage(data, width, height, QImage.Format_RGBA8888)
-        image = image.mirrored(vertical=True)  # 翻转图像，因为OpenGL坐标原点在左下角
+        # 在线程A中创建一个QOpenGLContext
+        offScreen_surface = QOffscreenSurface()
+        offScreen_surface.create()
+        offScreen_context = QOpenGLContext()
+        offScreen_context.create()
+        offScreen_context.makeCurrent(offScreen_surface)
+        # 删除所有环境物体
+        self.environment_obj["海面"].clear()
+        self.environment_obj["光源"].clear()
+        self.paintGL()
+        self.update()
+        # 获取当前画面中物体图像，裁剪边缘，背景为透明，格式为png
+        cut = 0
+        image = self.grabFramebuffer()
+        image = image.copy(cut, cut, image.width() - 2 * cut, image.height() - 2 * cut)
+        image = image.convertToFormat(QImage.Format_ARGB32)
+
+        # fbo = GL_FRAMEBUFFER
+        # fbo.bind()
+        # image = fbo.toImage()
+        # fbo.release()
+        # 检查路径
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         # 保存图片
         image.save(os.path.join(save_dir, f"{prj_name}.png"))
+        # 恢复环境物体
+        self.environment_obj["海面"].append(GridLine(
+            self.gl2_0, scale=10, num=50, central=(0, 0, 0), color=self.theme_color["海面"][0]))
+        self.environment_obj["光源"].append(LightSphere(
+            self.gl2_0, central=self.light_pos, radius=20))
+        self.paintGL()
+        self.update()
 
     def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
         self.show_statu_func = show_statu_func

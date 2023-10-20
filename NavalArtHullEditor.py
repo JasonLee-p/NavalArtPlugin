@@ -118,25 +118,13 @@ def open_project(file_path=None):
     Handler.LoadingProject = True
     # 选择路径
     if not file_path:
-        if Config.ProjectsFolder == '':
-            desktop_path = os.path.join(os.path.expanduser("~"), 'Desktop')
-            file_dialog = QFileDialog(Handler.window, "选择工程", desktop_path)
-        else:
-            file_dialog = QFileDialog(Handler.window, "选择工程", Config.ProjectsFolder)
-
-        file_dialog.setNameFilter("json files (*.json)")
-        file_dialog.exec_()
-        # 如果不是点击了确定按钮，则返回
-        if not file_dialog.result():
+        select_prj_dialog = SelectPrjDialog(None, config_projects=Config.Projects)
+        select_prj_dialog.exec_()
+        file_path = select_prj_dialog.selected_project_path
+        del select_prj_dialog
+        if not file_path:
             Handler.LoadingProject = False
             return
-        # 获取选择的文件路径
-        try:
-            file_path = file_dialog.selectedFiles()[0]
-        except IndexError:
-            Handler.LoadingProject = False
-            return
-    # 开启线程
     Handler.window.open_project_thread = ProjectOpeningThread(file_path)
     Handler.window.open_project_thread.update_state.connect(show_state)
     Handler.window.open_project_thread.finished.connect(after_open)
@@ -188,7 +176,7 @@ class ProjectOpeningThread(QThread):
             Handler.LoadingProject = False
             self.finished.emit()
         except Exception as _e:
-            raise Exception
+            raise _e
 
 
 # noinspection PyUnresolvedReferences
@@ -305,7 +293,10 @@ class ProjectHandler(PF):
         self.na_hull = na_hull
         if ProjectHandler.current:  # 保存上一个工程文件，清空当前所有被绘制的对象
             show_state(f"正在保存{ProjectHandler.current.Path}...", 'process')
-            ProjectHandler.current.save(ignore_loading=True)
+            # # 询问是否保存
+            # if MyMessageBox.question(Handler.window, "提示", "是否保存当前工程？") == QMessageBox.Yes:
+            #     ProjectHandler.current.save(ignore_loading=True)
+            # 清空当前所有被绘制的对象
             time.sleep(0.1)  # TODO
             Handler.hull_design_tab.clear_all_plot_obj()
             show_state(f"{ProjectHandler.current.Path}保存成功", 'success')
@@ -741,7 +732,7 @@ class MainHandler:
         self.window = window
         self.MenuMap = {
             " 设计": {
-                "打开工程": self.open_project,
+                "打开工程": self._open_project,
                 "新建工程": {"从NavalArt": self.new_prj_from_na, "空白": self.new_prj_empty},
                 "导出为": self.export_file,
                 "保存工程": self.save,
@@ -945,7 +936,7 @@ class MainHandler:
         # 在右侧窗口显示初步调整新建工程的界面
 
     @staticmethod
-    def open_project(event):
+    def _open_project(event):
         open_project()
 
     def export_file(self, event=None):
@@ -1754,6 +1745,22 @@ class HullDesignTab(QWidget):
 
     # noinspection PyUnresolvedReferences
     def read_na_hull_thread_finished(self, _original_na_p, _na_hull):
+
+        def _end():
+            show_state(f"未读取工程", 'process')
+            Handler.LoadingProject = False
+            # 清空ThreeDFrame的所有对象
+            self.clear_all_plot_obj()
+            NAPart.hull_design_tab_id_map = {}
+            for mode in self.ThreeDFrame.gl_commands.keys():
+                self.ThreeDFrame.gl_commands[mode][1] = True
+            self.ThreeDFrame.paintGL()
+            self.ThreeDFrame.update()
+            for mode in self.ThreeDFrame.gl_commands.keys():
+                self.ThreeDFrame.gl_commands[mode][1] = False
+            ProjectHandler.current = None
+            NAHull.current_in_design_tab = None
+
         try:
             show_state(f"{_original_na_p}读取成功", 'success')
             # 获取用户选择的工程路径 ==========================================================================
@@ -1771,20 +1778,29 @@ class HullDesignTab(QWidget):
                 MyMessageBox().information(self, "提示", f"保存工程失败：{_e}", MyMessageBox.Ok)
                 return
             # 获取选择的文件路径
-            try:
-                _prj_path = save_dialog.selectedFiles()[0]
-                _name = _prj_path.split('/')[-1].split('.')[0]
-            except IndexError:
-                show_state(f"保存工程失败：未选择文件", 'error')
+            # 判断是否是按确定按钮退出的
+            if save_dialog.result():
+                try:
+                    _prj_path = save_dialog.selectedFiles()[0]
+                    _name = _prj_path.split('/')[-1].split('.')[0]
+                except IndexError:
+                    show_state(f"保存工程失败：未选择文件", 'error')
+                    return
+                # 检测颜色种类，弹出对话框，选择颜色
+                color_dialog = ColorDialog(Handler.window, _na_hull)
+                color_dialog.exec_()
+                if not color_dialog.canceled:
+                    # 生成工程文件对象
+                    Handler.window.new_project_thread = ProjectLoadingNewThread(_na_hull, _name, _prj_path, _original_na_p)
+                    Handler.window.new_project_thread.update_state.connect(show_state)
+                    Handler.window.new_project_thread.finished.connect(after_new)
+                    Handler.window.new_project_thread.start()
+                else:
+                    _end()
+                    return
+            else:
+                _end()
                 return
-            # 检测颜色种类，弹出对话框，选择颜色
-            color_dialog = ColorDialog(Handler.window, _na_hull)
-            color_dialog.exec_()
-            # 生成工程文件对象
-            Handler.window.new_project_thread = ProjectLoadingNewThread(_na_hull, _name, _prj_path, _original_na_p)
-            Handler.window.new_project_thread.update_state.connect(show_state)
-            Handler.window.new_project_thread.finished.connect(after_new)
-            Handler.window.new_project_thread.start()
         except Exception as _e:
             raise _e
 
