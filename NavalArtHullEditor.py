@@ -13,7 +13,7 @@ import time
 import webbrowser
 from typing import Union
 
-from operation import AddLayerOperation
+from PyQt5.QtCore import QPropertyAnimation
 
 try:
     # 第三方库
@@ -36,6 +36,7 @@ try:
         Mod1VerHorPartSetEditing)
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
+    from operation import AddLayerOperation
 
 except Exception as e:
     print(e)
@@ -71,21 +72,33 @@ def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] 
 
 
 def check_version():
-    show_state("正在检查更新...", 'process')
-    try:
-        latest_version, links = Connection.get_latest_version()
-    except TypeError:
-        show_state("检查更新完成", 'success')
-        return
-    show_state("检查更新完成", 'success')
-    if not latest_version:
-        return
-    if extract_number_from_version(latest_version) > extract_number_from_version(VERSION):
-        dialog = NewVersionDialog(None, VERSION, latest_version)
-        dialog.exec_()
-        if dialog.download:
-            webbrowser.open(links[1])
-            webbrowser.open(links[0])
+    class __CheckVersionThread(QThread):
+        finished = pyqtSignal()
+
+        def __init__(self):
+            self.latest_version = None
+            self.links = {}
+            super().__init__()
+
+        def run(self):
+            self.latest_version, self.links = Connection.get_latest_version()
+            self.finished.emit()
+
+        def is_finished(self):
+            if self.latest_version is None:
+                dialog.check_update_failed()
+            elif extract_number_from_version(self.latest_version) > extract_number_from_version(VERSION):
+                dialog.check_update_success(self.latest_version)
+                if dialog.download:
+                    webbrowser.open(self.links[1])
+                    webbrowser.open(self.links[0])
+
+    Handler.window.check_version_thread = __CheckVersionThread()
+    Handler.window.check_version_thread.finished.connect(Handler.window.check_version_thread.is_finished)
+    Handler.window.check_version_thread.start()
+
+    dialog = CheckNewVersionDialog(None, VERSION)
+    dialog.exec_()
 
 
 # noinspection PyUnresolvedReferences
@@ -179,7 +192,7 @@ def new_project():
     :return:
     """
     # 弹出对话框，获取工程名称和路径，以及其他相关信息
-    NewProjectDialog(parent=Handler.window)
+    NewProjectDialog(None, border_radius=10)
     NewProjectDialog.current.exec_()
     # 如果确定新建工程
     if NewProjectDialog.current.create_new_project:
@@ -1042,23 +1055,28 @@ class MainHandler:
 
     def close(self) -> bool:
         # 重写关闭事件
-        reply = MyMessageBox().question(self.window, "关闭编辑器", "是否保存当前工程？",
-                                        MyMessageBox.Yes | MyMessageBox.No | MyMessageBox.Cancel)
-        if reply == QMessageBox.Yes:
-            Config.save_config()  # 保存配置文件
-            show_state("正在保存工程...", 'process')
-            # 隐藏window
-            self.window.hide()
-            if ProjectHandler.current:
-                ProjectHandler.current.save()
-            self.window.close()  # 关闭窗口
-            sys.exit()  # 退出程序
-        elif reply == QMessageBox.No:
-            Config.save_config()
-            self.window.close()  # 关闭窗口
-            sys.exit()  # 退出程序
+        if ProjectHandler.current:
+            reply = MyMessageBox().question(self.window, "关闭编辑器", "是否保存当前工程？",
+                                            MyMessageBox.Yes | MyMessageBox.No | MyMessageBox.Cancel)
+            if reply == QMessageBox.Yes:
+                Config.save_config()  # 保存配置文件
+                show_state("正在保存工程...", 'process')
+                # 隐藏window
+                self.window.hide()
+                if ProjectHandler.current:
+                    ProjectHandler.current.save()
+                self.window.close()  # 关闭窗口
+                sys.exit()  # 退出程序
+            elif reply == QMessageBox.No:
+                Config.save_config()
+                self.window.close()  # 关闭窗口
+                sys.exit()  # 退出程序
+            else:
+                return False
         else:
-            return False
+            Config.save_config()
+            self.window.close()
+            sys.exit()
 
 
 class RightTabWidget(QTabWidget):
@@ -2177,37 +2195,42 @@ if __name__ == '__main__':
         Config = ConfigFile()
         # 初始化界面和事件处理器
         QApp = QApplication(sys.argv)
+        # 初始化主窗口
         QtWindow = MainWin(Config)
         Handler = MainHandler(QtWindow)
         # 其他初始化
         Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
-        if Config.Projects != {}:
+        # 检查版本
+        check_version()
+        # 打开开始界面
+        start_dialog = StartWelcomeDialog(None)
+        start_dialog.connect_funcs(
+            open_project_func=None, setting_func=None, help_func=user_guide, about_func=Handler.about)
+        start_dialog.exec_()
+        if start_dialog.close_program:
+            Handler.close()
+        # 渐变显示主窗口
+        mainWinAnimation = QPropertyAnimation(QtWindow, b"windowOpacity")
+        mainWinAnimation.setDuration(500)
+        mainWinAnimation.setStartValue(0)
+        mainWinAnimation.setEndValue(1)
+        QtWindow.showMaximized()
+        mainWinAnimation.start()
+        # 打开最近的工程
+        if start_dialog.open_recent_project and Config.Projects != {}:
             try:
                 open_project(list(Config.Projects.values())[-1])
             except Exception as e:
                 show_state(f"读取配置文件失败：{e}", 'error')
                 MyMessageBox().information(Handler.window, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
-        else:
-            pass
-        # 检查版本
-        check_version()
-        # 打开开始界面
-        start_dialog = StartWelcomeDialog(None)
-        start_dialog.exec_()
-        from PyQt5.QtCore import QPropertyAnimation
-        QtWindow.showMaximized()
-        mainWinAnimation = QPropertyAnimation(QtWindow, b"windowOpacity")
-        mainWinAnimation.setDuration(400)
-        mainWinAnimation.setStartValue(0)
-        mainWinAnimation.setEndValue(1)
-        mainWinAnimation.start()
+        elif start_dialog.create_new_project:
+            # 创建新工程
+            new_project()
         # 检查是否需要引导
         if not Config.Config["Guided"]:
             # 运行引导程序
             user_guide(ask_save=False)
             Config.Config["Guided"] = True
-        # # 检查当前是否有工程
-        # if not ProjectHandler.current:
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:

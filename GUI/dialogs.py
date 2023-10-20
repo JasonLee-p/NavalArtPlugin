@@ -5,9 +5,11 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QUrl, QPropertyAnimation
-from PyQt5.QtGui import QDesktopServices, QTextBlockFormat
+from PyQt5.QtCore import QPropertyAnimation
+from PyQt5.QtGui import QTextBlockFormat
+from PyQt5.QtWidgets import QProgressBar
 
+from util_funcs import open_url
 from path_utils import find_ptb_path, find_na_root_path
 from ship_reader import ReadPTB
 from GUI import *
@@ -28,27 +30,29 @@ def front_completion(string, length, add_char):
     return front_completion(string, length, add_char)
 
 
-class NewVersionDialog(BasicDialog):
-    def __init__(self, parent, current_version, latest_version, title="新版本", size=QSize(300, 250)):
+class CheckNewVersionDialog(BasicDialog):
+    def __init__(self, parent, current_version, title="", size=QSize(300, 250)):
         self.current_version = current_version
-        self.latest_version = latest_version
         self.center_layout = QGridLayout()
+        self.checking_label = MyLabel("正在检查更新", font=FONT_12)
+        self.animate_bar = QProgressBar()
         self.label_current_text = QLabel("当前版本：")
         self.label_current_version = QLabel(self.current_version)
         self.label_latest_text = QLabel("最新版本：")
-        self.label_latest_version = QLabel(self.latest_version)
+        self.label_latest_version = None
         self.label_update_text = QLabel("确定前往官网更新？")
         self.set_layout()
-        super().__init__(parent, title, size, self.center_layout)
-        self.download = False
+        super().__init__(parent, None, title, size, self.center_layout)
+        self.download = False  # 是否下载
 
-    def set_layout(self):
-        """
-        设置布局
-        :return:
-        """
-        self.center_layout.setContentsMargins(60, 30, 60, 0)
-        self.center_layout.setSpacing(10)
+    def check_update_success(self, latest_version):
+        self.label_latest_version = QLabel(latest_version)
+        # 删除原有的控件
+        self.center_layout.removeWidget(self.checking_label)
+        self.center_layout.removeWidget(self.animate_bar)
+        self.checking_label.deleteLater()
+        self.animate_bar.deleteLater()
+        # 添加新的控件
         self.center_layout.addWidget(self.label_current_text, 0, 0)
         self.center_layout.addWidget(self.label_current_version, 0, 1)
         self.center_layout.addWidget(self.label_latest_text, 1, 0)
@@ -81,6 +85,46 @@ class NewVersionDialog(BasicDialog):
         self.label_latest_version.setAlignment(Qt.AlignCenter)
         self.label_update_text.setAlignment(Qt.AlignCenter)
 
+    def check_update_failed(self):
+        self.checking_label.setText("检查更新失败")
+        self.checking_label.setFont(FONT_14)
+        self.checking_label.setStyleSheet(f"color: {FG_COLOR0};")
+        self.checking_label.setAlignment(Qt.AlignCenter)
+        self.center_layout.removeWidget(self.animate_bar)
+        self.animate_bar.deleteLater()
+        self.center_layout.addWidget(self.checking_label, 0, 0, 1, 2)
+
+    def set_layout(self):
+        """
+        设置布局
+        :return:
+        """
+        self.center_layout.setContentsMargins(50, 30, 50, 0)
+        self.center_layout.setSpacing(10)
+        self.center_layout.setAlignment(Qt.AlignCenter)
+        self.animate_bar.setFixedSize(200, 16)
+        self.animate_bar.setStyleSheet(
+            f"""
+            QProgressBar {{
+                border-radius: 8px;
+                text-align: center;
+                background-color: {GRAY};
+                color: {FG_COLOR0};
+            }}
+            QProgressBar::chunk {{
+                background-color: {FG_COLOR0};
+                border-radius: 8px;
+            }}
+            """
+        )
+        self.animate_bar.setRange(0, 0)
+        self.checking_label.setFixedSize(200, 60)
+        # 居中显示
+        self.center_layout.addWidget(self.checking_label, 0, 0, 1, 2)
+        self.center_layout.addWidget(self.animate_bar, 1, 0, 1, 2)
+        self.checking_label.setAlignment(Qt.AlignCenter)
+        self.animate_bar.setAlignment(Qt.AlignCenter)
+
     def ensure(self):
         self.download = True
         super().ensure()
@@ -88,9 +132,23 @@ class NewVersionDialog(BasicDialog):
 
 class StartWelcomeDialog(BasicDialog):
     def ensure(self):
-        pass
+        self.close_program = False
+        self.close()
+
+    def open_recent_button_clicked(self):
+        self.open_recent_project = True
+        self.ensure()
+
+    def create_new_button_clicked(self):
+        self.create_new_project = True
+        self.ensure()
 
     def __init__(self, parent, title="", size=QSize(1100, 760)):
+        # 信号
+        self.close_program = True
+        self.open_recent_project = False
+        self.create_new_project = False
+        # 控件
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
         self.center_layout = QHBoxLayout()
         self.left_widget = QWidget()
@@ -99,18 +157,22 @@ class StartWelcomeDialog(BasicDialog):
         self.right_layout = QVBoxLayout()
         self.left_grid_layout = QGridLayout()
         self.title = MyLabel("欢迎使用 NavalArt 船体编辑器", font=FONT_20)
-        self.buttons = [
-            QPushButton("新建工程"),
-            QPushButton("打开工程"),
-            QPushButton("最近打开"),
-            QPushButton("设置"),
-            QPushButton("帮助"),
-            QPushButton("关于"),
-        ]
+        self.buttons = {
+            "最近打开": QPushButton("最近打开"),
+            "新建工程": QPushButton("新建工程"),
+            "打开工程": QPushButton("打开工程"),
+            "设置": QPushButton("设置"),
+            "帮助": QPushButton("帮助"),
+            "关于": QPushButton("关于"),
+        }
         self.set_layout()
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, None, title, size, self.center_layout)
+        # 渐变动画
         self.animation = QPropertyAnimation(self, b"windowOpacity")
-        self.animate()
+        self.animation.setDuration(500)
+        self.animation.setStartValue(0)
+        self.animation.setEndValue(1)
+        self.animation.start()
 
     def set_layout(self):
         """
@@ -201,6 +263,21 @@ class StartWelcomeDialog(BasicDialog):
         bilibili_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         email_content.setFixedSize(230, 33)
         bilibili_content.setFixedSize(230, 33)
+        email_content.setCursor(Qt.PointingHandCursor)
+        bilibili_content.setCursor(Qt.PointingHandCursor)
+        # 设置鼠标悬停样式
+        hover_styleSheet = f"""
+            color: blue;
+            background-color: {BG_COLOR1};
+            border-radius: 10px;
+        """
+        email_content.enterEvent = lambda event: email_content.setStyleSheet(hover_styleSheet)
+        email_content.leaveEvent = lambda event: email_content.setStyleSheet(styleSheet)
+        bilibili_content.enterEvent = lambda event: bilibili_content.setStyleSheet(hover_styleSheet)
+        bilibili_content.leaveEvent = lambda event: bilibili_content.setStyleSheet(styleSheet)
+        # 设置鼠标点击事件
+        email_content.mousePressEvent = open_url(email_url)
+        bilibili_content.mousePressEvent = open_url(bilibili_url)
         # 添加布局
         self.left_grid_layout.setContentsMargins(0, 0, 0, 0)
         self.left_grid_layout.setSpacing(5)
@@ -223,7 +300,7 @@ class StartWelcomeDialog(BasicDialog):
         self.right_layout.addWidget(ico)
         # 文字
         _font = FONT_13
-        for button in self.buttons:
+        for button in self.buttons.values():
             self.right_layout.addWidget(button, alignment=Qt.AlignCenter)
             button.setFont(_font)
             button.setFixedSize(220, 33)
@@ -249,21 +326,34 @@ class StartWelcomeDialog(BasicDialog):
         self.right_widget.setStyleSheet(
             f"background-color: {BG_COLOR2};"
             f"color: {FG_COLOR0};"
-            f"border-top-left-radius: 76px;"
-            f"border-top-right-radius: 76px;"
-            f"border-bottom-left-radius: 76px;"
-            f"border-bottom-right-radius: 76px;"
+            f"border-top-left-radius: 78px;"
+            f"border-top-right-radius: 78px;"
+            f"border-bottom-left-radius: 78px;"
+            f"border-bottom-right-radius: 78px;"
         )
         self.right_layout.addStretch(1)
 
-    def animate(self):
-        # 渐变动画
-        self.animation.setDuration(500)
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(1)
-        self.animation.start()
-
-
+    # noinspection PyUnresolvedReferences
+    def connect_funcs(self, open_project_func=None,
+                      setting_func=None, help_func=None, about_func=None):
+        """
+        连接函数
+        :param open_project_func:
+        :param setting_func:
+        :param help_func:
+        :param about_func:
+        :return:
+        """
+        self.buttons["最近打开"].clicked.connect(self.open_recent_button_clicked)
+        self.buttons["新建工程"].clicked.connect(self.create_new_button_clicked)
+        if open_project_func is not None:
+            self.buttons["打开工程"].clicked.connect(open_project_func)
+        if setting_func is not None:
+            self.buttons["设置"].clicked.connect(setting_func)
+        if help_func is not None:
+            self.buttons["帮助"].clicked.connect(help_func)
+        if about_func is not None:
+            self.buttons["关于"].clicked.connect(about_func)
 
 
 class NewProjectDialog(BasicDialog):
@@ -294,7 +384,7 @@ class NewProjectDialog(BasicDialog):
             return
         super().ensure()
 
-    def __init__(self, parent, title="新建工程", size=QSize(750, 600)):
+    def __init__(self, parent, border_radius=10, title="新建工程", size=QSize(750, 600)):
         # 外传参数（初始化ProjectFile类需要的参数）
         self.create_new_project = False
         self.generate_mode = None
@@ -378,7 +468,7 @@ class NewProjectDialog(BasicDialog):
         set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
         set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
         set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, border_radius, title, size, self.center_layout)
         NewProjectDialog.current = self
 
     def set_widgets(self):
@@ -393,6 +483,9 @@ class NewProjectDialog(BasicDialog):
         self.input_name.setPlaceholderText('请输入工程名称')
         self.input_path.setPlaceholderText('请选择工程路径')
         self.input_path.setReadOnly(True)
+        # textEdit
+        for te in [self.input_name, self.input_path, self.show_na_path, self.show_ptb_path, self.show_preset_path]:
+            te.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # 设置小圆圈
         self.select_circle0.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
         self.select_circle1.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
@@ -448,14 +541,12 @@ class NewProjectDialog(BasicDialog):
             f"border-radius: {self.circle_size}px; background-color: #FFFFFF; border: 1px solid #000000;")
         # 将下拉框设置为不可用
         self.combobox_template.setEnabled(False)
-        self.combobox_template.setStyleSheet(f"color: #808080;")
+        self.combobox_template.disable()
         # 将PTB图纸，NA图纸和预设设置为不可用
-        self.search_na_button.setEnabled(False)
-        self.show_na_path.setStyleSheet(f"color: #808080;")
-        self.search_ptb_button.setEnabled(False)
-        self.show_ptb_path.setStyleSheet(f"color: #808080;")
-        self.search_preset_button.setEnabled(False)
-        self.show_preset_path.setStyleSheet(f"color: #808080;")
+        for button in [self.search_na_button, self.search_ptb_button, self.search_preset_button]:
+            button.setEnabled(False)
+        for line_edit in [self.show_na_path, self.show_ptb_path, self.show_preset_path]:
+            line_edit.disable()
 
     def button1_clicked(self):
         self.select_circle0.setChecked(False)
@@ -475,14 +566,12 @@ class NewProjectDialog(BasicDialog):
             f"border-radius: {self.circle_size}px; background-color: #FFFFFF; border: 1px solid #000000;")
         # 将NA图纸设置为可用
         self.search_na_button.setEnabled(True)
-        self.show_na_path.setStyleSheet(f"color: {FG_COLOR0};")
+        self.show_na_path.enable()
         # 将下拉框和PTB图纸，预设设置为不可用
-        self.combobox_template.setEnabled(False)
-        self.combobox_template.setStyleSheet(f"color: #808080;")
-        self.search_ptb_button.setEnabled(False)
-        self.show_ptb_path.setStyleSheet(f"color: #808080;")
-        self.search_preset_button.setEnabled(False)
-        self.show_preset_path.setStyleSheet(f"color: #808080;")
+        for w in [self.combobox_template, self.search_ptb_button, self.search_preset_button]:
+            w.setEnabled(False)
+        for w in [self.combobox_template, self.show_ptb_path, self.show_preset_path]:
+            w.disable()
 
     def button2_clicked(self):
         self.select_circle0.setChecked(False)
@@ -502,14 +591,12 @@ class NewProjectDialog(BasicDialog):
             f"border-radius: {self.circle_size}px; background-color: #FFFFFF; border: 1px solid #000000;")
         # 将下拉框设置为可用
         self.combobox_template.setEnabled(True)
-        self.combobox_template.setStyleSheet(f"color: {FG_COLOR0};")
+        self.combobox_template.enable()
         # 将NA图纸和PTB图纸，预设设置为不可用
-        self.search_na_button.setEnabled(False)
-        self.show_na_path.setStyleSheet(f"color: #808080;")
-        self.search_ptb_button.setEnabled(False)
-        self.show_ptb_path.setStyleSheet(f"color: #808080;")
-        self.search_preset_button.setEnabled(False)
-        self.show_preset_path.setStyleSheet(f"color: #808080;")
+        for w in [self.search_na_button, self.search_ptb_button, self.search_preset_button]:
+            w.setEnabled(False)
+        for w in [self.show_na_path, self.show_ptb_path, self.show_preset_path]:
+            w.disable()
 
     def button3_clicked(self):
         self.select_circle0.setChecked(False)
@@ -529,14 +616,12 @@ class NewProjectDialog(BasicDialog):
             f"border-radius: {self.circle_size}px; background-color: #FFFFFF; border: 1px solid #000000;")
         # 将PTB图纸设置为可用
         self.search_ptb_button.setEnabled(True)
-        self.show_ptb_path.setStyleSheet(f"color: {FG_COLOR0};")
+        self.show_ptb_path.enable()
         # 将NA图纸，下拉框和预设设置为不可用
-        self.search_na_button.setEnabled(False)
-        self.show_na_path.setStyleSheet(f"color: #808080;")
-        self.combobox_template.setEnabled(False)
-        self.combobox_template.setStyleSheet(f"color: #808080;")
-        self.search_preset_button.setEnabled(False)
-        self.show_preset_path.setStyleSheet(f"color: #808080;")
+        for w in [self.search_na_button, self.combobox_template, self.search_preset_button]:
+            w.setEnabled(False)
+        for w in [self.show_na_path, self.combobox_template, self.show_preset_path]:
+            w.disable()
 
     def button4_clicked(self):
         self.select_circle0.setChecked(False)
@@ -556,14 +641,12 @@ class NewProjectDialog(BasicDialog):
             f"border-radius: {self.circle_size}px; background-color: {self.selected_color};")
         # 将预设设置为可用
         self.search_preset_button.setEnabled(True)
-        self.show_preset_path.setStyleSheet(f"color: {FG_COLOR0};")
+        self.show_preset_path.enable()
         # 将NA图纸，下拉框和PTB图纸设置为不可用
-        self.search_na_button.setEnabled(False)
-        self.show_na_path.setStyleSheet(f"color: #808080;")
-        self.combobox_template.setEnabled(False)
-        self.combobox_template.setStyleSheet(f"color: #808080;")
-        self.search_ptb_button.setEnabled(False)
-        self.show_ptb_path.setStyleSheet(f"color: #808080;")
+        for w in [self.search_na_button, self.combobox_template, self.search_ptb_button]:
+            w.setEnabled(False)
+        for w in [self.show_na_path, self.show_ptb_path, self.combobox_template]:
+            w.disable()
 
     def check_path(self):
         """
@@ -628,7 +711,7 @@ class SelectNaDialog(BasicDialog):
         self.scroll_area = QScrollArea()
         self.scroll_area_widget = QWidget()
         self.scroll_area_widget_layout = QGridLayout()
-        super().__init__(parent, title, size, self.center_layout, resizable=True)
+        super().__init__(parent, None, title, size, self.center_layout, resizable=True)
         # 当鼠标移动到窗口边缘按下，添加缩放功能
         self.setMouseTracking(True)
         self.na_designs = {}
@@ -717,7 +800,7 @@ class ThemeDialog(BasicDialog):
         self.center_layout.addWidget(self.lb0, 0, 1)
         self.center_layout.addWidget(self.lb1, 1, 1)
         self.center_layout.addWidget(self.lb2, 2, 1)
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, None, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):
@@ -785,7 +868,7 @@ class SensitiveDialog(BasicDialog):
         self.sld0.valueChanged.connect(self.value_changed0)
         self.sld1.valueChanged.connect(self.value_changed1)
         self.sld2.valueChanged.connect(self.value_changed2)
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, None, title, size, self.center_layout)
         self.set_widget()
 
     def value_changed0(self):
@@ -911,7 +994,7 @@ class ColorDialog(BasicDialog):
             size = QSize(320, 380)
             self.scroll_area_widget.setFixedSize(size.width() - 25, single_line_h + 20)
         self.scroll_area.setFixedSize(size.width(), size.height() - top_and_bottom_and_button_height + 20)
-        super().__init__(parent, self.title, size, self.center_layout)
+        super().__init__(parent, None, self.title, size, self.center_layout)
         self.set_widget()
         self.cancel_button.clicked.connect(self.cancel)
         self.close_button.clicked.connect(self.cancel)
@@ -988,7 +1071,7 @@ class ExportDialog(BasicDialog):
         self.center_layout.addWidget(self.l0, 0, 1)
         self.center_layout.addWidget(self.l1, 1, 1)
 
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, None, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):
@@ -1012,7 +1095,7 @@ class UserGuideDialog(BasicDialog):
         self.lb0.setAlignment(Qt.AlignCenter)
         self.center_layout.addWidget(self.lb0)
         ...  # TODO:
-        super().__init__(parent, title, size, self.center_layout)
+        super().__init__(parent, None, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):

@@ -99,15 +99,18 @@ class MainWindow(QWidget):
             f"color: {FG_COLOR0};"
             f"border: 1px solid {FG_COLOR2};"
             f"border-radius: 5px;}}"
-            # 设置QMessageBox的输入框样式
-            f"QMessageBox QLineEdit{{background-color: {BG_COLOR1};"
+            # 设置QLineEdit的样式
+            f"QLineEdit{{background-color: {BG_COLOR1};"
             f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
+            f"border: 1px solid {FG_COLOR0};"
             f"border-radius: 5px;}}"
-            # 设置QMessageBox的输入框样式
-            f"QMessageBox QComboBox{{background-color: {BG_COLOR1};"
+            f"QLineEdit:hover{{background-color: {BG_COLOR3};"
             f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
+            f"border: 1px solid {FG_COLOR0};"
+            f"border-radius: 5px;}}"
+            f"QLineEdit:focus{{background-color: {BG_COLOR3};"
+            f"color: {FG_COLOR0};"
+            f"border: 1px solid {FG_COLOR0};"
             f"border-radius: 5px;}}"
         )
 

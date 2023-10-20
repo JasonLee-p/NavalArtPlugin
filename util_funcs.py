@@ -266,6 +266,14 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
     return slopes
 
 
+def open_url(url):
+    def func(event):
+        from PyQt5.QtCore import QUrl
+        from PyQt5.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl(url))
+    return func
+
+
 def not_implemented(func):
     """
     装饰器，弹出提示框，提示该功能暂未实现

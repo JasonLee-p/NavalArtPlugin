@@ -200,7 +200,7 @@ class MyMessageBox(QMessageBox):
 
 
 class MyLabel(QLabel):
-    def __init__(self, text, font=QFont("微软雅黑", 9), color=FG_COLOR0, side=Qt.AlignLeft):
+    def __init__(self, text, font=QFont("微软雅黑", 9), color=FG_COLOR0, side=Qt.AlignLeft | Qt.AlignVCenter):
         super().__init__(text)
         self.setFont(font)
         self.setStyleSheet(f"color:{color};")
@@ -209,17 +209,74 @@ class MyLabel(QLabel):
 
 
 class MyLineEdit(QLineEdit):
-    def __init__(self, text="", font=QFont("微软雅黑", 9), color=FG_COLOR0):
+    def __init__(self, text="", font=FONT_9):
         super().__init__(text)
         self.setFont(font)
-        self.setStyleSheet(f"color:{color};")
+        self.enable()
+
+    def enable(self):
+        self.setStyleSheet(
+            f"""QLineEdit{{background-color: {BG_COLOR1}; 
+            color: {FG_COLOR0}; 
+            border: 1px solid {FG_COLOR0}; 
+            border-radius: 5px;}}"""
+        )
+
+    def disable(self):
+        self.setStyleSheet(
+            f"""QLineEdit{{background-color: {BG_COLOR1}; 
+            color: {GRAY}; 
+            border: 1px solid {GRAY}; 
+            border-radius: 5px;}}"""
+        )
 
 
 class MyComboBox(QComboBox):
-    def __init__(self, font=QFont("微软雅黑", 9), color=FG_COLOR0):
+    def __init__(self, font=FONT_9):
         super().__init__()
         self.setFont(font)
-        self.setStyleSheet(f"color:{color};")
+        self.enable()
+
+    def enable(self):
+        self.setStyleSheet(
+            f"""
+            QComboBox{{
+                background-color: {BG_COLOR1};
+                color: {FG_COLOR0};
+                border: 1px solid {FG_COLOR0};
+                border-radius: 5px;
+            }}
+            QComboBox::drop-down{{
+                width: 20px;
+                height: 20px;
+                border-radius: 5px;
+                background-color: {BG_COLOR0};
+            }}
+            QComboBox QAbstractItemView{{
+                border: 1px solid {FG_COLOR0};
+                border-radius: 5px;
+                background-color: {BG_COLOR1};
+                color: {FG_COLOR0};
+                selection-background-color: {BG_COLOR3};
+            }}"""
+        )
+
+    def disable(self):
+        self.setStyleSheet(
+            f"""
+            QComboBox{{
+                background-color: {BG_COLOR1};
+                color: {GRAY};
+                border: 1px solid {GRAY};
+                border-radius: 5px;
+            }}
+            QComboBox::drop-down{{
+                width: 20px;
+                height: 20px;
+                border-radius: 5px;
+                background-color: {BG_COLOR0};
+            }}"""
+        )
 
 
 class MySlider(QSlider):
@@ -293,7 +350,8 @@ class CircleSelectButtonGroup:
     用于管理一组圆形选择按钮
     """
 
-    def __init__(self, button_list: List[QPushButton], parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3, default_index=0):
+    def __init__(self, button_list: List[QPushButton], parent, half_size, color=BG_COLOR1, check_color=BG_COLOR3,
+                 default_index=0):
         self.group = button_list
         self.parent = parent
         self.half_size = half_size
@@ -356,7 +414,8 @@ class SelectWidgetGroup:
 
 
 class BasicDialog(QDialog):
-    def __init__(self, parent=None, title=None, size=QSize(400, 300), center_layout=None, resizable=False):
+    def __init__(self, parent=None, border_radius=10, title=None, size=QSize(400, 300), center_layout=None,
+                 resizable=False):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         super().__init__(parent=parent)
@@ -375,9 +434,11 @@ class BasicDialog(QDialog):
         self.setGraphicsEffect(self.shadow)
         if self.parent():
             # 圆角
-            self.setStyleSheet(
-                f"background-color:{BG_COLOR1};"
-                f"border-radius:10px;")
+            self.setStyleSheet(f"background-color:{BG_COLOR1};"
+                               f"border-radius:10px;")
+        elif border_radius:
+            self.setStyleSheet(f"background-color:{BG_COLOR1};"
+                               f"border-radius:{border_radius}px;")
         else:
             self.setStyleSheet(f"background-color:{BG_COLOR1};")
         # 设置主题
