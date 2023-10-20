@@ -21,10 +21,10 @@ from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
 from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
 from ship_reader.NA_design_reader import NAPart, AdjustableHull, NAPartNode
-from ship_reader.NA_design_reader import PartRelationMap as PRM
 from GL_plot import *
 from GUI import *
 from shader_program import shader_program
+from util_funcs import CONST
 
 VERTEX_SHADER = shader_program.VS
 
@@ -846,10 +846,10 @@ class OpenGLWin(QOpenGLWidget):
                         continue
                     relation_map = part.allParts_relationMap.basicMap[part]
                     # 先向前后
-                    for sub_part in relation_map[PRM.FRONT]:
+                    for sub_part in relation_map[CONST.FRONT]:
                         if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
-                    for sub_part in relation_map[PRM.BACK]:
+                    for sub_part in relation_map[CONST.BACK]:
                         if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
                     # 再向左右
@@ -867,10 +867,10 @@ class OpenGLWin(QOpenGLWidget):
                         continue
                     relation_map = part.allParts_relationMap.basicMap[part]
                     # 先向上下
-                    for sub_part in relation_map[PRM.UP]:
+                    for sub_part in relation_map[CONST.UP]:
                         if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
-                    for sub_part in relation_map[PRM.DOWN]:
+                    for sub_part in relation_map[CONST.DOWN]:
                         if sub_part not in self.selected_gl_objects[self.show_3d_obj_mode]:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(sub_part)
                     # 再向左右
@@ -925,24 +925,24 @@ class OpenGLWin(QOpenGLWidget):
                 next_obj = None
                 move_direction = None
                 if event.key() == Qt.Key_Up:  # ==============================================Alt上键
-                    up_objs = selected_obj_relations[PRM.UP]
+                    up_objs = selected_obj_relations[CONST.UP]
                     if len(up_objs) != 0:
                         next_obj = list(up_objs.keys())[0]
                         move_direction = "上"
                 elif event.key() == Qt.Key_Down:  # ==========================================Alt下键
-                    down_objs = selected_obj_relations[PRM.DOWN]
+                    down_objs = selected_obj_relations[CONST.DOWN]
                     if len(down_objs) != 0:
                         next_obj = list(down_objs.keys())[0]
                         move_direction = "下"
                 elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
                         event.key() == Qt.Key_Right and self.camera.angle.x() > 0):  # =========Alt左键
-                    front_objs = selected_obj_relations[PRM.FRONT]
+                    front_objs = selected_obj_relations[CONST.FRONT]
                     if len(front_objs) != 0:
                         next_obj = list(front_objs.keys())[0]
                         move_direction = "前"
                 elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
                         event.key() == Qt.Key_Left and self.camera.angle.x() > 0):  # =========Alt右键
-                    back_objs = selected_obj_relations[PRM.BACK]
+                    back_objs = selected_obj_relations[CONST.BACK]
                     if len(back_objs) != 0:
                         next_obj = list(back_objs.keys())[0]
                         move_direction = "后"
@@ -1755,24 +1755,24 @@ class OpenGLWin2(QOpenGLWidget):
                 next_obj = None
                 move_direction = None
                 if event.key() == Qt.Key_Up:  # ==============================================Alt上键
-                    up_objs = selected_obj_relations[PRM.UP]
+                    up_objs = selected_obj_relations[CONST.UP]
                     if len(up_objs) != 0:
                         next_obj = list(up_objs.keys())[0]
                         move_direction = "上"
                 elif event.key() == Qt.Key_Down:  # ==========================================Alt下键
-                    down_objs = selected_obj_relations[PRM.DOWN]
+                    down_objs = selected_obj_relations[CONST.DOWN]
                     if len(down_objs) != 0:
                         next_obj = list(down_objs.keys())[0]
                         move_direction = "下"
                 elif (event.key() == Qt.Key_Left and self.camera.angle.x() < 0) or (
                         event.key() == Qt.Key_Right and self.camera.angle.x() > 0):  # =========Alt左键
-                    front_objs = selected_obj_relations[PRM.FRONT]
+                    front_objs = selected_obj_relations[CONST.FRONT]
                     if len(front_objs) != 0:
                         next_obj = list(front_objs.keys())[0]
                         move_direction = "前"
                 elif (event.key() == Qt.Key_Right and self.camera.angle.x() < 0) or (
                         event.key() == Qt.Key_Left and self.camera.angle.x() > 0):  # =========Alt右键
-                    back_objs = selected_obj_relations[PRM.BACK]
+                    back_objs = selected_obj_relations[CONST.BACK]
                     if len(back_objs) != 0:
                         next_obj = list(back_objs.keys())[0]
                         move_direction = "后"
