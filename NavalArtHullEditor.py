@@ -43,7 +43,7 @@ except Exception as e:
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
 
-VERSION = "va0.0.0.0"
+VERSION = "va0.0.2.0"
 
 
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
@@ -92,6 +92,8 @@ def check_version():
                 if dialog.download:
                     webbrowser.open(self.links[1])
                     webbrowser.open(self.links[0])
+            else:
+                dialog.close()
 
     Handler.window.check_version_thread = __CheckVersionThread()
     Handler.window.check_version_thread.finished.connect(Handler.window.check_version_thread.is_finished)

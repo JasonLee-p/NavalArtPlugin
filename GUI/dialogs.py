@@ -43,6 +43,9 @@ class CheckNewVersionDialog(BasicDialog):
         self.label_update_text = QLabel("确定前往官网更新？")
         self.set_layout()
         super().__init__(parent, None, title, size, self.center_layout)
+        # 图标
+        self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
+        self.setWindowIcon(QIcon(self.ICO))
         self.download = False  # 是否下载
 
     def check_update_success(self, latest_version):
@@ -167,6 +170,9 @@ class StartWelcomeDialog(BasicDialog):
         }
         self.set_layout()
         super().__init__(parent, None, title, size, self.center_layout)
+        # 图标
+        self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
+        self.setWindowIcon(QIcon(self.ICO))
         # 渐变动画
         self.animation = QPropertyAnimation(self, b"windowOpacity")
         self.animation.setDuration(500)
@@ -469,6 +475,9 @@ class NewProjectDialog(BasicDialog):
         set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
         set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
         super().__init__(parent, border_radius, title, size, self.center_layout)
+        # 图标
+        self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
+        self.setWindowIcon(QIcon(self.ICO))
         NewProjectDialog.current = self
 
     def set_widgets(self):
