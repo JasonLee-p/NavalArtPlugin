@@ -11,7 +11,7 @@ from abc import abstractmethod
 from typing import List
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette
 from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
@@ -373,8 +373,13 @@ class BasicDialog(QDialog):
         self.shadow.setColor(QColor(0, 0, 0, 100))
         self.shadow.setBlurRadius(10)
         self.setGraphicsEffect(self.shadow)
-        # 圆角
-        self.setStyleSheet(f"background-color:{BG_COLOR1};border-radius:10px;")
+        if self.parent():
+            # 圆角
+            self.setStyleSheet(
+                f"background-color:{BG_COLOR1};"
+                f"border-radius:10px;")
+        else:
+            self.setStyleSheet(f"background-color:{BG_COLOR1};")
         # 设置主题
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)

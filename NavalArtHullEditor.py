@@ -24,7 +24,7 @@ try:
     from util_funcs import *
     from ship_reader import *
     from GUI import *
-    from GUI.dialogs import SelectNaDialog
+    from GUI.dialogs import SelectNaDialog, StartWelcomeDialog
     from GL_plot import *
     from path_utils import find_ptb_path, find_na_root_path
     from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu
@@ -42,7 +42,7 @@ except Exception as e:
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
 
-VERSION = "va0.0.2.0"
+VERSION = "va0.0.0.0"
 
 
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
@@ -81,7 +81,7 @@ def check_version():
     if not latest_version:
         return
     if extract_number_from_version(latest_version) > extract_number_from_version(VERSION):
-        dialog = NewVersionDialog(Handler.window, VERSION, latest_version)
+        dialog = NewVersionDialog(None, VERSION, latest_version)
         dialog.exec_()
         if dialog.download:
             webbrowser.open(links[1])
@@ -134,7 +134,8 @@ def after_open():
     Handler.hull_design_tab.ThreeDFrame.paintGL()
     for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
         _l[1] = False
-    StateHistory.current.init_stack()
+    if StateHistory.current:
+        StateHistory.current.init_stack()
     Handler.LoadingProject = False
 
 
@@ -2139,15 +2140,16 @@ class ReadNAHullTab(QWidget):
                 self.ThreeDFrame.prj_all_parts = gl_plot_obj.Parts
 
 
-def user_guide():
+def user_guide(ask_save=True):
     """
     用户引导程序
     """
-    # 弹出对话框，询问是否保存当前设计
-    _txt = "是否保存当前设计？"
-    reply = MyMessageBox().question(Handler.window, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
-    if reply == MyMessageBox.Ok:
-        ProjectHandler.current.save()
+    if ask_save:
+        # 弹出对话框，询问是否保存当前设计
+        _txt = "是否保存当前设计？"
+        reply = MyMessageBox().question(Handler.window, "提示", _txt, MyMessageBox.Yes | MyMessageBox.No)
+        if reply == MyMessageBox.Ok:
+            ProjectHandler.current.save()
     # 弹出UserGuideDialog
     user_guide_dialog = UserGuideDialog(Handler.window)
     user_guide_dialog.exec_()
@@ -2179,9 +2181,6 @@ if __name__ == '__main__':
         Handler = MainHandler(QtWindow)
         # 其他初始化
         Handler.hull_design_tab.ThreeDFrame.show_state_label = Handler.window.statu_label
-        if "Guided" not in Config.Config:
-            # 运行引导程序
-            user_guide()
         if Config.Projects != {}:
             try:
                 open_project(list(Config.Projects.values())[-1])
@@ -2190,9 +2189,25 @@ if __name__ == '__main__':
                 MyMessageBox().information(Handler.window, "提示", f"读取配置文件失败：{e}", MyMessageBox.Ok)
         else:
             pass
-        QtWindow.showMaximized()
         # 检查版本
         check_version()
+        # 打开开始界面
+        start_dialog = StartWelcomeDialog(None)
+        start_dialog.exec_()
+        from PyQt5.QtCore import QPropertyAnimation
+        QtWindow.showMaximized()
+        mainWinAnimation = QPropertyAnimation(QtWindow, b"windowOpacity")
+        mainWinAnimation.setDuration(400)
+        mainWinAnimation.setStartValue(0)
+        mainWinAnimation.setEndValue(1)
+        mainWinAnimation.start()
+        # 检查是否需要引导
+        if not Config.Config["Guided"]:
+            # 运行引导程序
+            user_guide(ask_save=False)
+            Config.Config["Guided"] = True
+        # # 检查当前是否有工程
+        # if not ProjectHandler.current:
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:

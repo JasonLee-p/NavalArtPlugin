@@ -5,6 +5,9 @@
 # 本地库
 import os
 
+from PyQt5.QtCore import QUrl, QPropertyAnimation
+from PyQt5.QtGui import QDesktopServices, QTextBlockFormat
+
 from path_utils import find_ptb_path, find_na_root_path
 from ship_reader import ReadPTB
 from GUI import *
@@ -81,6 +84,186 @@ class NewVersionDialog(BasicDialog):
     def ensure(self):
         self.download = True
         super().ensure()
+
+
+class StartWelcomeDialog(BasicDialog):
+    def ensure(self):
+        pass
+
+    def __init__(self, parent, title="", size=QSize(1100, 760)):
+        self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
+        self.center_layout = QHBoxLayout()
+        self.left_widget = QWidget()
+        self.left_layout = QVBoxLayout()
+        self.right_widget = QWidget()
+        self.right_layout = QVBoxLayout()
+        self.left_grid_layout = QGridLayout()
+        self.title = MyLabel("欢迎使用 NavalArt 船体编辑器", font=FONT_20)
+        self.buttons = [
+            QPushButton("新建工程"),
+            QPushButton("打开工程"),
+            QPushButton("最近打开"),
+            QPushButton("设置"),
+            QPushButton("帮助"),
+            QPushButton("关于"),
+        ]
+        self.set_layout()
+        super().__init__(parent, title, size, self.center_layout)
+        self.animation = QPropertyAnimation(self, b"windowOpacity")
+        self.animate()
+
+    def set_layout(self):
+        """
+        设置布局
+        :return:
+        """
+        self.center_layout.addWidget(self.left_widget, stretch=2)
+        self.center_layout.addWidget(self.right_widget, stretch=1)
+        self.left_widget.setLayout(self.left_layout)
+        self.right_widget.setLayout(self.right_layout)
+        self.center_layout.setContentsMargins(60, 25, 60, 25)
+        self.left_layout.setContentsMargins(20, 10, 20, 0)
+        self.right_layout.setContentsMargins(20, 30, 20, 30)
+        self.center_layout.setSpacing(30)
+        self.left_layout.setSpacing(10)
+        self.right_layout.setSpacing(20)
+        self.set_left_layout()
+        self.set_right_layout()
+
+    def set_left_layout(self):
+        """
+        设置左侧布局
+        :return:
+        """
+        self.left_layout.addWidget(self.title)
+        self.left_layout.setAlignment(Qt.AlignCenter)
+        self.title.setAlignment(Qt.AlignCenter)
+        # 添加文本
+        _text = "   NavalArt 船体编辑器，是一款基于颜色选取的船体编辑器。" \
+                "我们深知在 NavalArt 游戏内部编辑船体的痛点，" \
+                "因此我们开发了这款船体编辑器，希望能够帮助到大家。\n" \
+                "   我们将持续更新，如果您有任何建议，请联系我们："
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        # 设置边距
+        text_edit.setFixedHeight(190)
+        text_edit.setFrameShape(QFrame.NoFrame)
+        text_edit.setFrameShadow(QFrame.Plain)
+        text_edit.setLineWidth(0)
+        # 设置样式
+        cursor = text_edit.textCursor()
+        block_format = QTextBlockFormat()
+        block_format.setLineHeight(140, QTextBlockFormat.ProportionalHeight)  # 设置行间距
+        block_format.setIndent(0)  # 设置首行缩进
+        # 应用段落格式到文本游标
+        cursor.setBlockFormat(block_format)
+        cursor.insertText(_text)
+        text_edit.setTextCursor(cursor)
+        # 光标不变
+        text_edit.setFocusPolicy(Qt.NoFocus)
+        # 解绑滚轮事件
+        text_edit.wheelEvent = lambda event: None
+        # 取消滚动条
+        text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        text_edit.setStyleSheet(
+            f"background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
+            f"padding: 18px;"
+            f"border-radius: 46px;"
+        )
+        text_edit.setFont(FONT_12)
+        # 添加布局
+        self.left_layout.addStretch(1)
+        self.left_layout.addWidget(text_edit)
+        self.left_layout.addLayout(self.left_grid_layout)
+        self.set_left_down_grid_layout()
+
+    def set_left_down_grid_layout(self):
+        email_text = MyLabel("E-mail：", font=FONT_11)
+        email_content = MyLabel("2593292614@qq.com", font=FONT_11)
+        bilibili_text = MyLabel("哔哩哔哩：", font=FONT_11)
+        bilibili_content = MyLabel("咕咕的园艏", font=FONT_11)
+        bilibili_url = "https://space.bilibili.com/507183077?spm_id_from=333.1007.0.0"
+        email_url = "mailto:2593292614@qq.com"
+        # 设置样式
+        styleSheet = str(
+            f"color: {FG_COLOR0};"
+            f"background-color: {BG_COLOR1};"
+            f"border-radius: 10px;"
+        )
+        email_text.setStyleSheet(styleSheet)
+        bilibili_text.setStyleSheet(styleSheet)
+        email_content.setStyleSheet(styleSheet)
+        bilibili_content.setStyleSheet(styleSheet)
+        email_text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        bilibili_text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        email_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        bilibili_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        email_content.setFixedSize(230, 33)
+        bilibili_content.setFixedSize(230, 33)
+        # 添加布局
+        self.left_grid_layout.setContentsMargins(0, 0, 0, 0)
+        self.left_grid_layout.setSpacing(5)
+        self.left_grid_layout.setAlignment(Qt.AlignCenter)
+        self.left_grid_layout.addWidget(email_text, 0, 0)
+        self.left_grid_layout.addWidget(email_content, 0, 1)
+        self.left_grid_layout.addWidget(bilibili_text, 1, 0)
+        self.left_grid_layout.addWidget(bilibili_content, 1, 1)
+
+    def set_right_layout(self):
+        """
+        设置右侧布局
+        :return:
+        """
+        # 添加图标大图
+        ico = QLabel()
+        ico.setPixmap(self.ICO)
+        ico.setAlignment(Qt.AlignCenter)
+        # 添加布局
+        self.right_layout.addWidget(ico)
+        # 文字
+        _font = FONT_13
+        for button in self.buttons:
+            self.right_layout.addWidget(button, alignment=Qt.AlignCenter)
+            button.setFont(_font)
+            button.setFixedSize(220, 33)
+            # 设置左边间隔
+            button.setStyleSheet(
+                # 三种状态
+                f"QPushButton{{"
+                f"background-color: {BG_COLOR2};"
+                f"color: {FG_COLOR0};"
+                f"border-radius: 10px;"
+                f"}}"
+                f"QPushButton:hover{{"
+                f"background-color: {BG_COLOR1};"
+                f"color: {FG_COLOR0};"
+                f"border-radius: 10px;"
+                f"}}"
+                f"QPushButton:pressed{{"
+                f"background-color: {BG_COLOR0};"
+                f"color: {FG_COLOR0};"
+                f"border-radius: 10px;"
+                f"}}"
+            )
+        self.right_widget.setStyleSheet(
+            f"background-color: {BG_COLOR2};"
+            f"color: {FG_COLOR0};"
+            f"border-top-left-radius: 76px;"
+            f"border-top-right-radius: 76px;"
+            f"border-bottom-left-radius: 76px;"
+            f"border-bottom-right-radius: 76px;"
+        )
+        self.right_layout.addStretch(1)
+
+    def animate(self):
+        # 渐变动画
+        self.animation.setDuration(500)
+        self.animation.setStartValue(0)
+        self.animation.setEndValue(1)
+        self.animation.start()
+
+
 
 
 class NewProjectDialog(BasicDialog):
@@ -594,7 +777,8 @@ class SensitiveDialog(BasicDialog):
         self.center_layout.addWidget(self.sld0, 0, 1)
         self.center_layout.addWidget(self.sld1, 1, 1)
         self.center_layout.addWidget(self.sld2, 2, 1)
-        self.result = [self.config.Sensitivity["缩放"], self.config.Sensitivity["旋转"], self.config.Sensitivity["平移"]]
+        self.result = [self.config.Sensitivity["缩放"], self.config.Sensitivity["旋转"],
+                       self.config.Sensitivity["平移"]]
         for i in range(3):
             self.result[i] = self.result[i] * 100
         # 绑定事件
