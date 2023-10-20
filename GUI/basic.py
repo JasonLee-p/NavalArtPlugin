@@ -415,10 +415,20 @@ class SelectWidgetGroup:
 
 class BasicDialog(QDialog):
     def __init__(self, parent=None, border_radius=10, title=None, size=QSize(400, 300), center_layout=None,
-                 resizable=False):
+                 resizable=False, hide_bottom=False):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
-        super().__init__(parent=parent)
+        self._parent = parent
+        if not parent:
+            # 此时没有其他控件，但是如果直接显示会导致圆角黑边，所以需要设置一个背景色
+            self._parent = QWidget()
+            # 设置透明
+            self._parent.setAttribute(Qt.WA_TranslucentBackground)
+            self._parent.setWindowFlags(Qt.FramelessWindowHint)
+            self._parent.setFixedSize(WinWid, WinHei)
+            self._parent.move((WinWid - self._parent.width()) / 2, 3 * (WinHei - self._parent.height()) / 7)
+            self._parent.show()
+        super().__init__(parent=self._parent)
         self.setWindowTitle(title)
         self.title = title
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -429,18 +439,19 @@ class BasicDialog(QDialog):
         # 设置边框阴影
         self.shadow = QGraphicsDropShadowEffect(self)
         self.shadow.setOffset(0, 0)
-        self.shadow.setColor(QColor(0, 0, 0, 100))
-        self.shadow.setBlurRadius(10)
+        self.shadow.setColor(QColor(0, 0, 0, 50))
+        self.shadow.setBlurRadius(15)
         self.setGraphicsEffect(self.shadow)
-        if self.parent():
-            # 圆角
+        if isinstance(border_radius, int):
+            self.setStyleSheet(f"background-color:{BG_COLOR1}; border-radius:{border_radius}px;")
+        elif isinstance(border_radius, tuple):
             self.setStyleSheet(f"background-color:{BG_COLOR1};"
-                               f"border-radius:10px;")
-        elif border_radius:
-            self.setStyleSheet(f"background-color:{BG_COLOR1};"
-                               f"border-radius:{border_radius}px;")
+                               f"border-top-left-radius:{border_radius[0]}px;"
+                               f"border-top-right-radius:{border_radius[1]}px;"
+                               f"border-bottom-left-radius:{border_radius[2]}px;"
+                               f"border-bottom-right-radius:{border_radius[3]}px;")
         else:
-            self.setStyleSheet(f"background-color:{BG_COLOR1};")
+            self.setStyleSheet(f"background-color:{BG_COLOR1}; border-radius:10px;")
         # 设置主题
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -458,15 +469,16 @@ class BasicDialog(QDialog):
         self._center_layout = center_layout
         self.init_center_layout()
         self.main_layout.addStretch(1)
-        # 分割线
-        spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl2.setStyleSheet(f"background-color:{BG_COLOR0};")
-        self.main_layout.addWidget(spl2, alignment=Qt.AlignTop)
-        # 底部（按钮）
-        self.bottom_layout = QHBoxLayout()
-        self.cancel_button = QPushButton('取消')
-        self.ensure_button = QPushButton('确定')
-        self.add_bottom_bar()
+        if not hide_bottom:
+            # 分割线
+            spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+            spl2.setStyleSheet(f"background-color:{BG_COLOR0};")
+            self.main_layout.addWidget(spl2, alignment=Qt.AlignTop)
+            # 底部（按钮）
+            self.bottom_layout = QHBoxLayout()
+            self.cancel_button = QPushButton('取消')
+            self.ensure_button = QPushButton('确定')
+            self.add_bottom_bar()
         # 移动到屏幕中央
         self.move((WinWid - self.width()) / 2, 3 * (WinHei - self.height()) / 7)
         # 给top_layout的区域添加鼠标拖动功能

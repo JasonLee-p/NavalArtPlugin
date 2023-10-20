@@ -43,7 +43,7 @@ except Exception as e:
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
 
-VERSION = "va0.0.2.0"
+VERSION = "va0.0.0.0"
 
 
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
@@ -126,6 +126,10 @@ def open_project(file_path=None):
 
         file_dialog.setNameFilter("json files (*.json)")
         file_dialog.exec_()
+        # 如果不是点击了确定按钮，则返回
+        if not file_dialog.result():
+            Handler.LoadingProject = False
+            return
         # 获取选择的文件路径
         try:
             file_path = file_dialog.selectedFiles()[0]
@@ -385,6 +389,9 @@ class ProjectHandler(PF):
                 MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
                 return
             Handler.SavingProject = True
+            # 截取图片
+            thumbnail_save_path = os.path.join(os.path.join(ThumbnailPath, f"{self.Name}.png"))
+            Handler.hull_design_tab.ThreeDFrame.save_current_image(thumbnail_save_path)
             # 保存
             self.NAPartsData = NAHull.toJson(self.na_hull.DrawMap)
             super().save()
@@ -1139,6 +1146,8 @@ class RightTabWidget(QTabWidget):
             }
 
     def update_tab(self):
+        if Handler.LoadingProject or Handler.SavingProject:
+            return
         ThreeDFrame = Handler.hull_design_tab.ThreeDFrame
         _len = len(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode])
         # 隐藏当前的widget
@@ -2193,6 +2202,7 @@ if __name__ == '__main__':
         # 初始化路径
         PTBPath = find_ptb_path()
         NAPath = os.path.join(find_na_root_path(), "ShipSaves")
+        ThumbnailPath = os.path.join(find_na_root_path(), "ProjectThumbnails")
         # 读取配置
         Config = ConfigFile()
         # 初始化界面和事件处理器
@@ -2215,6 +2225,7 @@ if __name__ == '__main__':
         mainWinAnimation.setDuration(500)
         mainWinAnimation.setStartValue(0)
         mainWinAnimation.setEndValue(1)
+        QtWindow.hide()
         QtWindow.showMaximized()
         mainWinAnimation.start()
         if start_dialog.open_recent_project and Config.Projects != {}:  # 打开最近的工程

@@ -171,6 +171,19 @@ class OpenGLWin(QOpenGLWidget):
     Perspective = "perspective"
     Orthogonal = "orthogonal"
 
+    def save_current_image(self, save_path):
+        """
+        获取当前画面中物体图像，背景为透明，格式为png
+        :param save_path: 保存路径，包括文件名
+        :return:
+        """
+        # 获取当前画面中物体图像，背景为透明，格式为png
+        self.makeCurrent()
+        image = self.grabFramebuffer()
+        self.doneCurrent()
+        # 保存图片
+        image.save(save_path)
+
     def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
         self.show_statu_func = show_statu_func
         self.operation_mode = OpenGLWin.Selectable
@@ -267,7 +280,7 @@ class OpenGLWin(QOpenGLWidget):
         }
         # ========================================================================================子控件
         self.fps_label = QLabel(self)
-        self.init_fps_label()
+        self._init_fps_label()
         if self.using_various_mode:
             self.mod1_button = QToolButton(self)
             self.mod2_button = QToolButton(self)
@@ -427,7 +440,7 @@ class OpenGLWin(QOpenGLWidget):
             self.paintGL()
             self.update()
 
-    def init_fps_label(self):
+    def _init_fps_label(self):
         self.fps_label.setGeometry(10, 10, 100, 20)
         style = str(  # 透明背景
             f"color: {FG_COLOR0};"

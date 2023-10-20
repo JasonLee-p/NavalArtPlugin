@@ -5,7 +5,7 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QPropertyAnimation
+from PyQt5.QtCore import QPropertyAnimation, QRect
 from PyQt5.QtGui import QTextBlockFormat
 from PyQt5.QtWidgets import QProgressBar
 
@@ -42,7 +42,7 @@ class CheckNewVersionDialog(BasicDialog):
         self.label_latest_version = None
         self.label_update_text = QLabel("确定前往官网更新？")
         self.set_layout()
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, 10, title, size, self.center_layout)
         # 图标
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
         self.setWindowIcon(QIcon(self.ICO))
@@ -102,26 +102,25 @@ class CheckNewVersionDialog(BasicDialog):
         设置布局
         :return:
         """
-        self.center_layout.setContentsMargins(50, 30, 50, 0)
+        self.center_layout.setContentsMargins(40, 26, 40, 0)
         self.center_layout.setSpacing(10)
         self.center_layout.setAlignment(Qt.AlignCenter)
-        self.animate_bar.setFixedSize(200, 16)
+        AB_RADIUS = 3
+        self.animate_bar.setFixedSize(220, 2 * AB_RADIUS)
         self.animate_bar.setStyleSheet(
             f"""
             QProgressBar {{
-                border-radius: 8px;
                 text-align: center;
                 background-color: {GRAY};
                 color: {FG_COLOR0};
             }}
             QProgressBar::chunk {{
                 background-color: {FG_COLOR0};
-                border-radius: 8px;
             }}
             """
         )
         self.animate_bar.setRange(0, 0)
-        self.checking_label.setFixedSize(200, 60)
+        self.checking_label.setFixedSize(220, 60)
         # 居中显示
         self.center_layout.addWidget(self.checking_label, 0, 0, 1, 2)
         self.center_layout.addWidget(self.animate_bar, 1, 0, 1, 2)
@@ -150,7 +149,7 @@ class StartWelcomeDialog(BasicDialog):
         self.open_project = True
         self.ensure()
 
-    def __init__(self, parent, title="", size=QSize(1100, 760)):
+    def __init__(self, parent, title="", size=QSize(1100, 800)):
         # 信号
         self.close_program = True
         self.open_recent_project = False
@@ -173,17 +172,33 @@ class StartWelcomeDialog(BasicDialog):
             "帮助": QPushButton("帮助"),
             "关于": QPushButton("关于"),
         }
+        self.Hei = size.height()
+        self.Wid = size.width()
         self.set_layout()
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, (10, 10, 116, 116), title, size, self.center_layout, hide_bottom=True)
+        self.hide()
         # 图标
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
         self.setWindowIcon(QIcon(self.ICO))
         # 渐变动画
-        self.animation = QPropertyAnimation(self, b"windowOpacity")
-        self.animation.setDuration(500)
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(1)
-        self.animation.start()
+        DUR = 200
+        # 窗口透明度
+        self.animation0 = QPropertyAnimation(self.parent(), b"windowOpacity")
+        self.animation0.setStartValue(0)
+        self.animation0.setEndValue(1)
+        # 窗口位置（从右下）
+        self.animation1 = QPropertyAnimation(self, b"geometry")
+        self.animation1.setStartValue(QRect(self.x() + 100, self.y() + 100, 0, 0))
+        self.animation1.setEndValue(QRect(self.x(), self.y(), self.Wid, self.Hei))
+        # 窗口总体饱和度
+        self.animation2 = QPropertyAnimation(self, b"saturation")
+        self.animation2.setStartValue(0)
+        self.animation2.setEndValue(1)
+
+        self.animations = [self.animation0, self.animation1, self.animation2]
+        for a in self.animations:
+            a.setDuration(DUR)
+            a.start()
 
     def set_layout(self):
         """
@@ -194,9 +209,10 @@ class StartWelcomeDialog(BasicDialog):
         self.center_layout.addWidget(self.right_widget, stretch=1)
         self.left_widget.setLayout(self.left_layout)
         self.right_widget.setLayout(self.right_layout)
-        self.center_layout.setContentsMargins(60, 25, 60, 25)
+        self.right_widget.setFixedHeight(self.Hei - 100)
+        self.center_layout.setContentsMargins(60, 25, 40, 0)
         self.left_layout.setContentsMargins(20, 10, 20, 0)
-        self.right_layout.setContentsMargins(20, 30, 20, 30)
+        self.right_layout.setContentsMargins(15, 30, 15, 55)
         self.center_layout.setSpacing(30)
         self.left_layout.setSpacing(10)
         self.right_layout.setSpacing(20)
@@ -219,14 +235,14 @@ class StartWelcomeDialog(BasicDialog):
         text_edit = QTextEdit()
         text_edit.setReadOnly(True)
         # 设置边距
-        text_edit.setFixedHeight(190)
+        text_edit.setFixedHeight(145)
         text_edit.setFrameShape(QFrame.NoFrame)
         text_edit.setFrameShadow(QFrame.Plain)
         text_edit.setLineWidth(0)
         # 设置样式
         cursor = text_edit.textCursor()
         block_format = QTextBlockFormat()
-        block_format.setLineHeight(140, QTextBlockFormat.ProportionalHeight)  # 设置行间距
+        block_format.setLineHeight(125, QTextBlockFormat.ProportionalHeight)  # 设置行间距
         block_format.setIndent(0)  # 设置首行缩进
         # 应用段落格式到文本游标
         cursor.setBlockFormat(block_format)
@@ -234,17 +250,23 @@ class StartWelcomeDialog(BasicDialog):
         text_edit.setTextCursor(cursor)
         # 光标不变
         text_edit.setFocusPolicy(Qt.NoFocus)
-        # 解绑滚轮事件
+        # 解绑事件
         text_edit.wheelEvent = lambda event: None
+        text_edit.mousePressEvent = lambda event: None
+        text_edit.mouseMoveEvent = lambda event: None
+        text_edit.mouseReleaseEvent = lambda event: None
         # 取消滚动条
         text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         text_edit.setStyleSheet(
-            f"background-color: {BG_COLOR2};"
+            f"background-color: {BG_COLOR0};"
             f"color: {FG_COLOR0};"
-            f"padding: 18px;"
+            f"padding-left: 22px;"
+            f"padding-right: 22px;"
+            f"padding-top: 10px;"
+            f"padding-bottom: 5px;"
             f"border-radius: 46px;"
         )
-        text_edit.setFont(FONT_12)
+        text_edit.setFont(FONT_11)
         # 添加布局
         self.left_layout.addStretch(1)
         self.left_layout.addWidget(text_edit)
@@ -252,18 +274,27 @@ class StartWelcomeDialog(BasicDialog):
         self.set_left_down_grid_layout()
 
     def set_left_down_grid_layout(self):
-        email_text = MyLabel("E-mail：", font=FONT_11)
-        email_content = MyLabel("2593292614@qq.com", font=FONT_11)
-        bilibili_text = MyLabel("哔哩哔哩：", font=FONT_11)
-        bilibili_content = MyLabel("咕咕的园艏", font=FONT_11)
+        email_text = MyLabel("E-mail：", font=FONT_10)
+        email_content = MyLabel("2593292614@qq.com", font=FONT_10)
+        bilibili_text = MyLabel("哔哩哔哩：", font=FONT_10)
+        bilibili_content = MyLabel("咕咕的园艏", font=FONT_10)
+        # 添加下划线
+        email_content.setFrameShape(QFrame.HLine)
+        bilibili_content.setFrameShape(QFrame.HLine)
         bilibili_url = "https://space.bilibili.com/507183077?spm_id_from=333.1007.0.0"
         email_url = "mailto:2593292614@qq.com"
         # 设置样式
-        styleSheet = str(
-            f"color: {FG_COLOR0};"
-            f"background-color: {BG_COLOR1};"
-            f"border-radius: 10px;"
-        )
+        styleSheet = f"""
+            color: {FG_COLOR0};
+            background-color: {BG_COLOR1};
+            border-radius: 10px;
+        """
+        # 设置鼠标悬停样式
+        hover_styleSheet = f"""
+            color: #00FFFF;
+            background-color: {BG_COLOR1};
+            border-radius: 10px;
+        """
         email_text.setStyleSheet(styleSheet)
         bilibili_text.setStyleSheet(styleSheet)
         email_content.setStyleSheet(styleSheet)
@@ -272,16 +303,10 @@ class StartWelcomeDialog(BasicDialog):
         bilibili_text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         email_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         bilibili_content.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        email_content.setFixedSize(230, 33)
-        bilibili_content.setFixedSize(230, 33)
+        email_content.setFixedSize(230, 23)
+        bilibili_content.setFixedSize(230, 23)
         email_content.setCursor(Qt.PointingHandCursor)
         bilibili_content.setCursor(Qt.PointingHandCursor)
-        # 设置鼠标悬停样式
-        hover_styleSheet = f"""
-            color: blue;
-            background-color: {BG_COLOR1};
-            border-radius: 10px;
-        """
         email_content.enterEvent = lambda event: email_content.setStyleSheet(hover_styleSheet)
         email_content.leaveEvent = lambda event: email_content.setStyleSheet(styleSheet)
         bilibili_content.enterEvent = lambda event: bilibili_content.setStyleSheet(hover_styleSheet)
@@ -319,7 +344,7 @@ class StartWelcomeDialog(BasicDialog):
             button.setStyleSheet(
                 # 三种状态
                 f"QPushButton{{"
-                f"background-color: {BG_COLOR2};"
+                f"background-color: {BG_COLOR0};"
                 f"color: {FG_COLOR0};"
                 f"border-radius: 10px;"
                 f"}}"
@@ -329,13 +354,13 @@ class StartWelcomeDialog(BasicDialog):
                 f"border-radius: 10px;"
                 f"}}"
                 f"QPushButton:pressed{{"
-                f"background-color: {BG_COLOR0};"
+                f"background-color: {BG_COLOR2};"
                 f"color: {FG_COLOR0};"
                 f"border-radius: 10px;"
                 f"}}"
             )
         self.right_widget.setStyleSheet(
-            f"background-color: {BG_COLOR2};"
+            f"background-color: {BG_COLOR0};"
             f"color: {FG_COLOR0};"
             f"border-top-left-radius: 78px;"
             f"border-top-right-radius: 78px;"
@@ -722,7 +747,7 @@ class SelectNaDialog(BasicDialog):
         self.scroll_area = QScrollArea()
         self.scroll_area_widget = QWidget()
         self.scroll_area_widget_layout = QGridLayout()
-        super().__init__(parent, None, title, size, self.center_layout, resizable=True)
+        super().__init__(parent, 10, title, size, self.center_layout, resizable=True)
         # 当鼠标移动到窗口边缘按下，添加缩放功能
         self.setMouseTracking(True)
         self.na_designs = {}
@@ -811,7 +836,7 @@ class ThemeDialog(BasicDialog):
         self.center_layout.addWidget(self.lb0, 0, 1)
         self.center_layout.addWidget(self.lb1, 1, 1)
         self.center_layout.addWidget(self.lb2, 2, 1)
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, 10, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):
@@ -879,7 +904,7 @@ class SensitiveDialog(BasicDialog):
         self.sld0.valueChanged.connect(self.value_changed0)
         self.sld1.valueChanged.connect(self.value_changed1)
         self.sld2.valueChanged.connect(self.value_changed2)
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, 10, title, size, self.center_layout)
         self.set_widget()
 
     def value_changed0(self):
@@ -1005,7 +1030,7 @@ class ColorDialog(BasicDialog):
             size = QSize(320, 380)
             self.scroll_area_widget.setFixedSize(size.width() - 25, single_line_h + 20)
         self.scroll_area.setFixedSize(size.width(), size.height() - top_and_bottom_and_button_height + 20)
-        super().__init__(parent, None, self.title, size, self.center_layout)
+        super().__init__(parent, 10, self.title, size, self.center_layout)
         self.set_widget()
         self.cancel_button.clicked.connect(self.cancel)
         self.close_button.clicked.connect(self.cancel)
@@ -1082,7 +1107,7 @@ class ExportDialog(BasicDialog):
         self.center_layout.addWidget(self.l0, 0, 1)
         self.center_layout.addWidget(self.l1, 1, 1)
 
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, 10, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):
@@ -1106,7 +1131,7 @@ class UserGuideDialog(BasicDialog):
         self.lb0.setAlignment(Qt.AlignCenter)
         self.center_layout.addWidget(self.lb0)
         ...  # TODO:
-        super().__init__(parent, None, title, size, self.center_layout)
+        super().__init__(parent, 10, title, size, self.center_layout)
         self.set_widget()
 
     def set_widget(self):
