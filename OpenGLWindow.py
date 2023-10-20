@@ -171,18 +171,20 @@ class OpenGLWin(QOpenGLWidget):
     Perspective = "perspective"
     Orthogonal = "orthogonal"
 
-    def save_current_image(self, save_path):
+    def save_current_image(self, save_dir, prj_name):
         """
         获取当前画面中物体图像，背景为透明，格式为png
-        :param save_path: 保存路径，包括文件名
+        :param save_dir: 保存路径
+        :param prj_name: 项目名称
         :return:
         """
         # 获取当前画面中物体图像，背景为透明，格式为png
-        self.makeCurrent()
-        image = self.grabFramebuffer()
-        self.doneCurrent()
+        width, height = self.width, self.height
+        data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+        image = QImage(data, width, height, QImage.Format_RGBA8888)
+        image = image.mirrored(vertical=True)  # 翻转图像，因为OpenGL坐标原点在左下角
         # 保存图片
-        image.save(save_path)
+        image.save(os.path.join(save_dir, f"{prj_name}.png"))
 
     def __init__(self, camera_sensitivity, using_various_mode=False, show_statu_func=None):
         self.show_statu_func = show_statu_func

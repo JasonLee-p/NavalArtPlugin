@@ -419,6 +419,7 @@ class BasicDialog(QDialog):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         self._parent = parent
+        self._generate_self_parent = False
         if not parent:
             # 此时没有其他控件，但是如果直接显示会导致圆角黑边，所以需要设置一个背景色
             self._parent = QWidget()
@@ -428,6 +429,7 @@ class BasicDialog(QDialog):
             self._parent.setFixedSize(WinWid, WinHei)
             self._parent.move((WinWid - self._parent.width()) / 2, 3 * (WinHei - self._parent.height()) / 7)
             self._parent.show()
+            self._generate_self_parent = True
         super().__init__(parent=self._parent)
         self.setWindowTitle(title)
         self.title = title
@@ -500,6 +502,11 @@ class BasicDialog(QDialog):
     @abstractmethod
     def ensure(self):
         self.close()
+
+    def close(self):
+        super().close()
+        if self._generate_self_parent:
+            self._parent.close()
 
     def add_top_bar(self):
         # 布局

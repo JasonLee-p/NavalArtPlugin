@@ -390,8 +390,7 @@ class ProjectHandler(PF):
                 return
             Handler.SavingProject = True
             # 截取图片
-            thumbnail_save_path = os.path.join(os.path.join(ThumbnailPath, f"{self.Name}.png"))
-            Handler.hull_design_tab.ThreeDFrame.save_current_image(thumbnail_save_path)
+            Handler.hull_design_tab.ThreeDFrame.save_current_image(ThumbnailPath, self.Name)
             # 保存
             self.NAPartsData = NAHull.toJson(self.na_hull.DrawMap)
             super().save()

@@ -90,9 +90,6 @@ class CheckNewVersionDialog(BasicDialog):
 
     def check_update_failed(self):
         self.checking_label.setText("检查更新失败")
-        self.checking_label.setFont(FONT_14)
-        self.checking_label.setStyleSheet(f"color: {FG_COLOR0};")
-        self.checking_label.setAlignment(Qt.AlignCenter)
         self.center_layout.removeWidget(self.animate_bar)
         self.animate_bar.deleteLater()
         self.center_layout.addWidget(self.checking_label, 0, 0, 1, 2)
