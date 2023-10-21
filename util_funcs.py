@@ -8,7 +8,7 @@ from typing import Literal
 import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QVector3D, QPixmap, QPainter, QPainterPath
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QWidget
 from quaternion import quaternion
 
 

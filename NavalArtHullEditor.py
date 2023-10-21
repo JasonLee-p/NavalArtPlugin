@@ -44,7 +44,7 @@ except Exception as e:
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
 
-VERSION = "va0.0.0.0"
+VERSION = "va0.0.2.0"
 
 
 def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] = 'process', label=None):
@@ -119,13 +119,25 @@ def open_project(file_path=None):
     Handler.LoadingProject = True
     # 选择路径
     if not file_path:
-        select_prj_dialog = SelectPrjDialog(None, config_projects=Config.Projects)
-        select_prj_dialog.exec_()
-        file_path = select_prj_dialog.selected_project_path
-        del select_prj_dialog
-        if not file_path:
-            Handler.LoadingProject = False
-            return
+        if Config.Projects == {}:  # 如果没有历史记录，打开自带文件选择框
+            select_path_dialog = QFileDialog(Handler.window, "打开工程", Config.ProjectsFolder)
+            select_path_dialog.setNameFilter("工程文件 (*.json)")
+            select_path_dialog.setFileMode(QFileDialog.ExistingFile)
+            select_path_dialog.exec_()
+            # 判断用户是否点击确定
+            if not select_path_dialog.selectedFiles():
+                Handler.LoadingProject = False
+                return
+            file_path = select_path_dialog.selectedFiles()[0]
+            del select_path_dialog
+        else:
+            select_prj_dialog = SelectPrjDialog(None, config_projects=Config.Projects)
+            select_prj_dialog.exec_()
+            file_path = select_prj_dialog.selected_project_path
+            del select_prj_dialog
+            if not file_path:
+                Handler.LoadingProject = False
+                return
     Handler.window.open_project_thread = ProjectOpeningThread(file_path)
     Handler.window.open_project_thread.update_state.connect(show_state)
     Handler.window.open_project_thread.finished.connect(after_open)
@@ -511,8 +523,8 @@ class GLWin(OpenGLWin):
             self.b6: lambda x: self.set_show_3d_obj_mode(self.ShowXY),
             self.b7: lambda x: self.set_show_3d_obj_mode(self.ShowLeft)
         }
-        for b in self.button_pos_map.keys():
-            set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
+        sizes = [self.button_size_map[b] for b in self.button_pos_map.keys()]
+        set_buttons(self.button_pos_map.keys(), sizes=sizes, font=FONT_8, border_radius=5, fg=FG_COLOR2)
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
 
     def __deepcopy__(self, memo):
@@ -568,16 +580,12 @@ class GLWin(OpenGLWin):
                 # 按钮高亮
                 for b in self.button_pos_map.keys():
                     if b == min_b:
-                        b.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR2};font-size:15px;'
-                                        f'color:{FG_COLOR2};'
-                                        f'font-family:{YAHEI};}}'
-                                        f'QPushButton:hover{{background-color:{GRAY};}}')
-                        b.setFont(FONT_11)
+                        set_buttons([b], sizes=[self.button_size_map[b]], font=FONT_10, border_radius=5, fg=FG_COLOR0)
                     else:
-                        set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
+                        set_buttons([b], sizes=[self.button_size_map[b]], font=FONT_9, border_radius=5, fg=FG_COLOR2)
             else:
-                for b in self.button_pos_map.keys():
-                    set_button_style(b, self.button_size_map[b], FONT_11, style="普通")
+                _sizes = [self.button_size_map[b] for b in self.button_pos_map.keys()]
+                set_buttons(self.button_pos_map.keys(), sizes=_sizes, font=FONT_9, border_radius=5, fg=FG_COLOR0)
         elif event.modifiers() != Qt.AltModifier and self.sub_menu_start is not None:
             self.lastPos = event.pos()
             self.sub_menu_start = None
@@ -1792,7 +1800,8 @@ class HullDesignTab(QWidget):
                 color_dialog.exec_()
                 if not color_dialog.canceled:
                     # 生成工程文件对象
-                    Handler.window.new_project_thread = ProjectLoadingNewThread(_na_hull, _name, _prj_path, _original_na_p)
+                    Handler.window.new_project_thread = ProjectLoadingNewThread(_na_hull, _name, _prj_path,
+                                                                                _original_na_p)
                     Handler.window.new_project_thread.update_state.connect(show_state)
                     Handler.window.new_project_thread.finished.connect(after_new)
                     Handler.window.new_project_thread.start()
@@ -2200,6 +2209,36 @@ def user_guide(ask_save=True):
     user_guide_dialog.exec_()
 
 
+def handle_exception(_exception):
+    # 将报错信息和调用栈
+    clipboard = QApplication.clipboard()
+    err_message = f"Fatal Error：{_exception}\n{traceback.format_exc()}"
+    # # 对err_message进行base64加密
+    # import base64
+    # err_message = base64.b64encode(err_message.encode('utf-8')).decode('utf-8')
+    clipboard.setText(err_message)
+    _title = "致命错误"
+    information = f"""
+        \t检测到异常，已将错误信息复制到剪贴板\n\t请将错误信息发送到 2593292614@qq.com\n
+        {err_message}\n
+    """
+    MyMessageBox().information(None, _title, information, MyMessageBox.Ok)
+
+    class QQMailThread(QThread):
+        def __init__(self):
+            super().__init__(None)
+
+        def run(self):
+            Connection.send_email(f"Fatal Error：{_exception}\n{traceback.format_exc()}")
+            time.sleep(3)
+
+    _qqmail_t = QQMailThread()
+    _qqmail_t.start()
+    _qqmail_t.wait()
+    # 退出程序
+    raise _exception
+
+
 if __name__ == '__main__':
     try:
         """
@@ -2223,6 +2262,23 @@ if __name__ == '__main__':
         Config = ConfigFile()
         # 初始化界面和事件处理器
         QApp = QApplication(sys.argv)
+        QApp.setWindowIcon(QIcon(QPixmap.fromImage(QImage.fromData(ICO_))))
+        QApp.setStyleSheet(f"""
+            QWidget{{
+                background-color:{BG_COLOR1};
+                color:{FG_COLOR0};
+            }}
+            QPushButton{{
+                background-color:{BG_COLOR1};
+                color:{FG_COLOR0};
+                border-radius: 5px;
+                border: 1px solid {FG_COLOR0};
+                padding-left: 15px;
+                padding-right: 15px;
+                padding-top: 5px;
+                padding-bottom: 5px;
+            }}
+        """)
         # 初始化主窗口
         QtWindow = MainWin(Config)
         Handler = MainHandler(QtWindow)
@@ -2262,11 +2318,4 @@ if __name__ == '__main__':
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:
-        MyMessageBox().information(None, "致命错误，已复制到剪贴板", f"Fatal Error：{e}", MyMessageBox.Ok)
-        # 将报错信息和调用栈
-        clipboard = QApplication.clipboard()
-        clipboard.setText(f"Fatal Error：{e}\n{traceback.format_exc()}")
-        # 发送邮件
-        Connection.send_email(f"Fatal Error：{e}\n{traceback.format_exc()}")
-        # 退出程序
-        raise e
+        handle_exception(e)

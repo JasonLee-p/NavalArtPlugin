@@ -18,9 +18,26 @@ from GUI.basic import create_rounded_thumbnail
 from OpenGL.GL import *
 
 
-def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
-    from GUI.basic import set_button_style
-    set_button_style(button, size, font, style, active_color, icon)
+def set_buttons(
+        buttons, sizes, font=FONT_9, border=0, border_color=FG_COLOR0,
+        border_radius=10, padding=0, bg=(BG_COLOR1, BG_COLOR3, BG_COLOR2, BG_COLOR3),
+        fg=FG_COLOR0
+):
+    """
+    设置按钮样式
+    :param buttons: 按钮列表
+    :param sizes: Tuple[int, int]，按钮大小
+    :param font: QFont对象
+    :param border: 边框宽度
+    :param border_color: 边框颜色
+    :param border_radius: 边框圆角
+    :param padding: 内边距
+    :param bg: 按钮背景颜色
+    :param fg: 按钮字体颜色
+    :return:
+    """
+    from GUI.basic import set_buttons
+    set_buttons(buttons, sizes, font, border, border_color, border_radius, padding, bg, fg)
 
 
 def getFG_fromBG(bg_color):
@@ -380,24 +397,26 @@ class StartWelcomeDialog(BasicDialog):
             button.setFont(_font)
             button.setFixedSize(256, 33)
             # 设置左边间隔
-            button.setStyleSheet(
-                # 三种状态
-                f"QPushButton{{"
-                f"background-color: {BG_COLOR0};"
-                f"color: {FG_COLOR0};"
-                f"border-radius: 10px;"
-                f"}}"
-                f"QPushButton:hover{{"
-                f"background-color: {BG_COLOR3};"
-                f"color: {FG_COLOR0};"
-                f"border-radius: 10px;"
-                f"}}"
-                f"QPushButton:pressed{{"
-                f"background-color: {BG_COLOR1};"
-                f"color: {FG_COLOR0};"
-                f"border-radius: 10px;"
-                f"}}"
-            )
+            button.setStyleSheet(f"""
+                QPushButton{{
+                    background-color:{BG_COLOR0};
+                    color:{FG_COLOR0};
+                    border-radius: 12px;
+                    border: 0px;
+                }}
+                QPushButton:hover{{
+                    background-color:{BG_COLOR3};
+                    color:{FG_COLOR0};
+                    border-radius: 12px;
+                    border: 0px;
+                }}
+                QPushButton:pressed{{
+                    background-color:{BG_COLOR1};
+                    color:{FG_COLOR0};
+                    border-radius: 12px;
+                    border: 0px;
+                }}          
+            """)
         self.right_widget.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};")
         self.right_layout.addStretch(2)
 
@@ -435,6 +454,9 @@ class StartWelcomeDialog(BasicDialog):
             self.buttons["帮助"].clicked.connect(help_func)
         if about_func is not None:
             self.buttons["关于"].clicked.connect(about_func)
+
+    def __animate(self):
+        pass
 
 
 class NewProjectDialog(BasicDialog):
@@ -545,10 +567,9 @@ class NewProjectDialog(BasicDialog):
         self.set_widgets()
         # 设置信号槽
         self.search_prj_path_button.clicked.connect(self.check_path)
-        set_button_style(self.search_prj_path_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_na_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_ptb_button, size=(60, 26), style="圆角边框")
-        set_button_style(self.search_preset_button, size=(60, 26), style="圆角边框")
+        self.buttons = [self.search_prj_path_button, self.search_na_button,
+                        self.search_ptb_button, self.search_preset_button]
+        set_buttons(self.buttons, sizes=(60, 26), border_radius=10, border=1)
         super().__init__(parent, border_radius, title, size, self.center_layout)
         # 图标
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
@@ -765,7 +786,7 @@ class NewProjectDialog(BasicDialog):
             except IndexError and KeyError and AttributeError:
                 _txt = "该文件不是有效的船体设计文件，请重新选择哦"
                 # 白色背景的提示框
-                MyMessageBox().information(None, "提示", _txt, MyMessageBox.Ok)
+                MyMessageBox().information(self, "提示", _txt, MyMessageBox.Ok)
                 return
             if design_reader.result["adHull"]:  # 如果存在进阶船壳
                 # 显示后两层路径
@@ -800,10 +821,41 @@ class SelectNaDialog(BasicDialog):
         self.setMouseTracking(True)
         self.na_designs = {}
         self.set_widgets()
+        if self.na_designs == {}:  # 如果没有找到任何船体设计文件
+            # 向控件添加文字
+            label = MyLabel('没有找到任何船体设计文件', font=FONT_10)
+            label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet(f"color: {GRAY};")
+            self.scroll_area_widget_layout.addWidget(label, 0, 0, Qt.AlignCenter)
+            self.set_scroll_area_widget(1)
+            return
+        original_SS = f"""
+            QPushButton{{
+                background-color: {BG_COLOR0};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color: {BG_COLOR1};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            """
+        selected_SS = f"""
+            QPushButton{{
+                background-color: {BG_COLOR3};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color: {BG_COLOR3};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            """
         self.container_group = SelectWidgetGroup(
             list(self.na_designs.values()), self.scroll_area_widget,
-            original_style_sheet=f"background-color: {BG_COLOR0}; border-radius: 10px;",
-            selected_style_sheet=f"background-color: {BG_COLOR3}; border-radius: 10px;"
+            original_style_sheet=original_SS, selected_style_sheet=selected_SS
         )
 
     def set_widgets(self):
@@ -835,7 +887,18 @@ class SelectNaDialog(BasicDialog):
             # 主容器（按钮，上图片下文字）
             bt = QPushButton()
             bt.setFixedSize(260, 220)
-            bt.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
+            bt.setStyleSheet(f"""
+                QPushButton{{
+                    background-color:{BG_COLOR1};
+                    color:{FG_COLOR0};
+                    border-radius: 10px;
+                    border: 0px solid {FG_COLOR0};
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    padding-top: 5px;
+                    padding-bottom: 5px;
+                }}
+            """)
             bt_layout = QVBoxLayout()
             bt_layout.setAlignment(Qt.AlignCenter)
             bt_layout.addWidget(thumbnail_label)
@@ -857,8 +920,11 @@ class SelectNaDialog(BasicDialog):
         self.scroll_area_widget.setStyleSheet(style)
 
     def ensure(self):
-        index = self.container_group.selected_bt_index
-        self.selected_na_design = list(self.na_designs.keys())[index]
+        try:
+            index = self.container_group.selected_bt_index
+            self.selected_na_design = list(self.na_designs.keys())[index]
+        except AttributeError:
+            pass
         super().ensure()
 
 
@@ -880,10 +946,33 @@ class SelectPrjDialog(BasicDialog):
         self.setMouseTracking(True)
         self.projects = {}
         self.set_widgets()
+        original_SS = f"""
+            QPushButton{{
+                background-color: {BG_COLOR0};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color: {BG_COLOR1};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            """
+        selected_SS = f"""
+            QPushButton{{
+                background-color: {BG_COLOR3};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color: {BG_COLOR3};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            """
         self.container_group = SelectWidgetGroup(
             list(self.projects.values()), self.scroll_area_widget,
-            original_style_sheet=f"background-color: {BG_COLOR0}; border-radius: 10px;",
-            selected_style_sheet=f"background-color: {BG_COLOR3}; border-radius: 10px;"
+            original_style_sheet=original_SS, selected_style_sheet=selected_SS
         )
 
     def set_widgets(self):
@@ -931,7 +1020,7 @@ class SelectPrjDialog(BasicDialog):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFixedSize(1250, 585)
         self.scroll_area.setStyleSheet(f"background-color: {BG_COLOR0}; border-radius: 10px;")
-        self.scroll_area_widget.setFixedSize(1200, 200 * (total_num // 4 + 1))
+        self.scroll_area_widget.setFixedSize(1200, 260 * (total_num // 4 + 1))
         self.scroll_area_widget_layout.setAlignment(Qt.AlignTop)
         style = str(f"background-color: {BG_COLOR0}; border-radius: 10px;")
         self.scroll_area_widget.setStyleSheet(style)
@@ -991,7 +1080,7 @@ class ThemeDialog(BasicDialog):
             self.config.Config["Theme"] = "Night"
         elif self.button_group.selected_bt_index == 2:
             # 提示自定义功能未开放
-            MyMessageBox().information(None, "提示", "自定义功能未开放", MyMessageBox.Ok)
+            MyMessageBox().information(self, "提示", "自定义功能未开放", MyMessageBox.Ok)
             return
         # 提示保存成功，建议重启程序
         self.show_state_func("主题保存成功，建议重启程序", "success")
@@ -1212,7 +1301,10 @@ class ColorDialog(BasicDialog):
             self.color_selected.emit()  # 发送自定义信号通知颜色选择完成
             self.close()
         else:
-            MyMessageBox().information(None, "提示", "未选择任何颜色", MyMessageBox.Ok)
+            _p = QWidget()
+            _p.setWindowIcon(QIcon(QPixmap.fromImage(QImage.fromData(ICO_))))
+            MyMessageBox().information(self, "提示", "未选择任何颜色", MyMessageBox.Ok)
+            _p.close()
 
 
 class ExportDialog(BasicDialog):

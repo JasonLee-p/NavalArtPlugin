@@ -85,33 +85,6 @@ class MainWindow(QWidget):
         self.setStyleSheet(
             f"background-color: {BG_COLOR1};"
             f"color: {FG_COLOR0};"
-            # 设置以自己为父的QMessageBox的样式
-            f"QMessageBox{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            # 设置QMessageBox的按钮样式
-            f"QMessageBox QPushButton{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            f"QMessageBox QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            # 设置QLineEdit的样式
-            f"QLineEdit{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR0};"
-            f"border-radius: 5px;}}"
-            f"QLineEdit:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR0};"
-            f"border-radius: 5px;}}"
-            f"QLineEdit:focus{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR0};"
-            f"border-radius: 5px;}}"
         )
 
     def add_top_bar(self, menu_map):
@@ -124,12 +97,28 @@ class MainWindow(QWidget):
         for menu_name in menu_map:
             menu_button = QPushButton(menu_name)
             menu_button.setFixedSize(55 * RATE, self.topH)
-            menu_button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:16px;'
-                                      f'font-family:{YAHEI};}}'
-                                      f'QPushButton:hover{{background-color:gray;}}'
-                                      f'QPushButton::menu-indicator{{image:none;}}')  # 去掉下拉箭头
+            menu_button.setStyleSheet(f"""
+                QPushButton{{
+                    background-color:{BG_COLOR1};
+                    color:{FG_COLOR0};
+                    border-radius: 0px;
+                    border: 0px;
+                    padding: 0px;
+                }}
+                QPushButton:hover{{
+                    background-color:{BG_COLOR3};
+                    color:{FG_COLOR0};
+                    border-radius: 0px;
+                    border: 0px;
+                    padding: 0px;
+                }}
+                QPushButton::menu-indicator{{
+                    image:none;
+                }}
+            """)
+            menu_button.setFont(FONT_11)
             menu_button.setMenu(self.init_sub_menu(menu_name, menu_map))
-            self.menu_layout.addWidget(menu_button, alignment=Qt.AlignLeft)
+            self.menu_layout.addWidget(menu_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         # 最小化按钮
         self.set_button_style(self.minimize_button, self.minimize_bg, self.three_button_size, 'white', 'gray')
         self.minimize_button.clicked.connect(self.showMinimized)

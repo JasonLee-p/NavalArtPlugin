@@ -32,7 +32,7 @@ from .basic import BasicDialog, ShortCutWidget
 from .interfaces import MainWindow, MainTabWidget
 from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog, SelectPrjDialog
 # 函数
-from .basic import set_tool_bar_style, set_top_button_style, set_button_style, getFG_fromBG, front_completion, create_rounded_thumbnail
+from .basic import set_tool_bar_style, set_buttons, set_top_button_style, set_button_style, getFG_fromBG, front_completion, create_rounded_thumbnail
 __all__ = [
     # 引入Qt库
     "Qt", "QThread", "pyqtSignal", "QSize", "QPoint",
@@ -65,5 +65,5 @@ __all__ = [
     "MainWindow", "MainTabWidget",
     "CheckNewVersionDialog", "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog", "SelectPrjDialog",
     # 函数
-    "set_tool_bar_style", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion", "create_rounded_thumbnail"
+    "set_tool_bar_style", "set_buttons", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion", "create_rounded_thumbnail"
 ]

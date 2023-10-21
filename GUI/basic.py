@@ -10,7 +10,7 @@ from abc import abstractmethod
 # 第三方库
 from typing import List
 
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath
 from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
@@ -90,7 +90,75 @@ def front_completion(txt, length, add_char):
         return txt
 
 
-def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_color='gray', icon=None):
+def set_buttons(
+        buttons, sizes, font=FONT_9, border=0, border_color=FG_COLOR0,
+        border_radius=10, padding=0, bg=(BG_COLOR1, BG_COLOR3, BG_COLOR2, BG_COLOR3),
+        fg=FG_COLOR0
+):
+    """
+    设置按钮样式
+    :param buttons: 按钮列表
+    :param sizes:
+    :param font: QFont对象
+    :param border: 边框宽度
+    :param border_color: 边框颜色
+    :param border_radius: 边框圆角
+    :param padding: 内边距
+    :param bg: 按钮背景颜色
+    :param fg: 按钮字体颜色
+    :return:
+    """
+    buttons = list(buttons)
+    if type(border_radius) == int:
+        border_radius = (border_radius, border_radius, border_radius, border_radius)
+    if type(sizes[0]) == int:  # 如果sizes是一个元组
+        sizes = [sizes] * len(buttons)
+    if border != 0:
+        border_text = f"{border}px solid {border_color}"
+    else:
+        border_text = "none"
+    if type(padding) == int:
+        padding = (padding, padding, padding, padding)
+    if type(bg) == str:
+        bg = (bg, bg, bg, bg)
+    if type(fg) == str:
+        fg = (fg, fg, fg, fg)
+    for button in buttons:
+        button.setFixedSize(*sizes[buttons.index(button)])
+        button.setFont(font)
+        button.setStyleSheet(f"""
+            QPushButton{{
+                background-color:{bg[0]};
+                color:{fg[0]};
+                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton:hover{{
+                background-color:{bg[1]};
+                color:{fg[1]};
+                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton::pressed{{
+                background-color:{bg[2]};
+                color:{fg[2]};
+                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton::focus{{
+                background-color:{bg[3]};
+                color:{fg[3]};
+                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+        """)
+
+
+def set_button_style(button, size: tuple, font=FONT_9, style="普通", active_color=BG_COLOR3, icon=None):
     """
     设置按钮样式
     :param button: QPushButton对象
@@ -103,15 +171,47 @@ def set_button_style(button, size: tuple, font=FONT_14, style="普通", active_c
     """
     button.setFixedSize(*size)
     if style == "普通":
-        button.setStyleSheet(f'QPushButton{{border:none;color:{FG_COLOR0};font-size:14px;'
-                             f'color:{FG_COLOR0};'
-                             f'font-family:{YAHEI};}}'
-                             f'QPushButton:hover{{background-color:{active_color};}}')
+        button.setStyleSheet(f"""
+            QPushButton{{
+                background-color:{BG_COLOR1};
+                color:{FG_COLOR0};
+                border-radius: 0px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color:{active_color};
+                color:{FG_COLOR0};
+                border-radius: 0px;
+                border: 0px;
+            }}
+            QPushButton:pressed{{
+                background-color:{active_color};
+                color:{FG_COLOR0};
+                border-radius: 0px;
+                border: 0px;
+            }}          
+        """)
     elif style == "圆角边框":
-        button.setStyleSheet(f'QPushButton{{border-radius:5px;border:1px solid gray;color:{FG_COLOR0};'
-                             f'color:{FG_COLOR0};'
-                             f'font-size:14px;font-family:{YAHEI};}}'
-                             f'QPushButton:hover{{background-color:{active_color};}}')
+        button.setStyleSheet(f"""
+            QPushButton{{
+                background-color:{BG_COLOR1};
+                color:{FG_COLOR0};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:hover{{
+                background-color:{active_color};
+                color:{FG_COLOR0};
+                border-radius: 10px;
+                border: 0px;
+            }}
+            QPushButton:pressed{{
+                background-color:{active_color};
+                color:{FG_COLOR0};
+                border-radius: 10px;
+                border: 0px;
+            }}          
+        """)
     button.setFont(font)
     if icon:
         button.setIcon(icon)
@@ -125,26 +225,8 @@ def set_top_button_style(button: QPushButton, width=50):
     :param width: int，按钮宽度
     :return:
     """
-    button.setFont(QFont('微软雅黑', 8))
-    # 设置样式：圆角、背景色、边框
-    button.setStyleSheet(
-        f"QPushButton{{background-color: {BG_COLOR0};"
-        f"color: {FG_COLOR0};"
-        f"border-radius: 0px;"
-        f"border: 1px solid {BG_COLOR0};}}"
-        # 鼠标悬停样式
-        f"QPushButton:hover{{background-color: {BG_COLOR3};"
-        f"color: {FG_COLOR0};"
-        f"border-radius: 0px;"
-        f"border: 1px solid {BG_COLOR3};}}"
-        # 鼠标按下样式
-        f"QPushButton:pressed{{background-color: {BG_COLOR2};"
-        f"color: {FG_COLOR0};"
-        f"border-radius: 0px;"
-        f"border: 1px solid {BG_COLOR2};}}"
-    )
-    # 设置大小
-    button.setFixedSize(width, 30)
+    # 设置样式
+    set_buttons([button], sizes=(width, 30), font=FONT_8, border=0, border_radius=0, padding=0)
 
 
 def set_tool_bar_style(tool_bar: QToolBar):
@@ -187,25 +269,6 @@ class MyMessageBox(QMessageBox):
         self.setStyleSheet(
             # 设置以自己为父的QMessageBox的样式
             f"QMessageBox{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            # 设置QMessageBox的按钮样式
-            f"QMessageBox QPushButton{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            f"QMessageBox QPushButton:hover{{background-color: {BG_COLOR3};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            # 设置QMessageBox的输入框样式
-            f"QMessageBox QLineEdit{{background-color: {BG_COLOR1};"
-            f"color: {FG_COLOR0};"
-            f"border: 1px solid {FG_COLOR2};"
-            f"border-radius: 5px;}}"
-            # 设置QMessageBox的输入框样式
-            f"QMessageBox QComboBox{{background-color: {BG_COLOR1};"
             f"color: {FG_COLOR0};"
             f"border: 1px solid {FG_COLOR2};"
             f"border-radius: 5px;}}"
@@ -342,9 +405,8 @@ class CircleSelectButton(QPushButton):
         self.half_size = half_size
         self.color = color
         self.check_color = check_color
-        self.setFixedSize(half_size * 2, half_size * 2)
-        self.setStyleSheet(
-            f"border-radius: {half_size}px; background-color: {color}; border: 1px solid {FG_COLOR0};")
+        self.size = (half_size * 2, half_size * 2)
+        set_buttons([self], sizes=self.size, border=1, border_radius=half_size, bg=color, border_color=FG_COLOR0)
         # 事件
         self.setCheckable(True)
         self.setChecked(init_statu)
@@ -353,12 +415,10 @@ class CircleSelectButton(QPushButton):
     def change_color(self):
         if self.isChecked():
             self.setChecked(True)
-            self.setStyleSheet(
-                f"border-radius: {self.half_size}px; background-color: {self.check_color};")
+            set_buttons([self], sizes=self.size, border_radius=self.half_size, bg=self.check_color)
         else:
             self.setChecked(False)
-            self.setStyleSheet(
-                f"border-radius: {self.half_size}px; background-color: {self.color}; border: 1px solid {FG_COLOR0};")
+            set_buttons([self], sizes=self.size, border=1, border_color=FG_COLOR0, border_radius=self.half_size, bg=self.color)
 
 
 class CircleSelectButtonGroup:
@@ -374,9 +434,9 @@ class CircleSelectButtonGroup:
         self.color = color
         self.check_color = check_color
         for button in self.group:
-            button.setFixedSize(half_size * 2, half_size * 2)
-            button.setStyleSheet(
-                f"border-radius: {half_size}px; background-color: {color}; border: 1px solid {FG_COLOR0};")
+            _size = (half_size * 2, half_size * 2)
+            set_buttons([button], sizes=_size, border=1, border_radius=half_size, bg=color,
+                        border_color=FG_COLOR0)
             # 事件
             button.setCheckable(True)
             button.setChecked(False)
@@ -402,7 +462,7 @@ class CircleSelectButtonGroup:
 
 
 class SelectWidgetGroup:
-    def __init__(self, widget_list: List[QWidget], parent, original_style_sheet, selected_style_sheet):
+    def __init__(self, widget_list: List[QPushButton], parent, original_style_sheet, selected_style_sheet):
         """
         给非按钮控件添加选中效果
         :param widget_list:
@@ -410,6 +470,8 @@ class SelectWidgetGroup:
         :param original_style_sheet:
         :param selected_style_sheet:
         """
+        if len(widget_list) == 0:
+            raise Exception("widget_list不能为空")
         self.group = widget_list
         self.parent = parent
         self.original_style_sheet = original_style_sheet
@@ -447,6 +509,7 @@ class BasicDialog(QDialog):
             self._parent.show()
             self._generate_self_parent = True
         super().__init__(parent=self._parent)
+        self.hide()
         self.setWindowTitle(title)
         self.title = title
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -461,15 +524,22 @@ class BasicDialog(QDialog):
         self.shadow.setBlurRadius(15)
         self.setGraphicsEffect(self.shadow)
         if isinstance(border_radius, int):
-            self.setStyleSheet(f"background-color:{BG_COLOR1}; border-radius:{border_radius}px;")
+            border_command = f"border-radius:{border_radius}px;"
         elif isinstance(border_radius, tuple):
-            self.setStyleSheet(f"background-color:{BG_COLOR1};"
-                               f"border-top-left-radius:{border_radius[0]}px;"
-                               f"border-top-right-radius:{border_radius[1]}px;"
-                               f"border-bottom-left-radius:{border_radius[2]}px;"
-                               f"border-bottom-right-radius:{border_radius[3]}px;")
+            border_command = f"""
+            border-top-left-radius:{border_radius[0]}px;
+            border-top-right-radius:{border_radius[1]}px;
+            border-bottom-left-radius:{border_radius[2]}px;
+            border-bottom-right-radius:{border_radius[3]}px;
+            """
         else:
-            self.setStyleSheet(f"background-color:{BG_COLOR1}; border-radius:10px;")
+            border_command = f"border-radius:10px;"
+        self.setStyleSheet(f"""
+            QDialog{{
+                background-color:{BG_COLOR1};
+                {border_command}
+            }}
+        """)
         # 设置主题
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
@@ -514,6 +584,7 @@ class BasicDialog(QDialog):
             self.resize_area = 5  # 用于判断鼠标是否在边缘区域
             self.resize_min_size = QSize(200, 200)
             self.resize_max_size = QSize(WinWid, WinHei)
+        self.__animate()
 
     @abstractmethod
     def ensure(self):
@@ -536,11 +607,10 @@ class BasicDialog(QDialog):
         self.top_layout.addWidget(text_label, alignment=Qt.AlignCenter)
         self.top_layout.addStretch(1)
         # 按钮
-        self.close_button.setFixedSize(self.topH + 10, self.topH)
+        cb_size = (self.topH + 10, self.topH)
         self.close_button.setIcon(self.close_bg)
-        self.close_button.setIconSize(QSize(20, 20))
-        self.close_button.setStyleSheet('QPushButton{border:none;}'
-                                        'QPushButton:hover{background-color:red;}')
+        self.close_button.setFocusPolicy(Qt.NoFocus)
+        set_buttons([self.close_button], sizes=cb_size, border=0, bg=(BG_COLOR1, "#F76677", "#F76677", "#F76677"))
         self.close_button.clicked.connect(self.close)
         self.top_layout.addWidget(self.close_button, alignment=Qt.AlignRight)
 
@@ -555,12 +625,11 @@ class BasicDialog(QDialog):
         self.bottom_layout.addWidget(self.cancel_button)
         self.bottom_layout.addWidget(self.ensure_button)
         # 按钮样式
-        self.cancel_button.setFixedSize(80, 30)
-        self.ensure_button.setFixedSize(80, 30)
-        set_button_style(self.cancel_button, size=(80, 30), active_color="#F76677")  # "#F76677"
-        set_button_style(self.ensure_button, size=(80, 30), active_color="#6DDF6D")  # "#6DDF6D"
+        set_buttons([self.cancel_button], sizes=(80, 30), border=0, border_radius=10, bg=(BG_COLOR1, "#F76677", "#F76677", BG_COLOR2))
+        set_buttons([self.ensure_button], sizes=(80, 30), border=0, border_radius=10, bg=(BG_COLOR1, "#6DDF6D", "#6DDF6D", BG_COLOR2))
         self.cancel_button.clicked.connect(self.close)
         self.ensure_button.clicked.connect(self.ensure)
+        self.ensure_button.setFocus()
 
     def mousePressEvent(self, event):
         # 鼠标按下时，记录当前位置，若在标题栏内且非最大化，则允许拖动
@@ -650,6 +719,14 @@ class BasicDialog(QDialog):
                     self.setGeometry(self.x(), self.y(), self.width(), self.height() + _dy)
                 self.m_Position = QMouseEvent.globalPos()
                 QMouseEvent.accept()
+
+    def __animate(self):
+        animation = QPropertyAnimation(self, b"windowOpacity")
+        animation.setDuration(300)
+        animation.setStartValue(0)
+        animation.setEndValue(1)
+        self.show()
+        animation.start()
 
 
 class ShortCutWidget(QWidget):
