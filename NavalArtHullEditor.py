@@ -16,6 +16,8 @@ from typing import Union
 
 from PyQt5.QtCore import QPropertyAnimation
 
+from right_operation_editing import OperationEditing, AddLayerEditing
+
 try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
@@ -90,9 +92,6 @@ def check_version():
                 dialog.check_update_failed()
             elif extract_number_from_version(self.latest_version) > extract_number_from_version(VERSION):
                 dialog.check_update_success(self.latest_version)
-                if dialog.download:
-                    webbrowser.open(self.links[1])
-                    webbrowser.open(self.links[0])
             else:
                 dialog.close()
 
@@ -102,6 +101,10 @@ def check_version():
 
     dialog = CheckNewVersionDialog(None, VERSION)
     dialog.exec_()
+    if dialog.download and len(Handler.window.check_version_thread.links) == 2:
+        print("browser open")
+        webbrowser.open(Handler.window.check_version_thread.links[1])
+        webbrowser.open(Handler.window.check_version_thread.links[0])
 
 
 # noinspection PyUnresolvedReferences
@@ -1119,9 +1122,9 @@ class RightTabWidget(QTabWidget):
         self.tab2_mod2_widget_multiLayer = QWidget()
         self.tab2_mod2_grid_singleLayer = QGridLayout()
         self.tab2_mod2_grid_multiLayer = QGridLayout()
-        # 00000000000000000000000000000000000000000000000000000000000000000000000000 操作
-        self.tab2_operation_addPartLayer = AddLayerOperation.right_frame
-
+        # 00000000000000000000000000000000000000000000000000000000000000000000000000 操作绑定
+        self.tab2_operation_addPartLayer = AddLayerEditing()
+        AddLayerOperation.right_frame = self.tab2_operation_addPartLayer
         # 当前显示的widget
         self.tab1_current_widget = self.tab1_mod1_widget_allParts
         self.tab2_current_widget = self.tab2_mod1_widget_allParts
@@ -1145,7 +1148,7 @@ class RightTabWidget(QTabWidget):
             }
 
     def update_tab(self):
-        if Handler.LoadingProject or Handler.SavingProject:
+        if Handler.LoadingProject or Handler.SavingProject or OperationEditing.is_editing:
             return
         ThreeDFrame = Handler.hull_design_tab.ThreeDFrame
         _len = len(ThreeDFrame.selected_gl_objects[ThreeDFrame.show_3d_obj_mode])
@@ -1696,18 +1699,16 @@ class HullDesignTab(QWidget):
 
     # noinspection PyUnresolvedReferences
     def init_buttons(self):
-        set_top_button_style(self.save_button, 50)  # 保存按钮
+        bts = [self.save_button, self.open_button, self.read_from_na_button, self.convertAdhull_button]
+        sizes = [(50, 30), (50, 30), (100, 30), (100, 30)]
+        set_buttons(bts, sizes=sizes, font=FONT_8, border=0, border_radius=0, padding=0, bg=[BG_COLOR0, BG_COLOR3, BG_COLOR3, BG_COLOR1])
+        for bt in bts:
+            bt.setFocusPolicy(Qt.NoFocus)
+            self.up_layout.addWidget(bt, alignment=Qt.AlignLeft)
         self.save_button.clicked.connect(self.save)
-        self.up_layout.addWidget(self.save_button, alignment=Qt.AlignLeft)
-        set_top_button_style(self.open_button, 50)  # 打开按钮
         self.open_button.clicked.connect(self.open)
-        self.up_layout.addWidget(self.open_button, alignment=Qt.AlignLeft)
-        set_top_button_style(self.read_from_na_button, 100)  # 从NA读取按钮
         self.read_from_na_button.clicked.connect(self.read_from_na_button_pressed)
-        self.up_layout.addWidget(self.read_from_na_button, alignment=Qt.AlignLeft)
-        set_top_button_style(self.convertAdhull_button, 100)  # 从PTB转换按钮
         self.convertAdhull_button.clicked.connect(self.convertAdhull_button_pressed)
-        self.up_layout.addWidget(self.convertAdhull_button, alignment=Qt.AlignLeft)
 
     # noinspection PyUnresolvedReferences
     def read_from_na_button_pressed(self):
@@ -2205,8 +2206,8 @@ def user_guide(ask_save=True):
         if reply == MyMessageBox.Ok:
             ProjectHandler.current.save()
     # 弹出UserGuideDialog
-    user_guide_dialog = UserGuideDialog(Handler.window)
-    user_guide_dialog.exec_()
+    user_guide_dialog = UserGuideDialog(Handler)
+    Handler.window.setFocus()
 
 
 def handle_exception(_exception):

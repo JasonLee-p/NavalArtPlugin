@@ -5,6 +5,9 @@
 # 系统库
 import copy
 from typing import List, Literal, Union
+
+from PyQt5.QtWidgets import QLineEdit
+
 # 包内文件
 from .basic import Operation
 # 其他本地库
@@ -12,7 +15,7 @@ from GUI import QMessageBox
 from ship_reader import NAPart, AdjustableHull
 from state_history import push_operation
 from util_funcs import CONST, not_implemented, get_part_world_dirs
-from right_operation_editing import AddLayerEditing
+from right_operation_editing import OperationEditing, AddLayerEditing
 
 
 class SinglePartOperation(Operation):
@@ -124,7 +127,10 @@ class CutSinglePartOperation(Operation):
     def execute(self):
         P1, P2 = self.new_parts[0], self.new_parts[1]
         # 在数据中删除原来的零件
-        self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self.original_part)
+        try:
+            self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self.original_part)
+        except ValueError:  # TODO:
+            pass
         # 往read_na的drawMap中添加零件
         self.read_na_obj.DrawMap[f"#{self.Col}"].append(P1)
         self.read_na_obj.DrawMap[f"#{self.Col}"].append(P2)
@@ -215,9 +221,10 @@ class AddLayerOperation(Operation):
         :param direction: 添加方向（全局坐标系）
         :param base_parts: 被选中的零件
         """
+        self.name = "添加层"
         # 初始化右侧编辑器
-        if not AddLayerOperation.right_frame:
-            AddLayerOperation.right_frame = AddLayerEditing()
+        # if not AddLayerOperation.right_frame:
+        #     AddLayerOperation.right_frame = AddLayerEditing()
         super().__init__()
         self.add_direction = direction  # 全局坐标系
         self.transformed_position_map = get_part_world_dirs(base_parts[0].Rot)  # 获取零件的全局坐标系方向
@@ -261,20 +268,155 @@ class AddLayerOperation(Operation):
     def get_data_in_world_coordinate(self):
         for part in self._original_parts:
             _data = part.get_data_in_coordinate()
-            self.original_parts_data[part] = _data
+            if _data is not None:
+                self.original_parts_data[part] = _data
 
     @staticmethod
     def generate_added_parts(original_parts_data, add_direction):
         """
         生成需要添加的零件
         :param original_parts_data: 源零件的数据
+        例如：
+        part_data = {
+            "FLU": x0, "FRU": x1, "FLD": x2, "FRD": x3,
+            "BLU": x4, "BRU": x5, "BLD": x6, "BRD": x7,
+            "BH": x8, "FH": x9, "H": x10,
+            "L": x11
+        }
         :param add_direction: 添加方向（全局坐标系）
         :return:
         """
         # 打开右侧编辑器
         result: List[AdjustableHull] = []
-        for part, data in original_parts_data.items():
-            ...
+        np_data = {}
+        lineEdits = {}
+        if original_parts_data == {}:
+            return result
+        # 如果只有一个零件
+        if len(original_parts_data) == 1:  # 000000000000000000000000000000000000000000 单个零件
+            part = list(original_parts_data.keys())[0]
+            data = list(original_parts_data.values())[0]
+            if add_direction == CONST.FRONT:
+                # 不变的信息
+                np_data = {
+                    "Hei": data["FH"],
+                    "BWid": data["FLD"],
+                    "BSpr": data["FLU"] - data["FLD"],
+                }
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "原长度": {"value": data["L"], "QLineEdit": [QLineEdit()]},
+                    "前宽度": {"value": data["FLU"], "QLineEdit": [QLineEdit()]},
+                    "前扩散": {"value": data["FLU"] - data["FLD"], "QLineEdit": [QLineEdit()]},
+                    "上弧度": {"value": part.UCur, "QLineEdit": [QLineEdit()]},
+                    "下弧度": {"value": part.DCur, "QLineEdit": [QLineEdit()]},
+                }
+            elif add_direction == CONST.BACK:
+                # 不变的信息
+                np_data = {
+                    "Hei": data["BH"],
+                    "FWid": data["BLD"],
+                    "FSpr": data["BLU"] - data["BLD"],
+                }
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "原长度": {"value": data["L"], "QLineEdit": [QLineEdit()]},
+                    "后宽度": {"value": data["BLU"], "QLineEdit": [QLineEdit()]},
+                    "后扩散": {"value": data["BLU"] - data["BLD"], "QLineEdit": [QLineEdit()]},
+                    "上弧度": {"value": part.UCur, "QLineEdit": [QLineEdit()]},
+                    "下弧度": {"value": part.DCur, "QLineEdit": [QLineEdit()]},
+                }
+            elif add_direction == CONST.UP:
+                # 不变的信息
+                np_data = {
+                    "Len": data["L"],
+                    "FWid": data["FLU"],
+                    "BWid": data["BLU"],
+                }
+                lineEdits = {
+                    "原高度": {"value": data["H"], "QLineEdit": [QLineEdit()]},
+                    "前扩散": {"value": data["FLU"] - data["FLD"], "QLineEdit": [QLineEdit()]},
+                    "后扩散": {"value": data["BLU"] - data["BLD"], "QLineEdit": [QLineEdit()]},
+                }
+                # 可编辑的信息初始化
+            elif add_direction == CONST.DOWN:
+                # 不变的信息
+                np_data = {
+                    "Len": data["L"],
+                    "FUWid": data["FLD"],
+                    "BUWid": data["BLD"],
+                }
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "原高度": {"value": data["H"], "QLineEdit": [QLineEdit()]},
+                    "前宽度": {"value": data["FLU"], "QLineEdit": [QLineEdit()]},
+                    "后宽度": {"value": data["BLU"], "QLineEdit": [QLineEdit()]},
+                }
+            elif add_direction == CONST.LEFT:
+                return result
+            elif add_direction == CONST.RIGHT:
+                return result
+        else:  # 0000000000000000000000000000000000000000000000000000000000000000000 多个零件
+            np_datas = {}
+            _first_p = list(original_parts_data.keys())[0]
+            if add_direction == CONST.FRONT:
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "步进长度": {"value": original_parts_data[_first_p]["L"], "QLineEdit": [QLineEdit()]},
+                    "宽度扩散": {"value": 0, "QLineEdit": [QLineEdit()]},
+                }
+                for part, data in original_parts_data.items():
+                    # 不变的信息
+                    np_datas[part] = {
+                        "Hei": data["FH"],
+                        "BWid": data["FLD"],
+                        "BSpr": data["FLU"] - data["FLD"],
+                    }
+            elif add_direction == CONST.BACK:
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "步进长度": {"value": original_parts_data[_first_p]["L"], "QLineEdit": [QLineEdit()]},
+                    "宽度收缩": {"value": 0, "QLineEdit": [QLineEdit()]},
+                }
+                for part, data in original_parts_data.items():
+                    # 不变的信息
+                    np_datas[part] = {
+                        "Hei": data["BH"],
+                        "FWid": data["BLD"],
+                        "FSpr": data["BLU"] - data["BLD"],
+                    }
+            elif add_direction == CONST.UP:
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "步进高度": {"value": original_parts_data[_first_p]["H"], "QLineEdit": [QLineEdit()]},
+                    "步进扩散": {"value": 0, "QLineEdit": [QLineEdit()]},
+                }
+                for part, data in original_parts_data.items():
+                    # 不变的信息
+                    np_datas[part] = {
+                        "Len": data["L"],
+                        "FWid": data["FLU"],
+                        "BWid": data["BLU"],
+                    }
+            elif add_direction == CONST.DOWN:
+                # 可编辑的信息初始化
+                lineEdits = {
+                    "步进高度": {"value": original_parts_data[_first_p]["H"], "QLineEdit": [QLineEdit()]},
+                    "步进收缩": {"value": 0, "QLineEdit": [QLineEdit()]},
+                }
+                for part, data in original_parts_data.items():
+                    # 不变的信息
+                    np_datas[part] = {
+                        "Len": data["L"],
+                        "FUWid": data["FLD"],
+                        "BUWid": data["BLD"],
+                    }
+            elif add_direction == CONST.LEFT:
+                return result
+            elif add_direction == CONST.RIGHT:
+                return result
+        # 更新右侧编辑器的栏目
+        AddLayerOperation.right_frame.update_direction(add_direction, lineEdits)
         return result
 
     def execute(self):
@@ -287,7 +429,6 @@ class AddLayerOperation(Operation):
         self.execute()
 
     @staticmethod
-    @not_implemented
     @push_operation
     def add_layer(original_parts, direction):
         """
@@ -296,6 +437,4 @@ class AddLayerOperation(Operation):
         :param direction:
         :return:
         """
-        AddLayerOperation.right_frame.update_direction(direction)
-        AddLayerOperation.right_frame.show()
         return AddLayerOperation(direction, original_parts)

@@ -300,7 +300,7 @@ class Mod1SinglePartEditing(QWidget):
             glWin.update()
         else:  # 没有零件，添加零件
             self.hide()
-            AddLayerOperation.add_layer(self.selected_obj, direction)
+            AddLayerOperation.add_layer([self.selected_obj], direction)
 
     def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
         """
@@ -322,6 +322,8 @@ class Mod1SinglePartEditing(QWidget):
                         if textEdit.geometry().contains(pos):
                             active_textEdit = textEdit
                             break
+                    if active_textEdit:
+                        break
         if active_textEdit is None:
             return None
         step = self.wheel_change_value_map[active_textEdit]
@@ -333,6 +335,9 @@ class Mod1SinglePartEditing(QWidget):
 
     @push_operation
     def update_(self, event, step, active_textEdit):
+        if active_textEdit.text() == "":
+            active_textEdit.setText("0")
+            return None
         spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()), Mod1SinglePartEditing.current)
         # spo.execute()
         return spo

@@ -5,9 +5,9 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation
+from PyQt5.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation, QAbstractAnimation, QEvent
 from PyQt5.QtGui import QTextBlockFormat
-from PyQt5.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget
+from PyQt5.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget, QDialog
 
 from util_funcs import open_url
 from path_utils import find_ptb_path, find_na_root_path
@@ -51,7 +51,7 @@ def front_completion(string, length, add_char):
 
 
 class CheckNewVersionDialog(BasicDialog):
-    def __init__(self, parent, current_version, title="", size=QSize(300, 250)):
+    def __init__(self, parent, current_version, title="", size=QSize(300, 200)):
         self.current_version = current_version
         self.center_layout = QGridLayout()
         self.checking_label = MyLabel("正在检查更新", font=FONT_12)
@@ -62,9 +62,10 @@ class CheckNewVersionDialog(BasicDialog):
         self.label_latest_version = None
         self.label_update_text = QLabel("确定前往官网更新？")
         self.set_layout()
-        super().__init__(parent, 10, title, size, self.center_layout)
+        super().__init__(parent, 15, title, size, self.center_layout, hide_top=True, ensure_bt_fill=True)
         # 图标
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
+        self.ensure_button.clicked.connect(self.ensure)
         self.setWindowIcon(QIcon(self.ICO))
         self.download = False  # 是否下载
 
@@ -129,15 +130,15 @@ class CheckNewVersionDialog(BasicDialog):
             QProgressBar {{
                 text-align: center;
                 background-color: {GRAY};
-                color: {FG_COLOR0};
+                color: {FG_COLOR2};
             }}
             QProgressBar::chunk {{
-                background-color: {FG_COLOR0};
+                background-color: {FG_COLOR2};
             }}
             """
         )
         self.animate_bar.setRange(0, 0)
-        self.checking_label.setFixedSize(220, 60)
+        self.checking_label.setFixedSize(220, 80)
         # 居中显示
         self.center_layout.addWidget(self.checking_label, 0, 0, 1, 2)
         self.center_layout.addWidget(self.animate_bar, 1, 0, 1, 2)
@@ -455,7 +456,7 @@ class StartWelcomeDialog(BasicDialog):
         if about_func is not None:
             self.buttons["关于"].clicked.connect(about_func)
 
-    def __animate(self):
+    def _animate(self):
         pass
 
 
@@ -1344,21 +1345,48 @@ class ExportDialog(BasicDialog):
         super().ensure()
 
 
-class UserGuideDialog(BasicDialog):
-
-    def __init__(self, parent, title="新手教程", size=QSize(800, 600)):
-        self.center_layout = QVBoxLayout()
-        # 显示用户指南还没做完，敬请期待
-        self.lb0 = MyLabel("新手教程尚未完成，敬请期待!", font=FONT_10)
-        self.lb0.setAlignment(Qt.AlignCenter)
-        self.center_layout.addWidget(self.lb0)
-        ...  # TODO:
-        super().__init__(parent, 10, title, size, self.center_layout)
+class UserGuideDialog(QWidget):
+    def __init__(self, handler, title="新手教程"):
+        # 设置主界面
+        self.Handler = handler
+        if not self.Handler.window.isMaximized():
+            self.Handler.window.showMaximized()
+        # 向主界面顶层添加覆盖式的透明控件
+        self.__parent = QWidget()
+        self.__parent.setFixedSize(QSize(WinWid, WinHei))
+        self.__parent.setWindowFlags(Qt.FramelessWindowHint)
+        self.__parent.show()
+        super().__init__(self.__parent)
+        self.setFixedSize(self.Handler.window.size())
+        self.BG = QColor(0, 0, 0, 1)
+        self.setStyleSheet(f"background-color: {self.BG.name()};")
+        # 暂时没完成的提示
+        self._temp_label = QLabel("新手教程制作中，敬请期待", self)
+        self._temp_label.setStyleSheet(f"""
+            color: {FG_COLOR2};
+            background-color: transparent;
+            font: 35pt {YAHEI};
+        """)
+        # 布局
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
         self.set_widget()
+        # 动画，窗口渐变消失3s
+        self.animation = QPropertyAnimation(self.__parent, b"windowOpacity")
+        self.animation.setDuration(3000)
+        self.animation.setStartValue(0.8)
+        self.animation.setEndValue(0)
+        self.show()
+        self.animation.start()
+        # 3s后关闭窗口
+        self.animation.finished.connect(self.close)
 
     def set_widget(self):
-        self.center_layout.setSpacing(0)
-        self.center_layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self._temp_label, alignment=Qt.AlignCenter)
 
-    def ensure(self):
-        super().ensure()
+    def close(self):
+        super().close()
+        self.__parent.close()

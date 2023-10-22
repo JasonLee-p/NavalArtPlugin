@@ -25,6 +25,7 @@ from GL_plot import *
 from GUI import *
 from shader_program import shader_program
 from util_funcs import CONST
+from right_operation_editing import OperationEditing
 
 VERTEX_SHADER = shader_program.VS
 
@@ -974,6 +975,8 @@ class OpenGLWin(QOpenGLWidget):
             if self.operation_mode == OpenGLWin.Selectable:
                 self.select_start = event.pos()
                 self.lastPos = event.pos()
+                if OperationEditing.is_editing:
+                    return
                 # 判断是否按下shift，如果没有按下，就清空选中列表
                 if QApplication.keyboardModifiers() != Qt.ShiftModifier:
                     self.selected_gl_objects[self.show_3d_obj_mode].clear()
@@ -1001,6 +1004,8 @@ class OpenGLWin(QOpenGLWidget):
         if QApplication.keyboardModifiers() == Qt.AltModifier:  # Alt按下的时候，不移动视角
             return
         if event.buttons() == Qt.LeftButton:  # 左键绘制选择框
+            if OperationEditing.is_editing:
+                return
             # 如果shift没有按下，清空选中列表
             if QApplication.keyboardModifiers() != Qt.ShiftModifier and not self.select_end:
                 self.selected_gl_objects[self.show_3d_obj_mode].clear()
@@ -1038,6 +1043,10 @@ class OpenGLWin(QOpenGLWidget):
             return
         elif event.button() == Qt.LeftButton:  # 左键释放
             if self.operation_mode == OpenGLWin.Selectable:
+                if OperationEditing.is_editing:
+                    self.select_start = None
+                    self.select_end = None
+                    return
                 if self.select_start and self.select_end:
                     # 往选中列表中添加选中的物体
                     add_list = self.add_selected_objects_of_selectBox()

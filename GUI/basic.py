@@ -8,11 +8,11 @@ import json
 import os
 from abc import abstractmethod
 # 第三方库
-from typing import List
+from typing import List, Union
 
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation
 from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -111,7 +111,7 @@ def set_buttons(
     buttons = list(buttons)
     if type(border_radius) == int:
         border_radius = (border_radius, border_radius, border_radius, border_radius)
-    if type(sizes[0]) == int:  # 如果sizes是一个元组
+    if type(sizes[0]) in [int, None]:
         sizes = [sizes] * len(buttons)
     if border != 0:
         border_text = f"{border}px solid {border_color}"
@@ -124,34 +124,55 @@ def set_buttons(
     if type(fg) == str:
         fg = (fg, fg, fg, fg)
     for button in buttons:
-        button.setFixedSize(*sizes[buttons.index(button)])
+        if sizes[buttons.index(button)][0] is None:
+            # 宽度拉伸
+            button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            button.setFixedHeight(sizes[buttons.index(button)][1])
+        elif sizes[buttons.index(button)][1] is None:
+            # 高度拉伸
+            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Maximum)
+            button.setFixedWidth(sizes[buttons.index(button)][0])
+        else:
+            button.setFixedSize(*sizes[buttons.index(button)])
         button.setFont(font)
         button.setStyleSheet(f"""
             QPushButton{{
                 background-color:{bg[0]};
                 color:{fg[0]};
-                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border-top-left-radius: {border_radius[0]}px;
+                border-top-right-radius: {border_radius[1]}px;
+                border-bottom-right-radius: {border_radius[2]}px;
+                border-bottom-left-radius: {border_radius[3]}px;
                 border: {border_text};
                 padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
             }}
             QPushButton:hover{{
                 background-color:{bg[1]};
                 color:{fg[1]};
-                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border-top-left-radius: {border_radius[0]}px;
+                border-top-right-radius: {border_radius[1]}px;
+                border-bottom-right-radius: {border_radius[2]}px;
+                border-bottom-left-radius: {border_radius[3]}px;
                 border: {border_text};
                 padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
             }}
             QPushButton::pressed{{
                 background-color:{bg[2]};
                 color:{fg[2]};
-                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border-top-left-radius: {border_radius[0]}px;
+                border-top-right-radius: {border_radius[1]}px;
+                border-bottom-right-radius: {border_radius[2]}px;
+                border-bottom-left-radius: {border_radius[3]}px;
                 border: {border_text};
                 padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
             }}
             QPushButton::focus{{
                 background-color:{bg[3]};
                 color:{fg[3]};
-                border-radius: {border_radius[0]}px {border_radius[1]}px {border_radius[2]}px {border_radius[3]}px;
+                border-top-left-radius: {border_radius[0]}px;
+                border-top-right-radius: {border_radius[1]}px;
+                border-bottom-right-radius: {border_radius[2]}px;
+                border-bottom-left-radius: {border_radius[3]}px;
                 border: {border_text};
                 padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
             }}
@@ -493,7 +514,7 @@ class SelectWidgetGroup:
 
 class BasicDialog(QDialog):
     def __init__(self, parent=None, border_radius=10, title=None, size=QSize(400, 300), center_layout=None,
-                 resizable=False, hide_bottom=False):
+                 resizable=False, hide_top=False, hide_bottom=False, ensure_bt_fill=False):
         self.close_bg = b64decode(close)
         self.close_bg = QIcon(QPixmap.fromImage(QImage.fromData(self.close_bg)))
         self._parent = parent
@@ -545,28 +566,31 @@ class BasicDialog(QDialog):
         self.setLayout(self.main_layout)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
-        # 顶部栏
-        self.top_layout = QHBoxLayout()
-        self.close_button = QPushButton()
-        self.add_top_bar()
-        # 分割线
-        spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-        spl.setStyleSheet(f"background-color:{BG_COLOR0};")
-        self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
+        if not hide_top:
+            # 顶部栏
+            self.top_layout = QHBoxLayout()
+            self.close_button = QPushButton()
+            self.add_top_bar()
+            # 分割线
+            spl = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+            spl.setStyleSheet(f"background-color:{BG_COLOR0};")
+            self.main_layout.addWidget(spl, alignment=Qt.AlignTop)
         # 主体-----------------------------------------------------------------------------------------------
         self._center_layout = center_layout
         self.init_center_layout()
         self.main_layout.addStretch(1)
         if not hide_bottom:
-            # 分割线
-            spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
-            spl2.setStyleSheet(f"background-color:{BG_COLOR0};")
-            self.main_layout.addWidget(spl2, alignment=Qt.AlignTop)
+            if not hide_top:
+                # 分割线
+                spl2 = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+                spl2.setStyleSheet(f"background-color:{BG_COLOR0};")
+                self.main_layout.addWidget(spl2, alignment=Qt.AlignTop)
             # 底部（按钮）
             self.bottom_layout = QHBoxLayout()
-            self.cancel_button = QPushButton('取消')
+            if not ensure_bt_fill:
+                self.cancel_button = QPushButton('取消')
             self.ensure_button = QPushButton('确定')
-            self.add_bottom_bar()
+            self.add_bottom_bar(ensure_bt_fill)
         # 移动到屏幕中央
         self.move((WinWid - self.width()) / 2, 3 * (WinHei - self.height()) / 7)
         # 给top_layout的区域添加鼠标拖动功能
@@ -584,7 +608,6 @@ class BasicDialog(QDialog):
             self.resize_area = 5  # 用于判断鼠标是否在边缘区域
             self.resize_min_size = QSize(200, 200)
             self.resize_max_size = QSize(WinWid, WinHei)
-        self.__animate()
 
     @abstractmethod
     def ensure(self):
@@ -617,19 +640,27 @@ class BasicDialog(QDialog):
     def init_center_layout(self):
         self.main_layout.addLayout(self._center_layout, stretch=1)
 
-    def add_bottom_bar(self):
+    def add_bottom_bar(self, ensure_bt_fill):
         self.bottom_layout.setContentsMargins(0, 0, 0, 0)
         self.bottom_layout.setSpacing(0)
         self.main_layout.addLayout(self.bottom_layout)
         self.bottom_layout.addStretch(1)
-        self.bottom_layout.addWidget(self.cancel_button)
-        self.bottom_layout.addWidget(self.ensure_button)
-        # 按钮样式
-        set_buttons([self.cancel_button], sizes=(80, 30), border=0, border_radius=10, bg=(BG_COLOR1, "#F76677", "#F76677", BG_COLOR2))
-        set_buttons([self.ensure_button], sizes=(80, 30), border=0, border_radius=10, bg=(BG_COLOR1, "#6DDF6D", "#6DDF6D", BG_COLOR2))
-        self.cancel_button.clicked.connect(self.close)
-        self.ensure_button.clicked.connect(self.ensure)
-        self.ensure_button.setFocus()
+        if not ensure_bt_fill:
+            self.bottom_layout.addWidget(self.cancel_button)
+            self.bottom_layout.addWidget(self.ensure_button)
+            set_buttons([self.cancel_button], sizes=(80, 30), border=0, border_radius=10,
+                        bg=(BG_COLOR1, "#F76677", "#F76677", BG_COLOR2))
+            set_buttons([self.ensure_button], sizes=(80, 30), border=0, border_radius=10,
+                        bg=(BG_COLOR1, "#6DDF6D", "#6DDF6D", BG_COLOR2))
+            self.cancel_button.clicked.connect(self.close)
+            self.ensure_button.clicked.connect(self.ensure)
+            self.ensure_button.setFocus()
+        else:
+            self.bottom_layout.addWidget(self.ensure_button)
+            set_buttons([self.ensure_button], sizes=(300, 35), border=0, border_radius=(0, 0, 15, 15),
+                        bg=(BG_COLOR2, "#6DDF6D", "#6DDF6D", BG_COLOR2))
+            self.ensure_button.setFocusPolicy(Qt.NoFocus)
+            self.ensure_button.clicked.connect(self.ensure)
 
     def mousePressEvent(self, event):
         # 鼠标按下时，记录当前位置，若在标题栏内且非最大化，则允许拖动
@@ -720,7 +751,7 @@ class BasicDialog(QDialog):
                 self.m_Position = QMouseEvent.globalPos()
                 QMouseEvent.accept()
 
-    def __animate(self):
+    def _animate(self):
         animation = QPropertyAnimation(self, b"windowOpacity")
         animation.setDuration(300)
         animation.setStartValue(0)

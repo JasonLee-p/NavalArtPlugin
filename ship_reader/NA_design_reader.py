@@ -1137,12 +1137,36 @@ class AdjustableHull(NAPart):
         B_Hei = self.Hei
         B_HScl = mid_height / self.Hei
         # 生成新零件对象
-        FP = AdjustableHull(
-            self.read_na_obj, self.Id, F_Pos, self.Rot, self.Scl, self.Col, self.Amr,
-            self.Len / 2, F_Hei, self.FWid, mid_width, self.FSpr, mid_spread, self.UCur, self.DCur, F_HScl, 0)
-        BP = AdjustableHull(
-            self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
-            self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
+        if F_HScl <= 1:
+            FP = AdjustableHull(
+                self.read_na_obj, self.Id, F_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+                self.Len / 2, F_Hei, self.FWid, mid_width, self.FSpr, mid_spread, self.UCur, self.DCur, F_HScl, 0)
+        else:  # 当 Hcl > 1，旋转角绕y轴旋转180度，因为在NavalArt中禁止了Hcl>1的情况，反转可以让Hcl<1
+            rv_rot = [self.Rot[0], self.Rot[1] + 180, self.Rot[2]]
+            fw = mid_width
+            bw = self.FWid
+            fs = mid_spread
+            bs = self.FSpr
+            hei = F_Hei * F_HScl
+            h_scl = 1 / F_HScl
+            FP = AdjustableHull(
+                self.read_na_obj, self.Id, F_Pos, rv_rot, self.Scl, self.Col, self.Amr,
+                self.Len / 2, hei, fw, bw, fs, bs, self.UCur, self.DCur, h_scl, 0)
+        if B_HScl <= 1:
+            BP = AdjustableHull(
+                self.read_na_obj, self.Id, B_Pos, self.Rot, self.Scl, self.Col, self.Amr,
+                self.Len / 2, B_Hei, mid_width, self.BWid, mid_spread, self.BSpr, self.UCur, self.DCur, B_HScl, 0)
+        else:  # 当 Hcl > 1，旋转角绕y轴旋转180度，因为在NavalArt中禁止了Hcl>1的情况，反转可以让Hcl<1
+            rv_rot = [self.Rot[0], self.Rot[1] + 180, self.Rot[2]]
+            fw = self.BWid
+            bw = mid_width
+            fs = self.BSpr
+            bs = mid_spread
+            hei = B_Hei * B_HScl
+            h_scl = 1 / B_HScl
+            BP = AdjustableHull(
+                self.read_na_obj, self.Id, B_Pos, rv_rot, self.Scl, self.Col, self.Amr,
+                self.Len / 2, hei, fw, bw, fs, bs, self.UCur, self.DCur, h_scl, 0)
         return FP, BP
 
     def add_y_without_relation(self, smooth=False):
