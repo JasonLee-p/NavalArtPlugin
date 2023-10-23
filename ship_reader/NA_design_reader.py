@@ -389,7 +389,10 @@ class AdjustableHull(NAPart):
     def __init__(
             self, read_na, Id, pos, rot, scale, color, armor,
             length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve,
-            heightScale, heightOffset):
+            heightScale, heightOffset,
+            _from_temp_data=False, _back_down_y=None, _back_up_y=None, _front_down_y=None, _front_up_y=None,
+            _operation_dot_nodes=None, _plot_all_dots=None, _vertex_coordinates=None, _plot_lines=None, _plot_faces=None,
+    ):
         """
         :param Id: 字符串，零件ID
         :param pos: 元组，三个值分别为x,y,z轴的位置
@@ -465,7 +468,7 @@ class AdjustableHull(NAPart):
         # 缩放并旋转
         dots = rotate_quaternion1(self.vertex_coordinates, self.Scl, self.Rot)
         for key in dots.keys():
-            dots[key] += self.Pos  # 平移
+            dots[key] = dots[key].copy() + self.Pos  # 平移
         faces = [
             [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
             [dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]],
@@ -531,8 +534,8 @@ class AdjustableHull(NAPart):
                 result[method] = rotate_quaternion0(face_set, self.Scl, self.Rot)
                 # 缩放和平移
                 for face in result[method]:
-                    for dot in face:
-                        dot += self.Pos
+                    for i in range(len(face)):
+                        face[i] = face[i].copy() + self.Pos
             self.plot_all_dots = result["GL_POLYGON"][0] + result["GL_POLYGON"][1]
         return result
 
@@ -611,14 +614,14 @@ class AdjustableHull(NAPart):
 
     def get_plot_lines(self):
         result = {
-            "1": [self.vertex_coordinates["front_up_left"], self.vertex_coordinates["front_up_right"],
-                  self.vertex_coordinates["front_down_right"], self.vertex_coordinates["front_down_left"],
-                  self.vertex_coordinates["front_up_left"], self.vertex_coordinates["back_up_left"],
-                  self.vertex_coordinates["back_up_right"], self.vertex_coordinates["front_up_right"]],
-            "2": [self.vertex_coordinates["front_down_left"], self.vertex_coordinates["back_down_left"],
-                  self.vertex_coordinates["back_down_right"], self.vertex_coordinates["front_down_right"]],
-            "3": [self.vertex_coordinates["back_up_left"], self.vertex_coordinates["back_down_left"]],
-            "4": [self.vertex_coordinates["back_up_right"], self.vertex_coordinates["back_down_right"]]
+            "1": [self.vertex_coordinates["front_up_left"].copy(), self.vertex_coordinates["front_up_right"].copy(),
+                  self.vertex_coordinates["front_down_right"].copy(), self.vertex_coordinates["front_down_left"].copy(),
+                  self.vertex_coordinates["front_up_left"].copy(), self.vertex_coordinates["back_up_left"].copy(),
+                  self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["front_up_right"].copy()],
+            "2": [self.vertex_coordinates["front_down_left"].copy(), self.vertex_coordinates["back_down_left"].copy(),
+                  self.vertex_coordinates["back_down_right"].copy(), self.vertex_coordinates["front_down_right"].copy()],
+            "3": [self.vertex_coordinates["back_up_left"].copy(), self.vertex_coordinates["back_down_left"].copy()],
+            "4": [self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["back_down_right"].copy()]
         }
         # 进行旋转，平移，缩放
         result = rotate_quaternion2(result, self.Scl, self.Rot)
@@ -1694,29 +1697,6 @@ class ReadNA:
 
 
 class PartRelationMap:
-    # # 具体方位
-    # FRONT = "front"
-    # BACK = "back"
-    # UP = "up"
-    # DOWN = "down"
-    # LEFT = "left"
-    # RIGHT = "right"
-    # SAME = "same"
-    #
-    # # 方位组合
-    # FRONT_BACK = "front_back"
-    # UP_DOWN = "up_down"
-    # LEFT_RIGHT = "left_right"
-    #
-    # # 八个卦限
-    # FRONT_UP_LEFT = "front_up_left"
-    # FRONT_UP_RIGHT = "front_up_right"
-    # FRONT_DOWN_LEFT = "front_down_left"
-    # FRONT_DOWN_RIGHT = "front_down_right"
-    # BACK_UP_LEFT = "back_up_left"
-    # BACK_UP_RIGHT = "back_up_right"
-    # BACK_DOWN_LEFT = "back_down_left"
-    # BACK_DOWN_RIGHT = "back_down_right"
 
     last_map = None
 

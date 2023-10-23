@@ -1,15 +1,14 @@
 """
 定义了NavalArt内物体的绘制对象
 """
-import copy
 import math
-from typing import Union
 
 import numpy as np
-from PyQt5.QtCore import QThread
 
-from ship_reader.NA_design_reader import ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap, NAPartNode
-from .basic import SolidObject, DotNode, get_normal
+from ship_reader.NA_design_reader import (
+    ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap, NAPartNode,
+    rotate_quaternion0, rotate_quaternion1, rotate_quaternion2)
+from .basic import SolidObject, DotNode, get_normal, TempObj
 
 
 class NAHull(ReadNA, SolidObject):
@@ -40,7 +39,8 @@ class NAHull(ReadNA, SolidObject):
             NAXYLayerNode.id_map = {}
             NALeftViewNode.id_map = {}
             NAPartNode.all_dots = []
-        ReadNA.__init__(self, path, data, self.show_statu_func, glWin, design_tab)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
+        ReadNA.__init__(self, path, data, self.show_statu_func, glWin,
+                        design_tab)  # 注意，DrawMap不会在ReadNA或SolidObject中初始化
         SolidObject.__init__(self, None)
         self.DrawMap = self.ColorPartsMap.copy()
         self.xzLayers = []  # 所有xz截面
@@ -174,60 +174,6 @@ class NAHull(ReadNA, SolidObject):
         for part_set in self.DrawMap.values():
             for part in part_set:
                 part.scale(ratio)
-
-
-class DrawThread(QThread):
-    def __init__(self, gl, glWin, theme_color, material, color, part_set, transparent):
-        super().__init__()
-        self.gl = gl
-        self.glWin = glWin
-        self.theme_color = theme_color
-        self.material = material
-        self.color = color
-        self.part_set = part_set
-        self.transparent = transparent
-
-    def run(self):
-        self.draw_color(self.gl, self.theme_color, self.material, self.color, self.part_set, self.transparent)
-
-    def draw_color(self, gl, theme_color, material, color, part_set, transparent):
-        alpha = 1 if not transparent else 0.3
-        # 16进制颜色转换为RGBA
-        # if theme_color[material][1] == (0.35, 0.35, 0.35, 1.0):  # 说明是白天模式
-        _rate = 600
-        color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        # else:  # 说明是黑夜模式
-        #     _rate = 600
-        #     color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        #     # 减去一定的值
-        #     difference = 0.08
-        #     color_ = (color_[0] - difference, color_[1] - difference, color_[2] - difference, alpha)
-        #     # 如果小于0，就等于0
-        #     color_ = (color_[0] if color_[0] > 0 else 0,
-        #               color_[1] if color_[1] > 0 else 0,
-        #               color_[2] if color_[2] > 0 else 0,
-        #               1)
-        # light_color_ = color_[0] * 0.9 + 0.3, color_[1] * 0.9 + 0.3, color_[2] * 0.9 + 0.3, alpha
-        gl.glColor4f(*color_)
-        for part in part_set:
-            gl.glLoadName(id(part) % 4294967296)
-            part.glWin = self.glWin
-            if "plot_faces" not in part.__dict__ and type(part) != AdjustableHull:
-                continue
-            for draw_method, faces_dots in part.plot_faces.items():
-                # draw_method是字符串，需要转换为OpenGL的常量
-                for face in faces_dots:
-                    gl.glBegin(eval(f"gl.{draw_method}"))
-                    if len(face) == 3 or len(face) == 4:
-                        normal = get_normal(face[0], face[1], face[2])
-                    elif len(face) > 12:
-                        normal = get_normal(face[0], face[6], face[12])
-                    else:
-                        continue
-                    gl.glNormal3f(normal.x(), normal.y(), normal.z())
-                    for dot in face:
-                        gl.glVertex3f(dot[0], dot[1], dot[2])
-                    gl.glEnd()
 
 
 class NaHullXZLayer(SolidObject):
@@ -434,3 +380,396 @@ class NALeftViewNode(DotNode):
 
     def draw(self):
         ...
+
+
+class TempAdjustableHull(TempObj):
+    def __init__(
+            self, read_na, glWin, Id, pos, rot, scale, color, armor,
+            length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve,
+            heightScale, heightOffset,
+            original_hull_data
+    ):
+        """
+        :param Id: 字符串，零件ID
+        :param pos: 元组，三个值分别为x,y,z轴的位置
+        :param rot: 元组，三个值分别为x,y,z轴的旋转角度
+        :param scale: 元组，三个值分别为x,y,z轴的缩放比例
+        :param color: 字符串，颜色的十六进制表示
+        :param armor: 整型，装甲厚度
+        :param length: 浮点型，长度
+        :param height: 浮点型，高度
+        :param frontWidth: 浮点型，前宽
+        :param backWidth: 浮点型，后宽
+        :param frontSpread: 浮点型，前扩散
+        :param backSpread: 浮点型，后扩散
+        :param upCurve: 浮点型，上曲率
+        :param downCurve: 浮点型，下曲率
+        :param heightScale: 浮点型，前端高度缩放
+        :param heightOffset: 浮点型，前端高度偏移
+        """
+        super().__init__()
+        self.glWin = glWin  # 用于绘制的窗口
+        self.read_na_obj = read_na
+        self.original_hull_data = original_hull_data
+        self.Id = Id
+        self.Pos = pos
+        self.Rot = rot
+        self.Scl = scale
+        self.Col = color  # "#975740"
+        self.Amr = armor
+        # ======================================================================= 初始化零件的各个参数
+        self.Len = length
+        self.Hei = height
+        self.FWid = frontWidth
+        self.BWid = backWidth
+        self.FSpr = frontSpread
+        self.BSpr = backSpread
+        self.UCur = upCurve
+        self.DCur = downCurve
+        self.HScl = heightScale  # 高度缩放
+        self.HOff = heightOffset  # 高度偏移
+        AdjustableHull.All.append(self)
+        self._y_limit = [-self.Hei / 2, self.Hei / 2]
+        # ==============================================================================初始化零件的各个坐标
+        self.front_z = self.Len / 2  # 零件前端的z坐标
+        self.back_z = -self.Len / 2  # 零件后端的z坐标
+        self.half_height_scale = self.Hei * self.HScl / 2  # 高度缩放的一半
+        self.center_height_offset = self.HOff * self.Hei  # 高度偏移
+        self.front_down_y = self.center_height_offset - self.half_height_scale  # 零件前端下端的y坐标
+        self.front_up_y = self.center_height_offset + self.half_height_scale  # 零件前端上端的y坐标
+        if self.front_down_y < self._y_limit[0]:
+            self.front_down_y = self._y_limit[0]
+        elif self.front_down_y > self._y_limit[1]:
+            self.front_down_y = self._y_limit[1]
+        if self.front_up_y > self._y_limit[1]:
+            self.front_up_y = self._y_limit[1]
+        elif self.front_up_y < self._y_limit[0]:
+            self.front_up_y = self._y_limit[0]
+        self.back_down_y = - self.Hei / 2
+        self.back_up_y = self.Hei / 2
+        self.front_down_x = self.FWid / 2
+        self.back_down_x = self.BWid / 2
+        self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
+        self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
+        # ==============================================================================计算绘图所需的数据
+        self.operation_dot_nodes = []  # 位置变换后，曲面变换前的所有点
+        self.plot_all_dots = []  # 曲面变换，位置变换后的所有点
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
+        self.plot_faces = self.get_plot_faces()
+        self.glWin.paintGL()
+        self.glWin.update()
+
+    def __deepcopy__(self, memo):
+        return self
+
+    def get_plot_faces(self):
+        """
+        :return: 绘制零件的方法，绘制零件需的三角形集
+        """
+        result = {
+            "GL_QUADS": [],
+            "GL_TRIANGLES": [],
+            "GL_QUAD_STRIP": [],
+            "GL_POLYGON": [],
+        }
+        # 缩放并旋转
+        dots = rotate_quaternion1(self.vertex_coordinates, self.Scl, self.Rot)
+        for key in dots.keys():
+            dots[key] = dots[key].copy() + self.Pos  # 平移
+        faces = [
+            [dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"]],
+            [dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]],
+            [dots["front_up_left"], dots["back_up_left"], dots["back_up_right"], dots["front_up_right"]],
+            [dots["front_down_left"], dots["front_down_right"], dots["back_down_right"], dots["back_down_left"]],
+            [dots["front_up_left"], dots["front_down_left"], dots["back_down_left"], dots["back_up_left"]],
+            [dots["front_up_right"], dots["back_up_right"], dots["back_down_right"], dots["front_down_right"]],
+        ]
+        self.operation_dot_nodes = [
+            dots["front_up_left"], dots["front_up_right"], dots["front_down_right"], dots["front_down_left"],
+            dots["back_up_left"], dots["back_down_left"], dots["back_down_right"], dots["back_up_right"]]
+        if self.UCur < 0.005 and self.DCur <= 0.005:
+            self.plot_all_dots = self.operation_dot_nodes
+            # 检查同一个面内的点是否重合，重合则添加到三角绘制方法中，否则添加到四边形绘制方法中
+            for face in faces:
+                use_triangles = False
+                added_face = None
+                for i in range(3):
+                    if np.array_equal(face[i], face[i + 1]):
+                        # 去除重复点
+                        added_face = face[:i] + face[i + 1:]
+                        use_triangles = True
+                        break
+                if use_triangles:
+                    result["GL_TRIANGLES"].append(added_face)
+                else:
+                    result["GL_QUADS"].append(face)
+        else:  # TODO: 有曲率的零件的绘制方法
+            front_part_curved_circle_dots, back_part_curved_circle_dots = self.get_initial_Curve_face_dots()
+            # 翻转顺序
+            reversed_b_up = back_part_curved_circle_dots["up"][::-1]
+            reversed_b_down = back_part_curved_circle_dots["down"][::-1]
+            # x值取反并存回原来的位置
+            symmetry_f_up = [dot * np.array([-1, 1, 1]) for dot in front_part_curved_circle_dots["up"]]
+            symmetry_f_down = [dot * np.array([-1, 1, 1]) for dot in front_part_curved_circle_dots["down"]]
+            symmetry_b_up = [dot * np.array([-1, 1, 1]) for dot in reversed_b_up]
+            symmetry_b_down = [dot * np.array([-1, 1, 1]) for dot in reversed_b_down]
+
+            # 绘制图形集合，截面（前后）用polygon，侧面用quad_strip
+            # 拼合点集
+            front_set = []
+            back_set = []
+            # 注意front和back的点集的顺序是相反的，为了渲染的时候能够正确显示
+            front_set.extend(symmetry_f_up[:-1])
+            front_set.extend(symmetry_f_down[:-1])
+            front_set.extend(front_part_curved_circle_dots["down"][::-1][:-1])
+            front_set.extend(front_part_curved_circle_dots["up"][::-1][:-1])
+            back_set.extend(back_part_curved_circle_dots["up"][:-1])
+            back_set.extend(back_part_curved_circle_dots["down"][:-1])
+            back_set.extend(symmetry_b_down[:-1])
+            back_set.extend(symmetry_b_up[:-1])
+            #   两个截面
+            result["GL_POLYGON"] = [front_set, back_set]
+            #   侧面
+            result["GL_QUADS"] = []
+            back_set = back_set[::-1]  # 翻转顺序
+            back_set = [back_set[(i - 1) % len(back_set)] for i in range(len(back_set))]  # 轮转一个单位
+            for i in range(23):
+                result["GL_QUADS"].append([front_set[i], back_set[i], back_set[i + 1], front_set[i + 1]])
+            result["GL_QUADS"].append([front_set[-1], back_set[-1], back_set[0], front_set[0]])
+            # 旋转
+            for method, face_set in result.items():
+                result[method] = rotate_quaternion0(face_set, self.Scl, self.Rot)
+                # 缩放和平移
+                for face in result[method]:
+                    for i in range(len(face)):
+                        face[i] = face[i].copy() + self.Pos
+            self.plot_all_dots = result["GL_POLYGON"][0] + result["GL_POLYGON"][1]
+        return result
+
+    def get_initial_Curve_face_dots(self):
+        """
+        获取扭曲后的零件圆形弧面的基础点集，从圆形（r=1）开始，然后进行高度缩放，底部缩放，顶部缩放，
+        底部到顶部的缩放变换是线性的，也就是梯形内接变形圆
+        :return:
+        """
+        # 单位圆的点集，12个左侧点，先忽略右侧点
+        # 当Curve为0时，就是square_dots，其与circle_dots做差，令circle_dots加上差值乘以Curve就是最终的点集
+        square_dots = {"up": [
+            np.array([0, 1]),
+            np.array([np.tan(np.deg2rad(15)), 1]),
+            np.array([np.tan(np.deg2rad(30)), 1]),
+            np.array([1, 1]),
+            np.array([1, np.tan(np.deg2rad(30))]),
+            np.array([1, np.tan(np.deg2rad(15))]),
+            np.array([1, 0]),
+        ], "down": [
+            np.array([1, 0]),
+            np.array([1, -np.tan(np.deg2rad(15))]),
+            np.array([1, -np.tan(np.deg2rad(30))]),
+            np.array([1, -1]),
+            np.array([np.tan(np.deg2rad(30)), -1]),
+            np.array([np.tan(np.deg2rad(15)), -1]),
+            np.array([0, -1]),
+        ]}
+        Front_part_curved_circle_dots = {"up": [], "down": []}
+        Back_part_curved_circle_dots = {"up": [], "down": []}
+        for i in range(7):  # 从上到下，一共7个点，也就是从(0, 1, self.front_z)到(1, 0, self.front_z)
+            angle = np.deg2rad(15 * i)
+            circle_up = np.array([np.sin(angle), np.cos(angle)])
+            circle_down = np.array([np.cos(angle), - np.sin(angle)])
+            Front_part_curved_circle_dots["up"].append(
+                np.append(circle_up + (square_dots["up"][i] - circle_up) * (1 - self.UCur), self.front_z))
+            Front_part_curved_circle_dots["down"].append(
+                np.append(circle_down + (square_dots["down"][i] - circle_down) * (1 - self.DCur), self.front_z))
+            Back_part_curved_circle_dots["up"].append(
+                np.append(circle_up + (square_dots["up"][i] - circle_up) * (1 - self.UCur), self.back_z))
+            Back_part_curved_circle_dots["down"].append(
+                np.append(circle_down + (square_dots["down"][i] - circle_down) * (1 - self.DCur), self.back_z))
+            # 进行横向缩放
+            Front_part_curved_circle_dots["up"][i][0] *= self.get_horizontal_scale(
+                Front_part_curved_circle_dots["up"][i][1], True)
+            Front_part_curved_circle_dots["down"][i][0] *= self.get_horizontal_scale(
+                Front_part_curved_circle_dots["down"][i][1], True)
+            Back_part_curved_circle_dots["up"][i][0] *= self.get_horizontal_scale(
+                Back_part_curved_circle_dots["up"][i][1], False)
+            Back_part_curved_circle_dots["down"][i][0] *= self.get_horizontal_scale(
+                Back_part_curved_circle_dots["down"][i][1], False)
+            # 进行y高度缩放
+            Front_part_curved_circle_dots["up"][i][1] *= self.half_height_scale
+            Front_part_curved_circle_dots["down"][i][1] *= self.half_height_scale
+            Back_part_curved_circle_dots["up"][i][1] *= self.Hei / 2
+            Back_part_curved_circle_dots["down"][i][1] *= self.Hei / 2
+            # 进行y高度偏移
+            Front_part_curved_circle_dots["up"][i][1] += self.center_height_offset
+            Front_part_curved_circle_dots["down"][i][1] += self.center_height_offset
+            # 进行y值限制
+            if Front_part_curved_circle_dots["up"][i][1] > self._y_limit[1]:
+                Front_part_curved_circle_dots["up"][i][1] = self._y_limit[1]
+            elif Front_part_curved_circle_dots["up"][i][1] < self._y_limit[0]:
+                Front_part_curved_circle_dots["up"][i][1] = self._y_limit[0]
+            if Front_part_curved_circle_dots["down"][i][1] > self._y_limit[1]:
+                Front_part_curved_circle_dots["down"][i][1] = self._y_limit[1]
+            elif Front_part_curved_circle_dots["down"][i][1] < self._y_limit[0]:
+                Front_part_curved_circle_dots["down"][i][1] = self._y_limit[0]
+        return Front_part_curved_circle_dots, Back_part_curved_circle_dots
+
+    def get_horizontal_scale(self, y, front=True):
+        if front:
+            return ((self.front_up_x - self.front_down_x) * y + (self.front_up_x + self.front_down_x)) / 2
+        else:
+            return ((self.back_up_x - self.back_down_x) * y + (self.back_up_x + self.back_down_x)) / 2
+
+    def get_plot_lines(self):
+        result = {
+            "1": [self.vertex_coordinates["front_up_left"].copy(), self.vertex_coordinates["front_up_right"].copy(),
+                  self.vertex_coordinates["front_down_right"].copy(), self.vertex_coordinates["front_down_left"].copy(),
+                  self.vertex_coordinates["front_up_left"].copy(), self.vertex_coordinates["back_up_left"].copy(),
+                  self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["front_up_right"].copy()],
+            "2": [self.vertex_coordinates["front_down_left"].copy(), self.vertex_coordinates["back_down_left"].copy(),
+                  self.vertex_coordinates["back_down_right"].copy(), self.vertex_coordinates["front_down_right"].copy()],
+            "3": [self.vertex_coordinates["back_up_left"].copy(), self.vertex_coordinates["back_down_left"].copy()],
+            "4": [self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["back_down_right"].copy()]
+        }
+        # 进行旋转，平移，缩放
+        result = rotate_quaternion2(result, self.Scl, self.Rot)
+        for key in result.keys():
+            for i in range(len(result[key])):
+                result[key][i] += self.Pos
+
+        return result
+
+    def get_initial_vertex_coordinates(self):
+        return {
+            "front_up_left": np.array([self.front_up_x, self.front_up_y, self.front_z]),
+            "front_up_right": np.array([-self.front_up_x, self.front_up_y, self.front_z]),
+            "front_down_left": np.array([self.front_down_x, self.front_down_y, self.front_z]),
+            "front_down_right": np.array([-self.front_down_x, self.front_down_y, self.front_z]),
+            "back_up_left": np.array([self.back_up_x, self.back_up_y, self.back_z]),
+            "back_up_right": np.array([-self.back_up_x, self.back_up_y, self.back_z]),
+            "back_down_left": np.array([self.back_down_x, self.back_down_y, self.back_z]),
+            "back_down_right": np.array([-self.back_down_x, self.back_down_y, self.back_z]),
+        }
+
+    def change_attrs_T(self, position=None, armor=None,
+                       length=None, height=None, frontWidth=None, backWidth=None, frontSpread=None, backSpread=None,
+                       upCurve=None, downCurve=None, heightScale=None, heightOffset=None,
+                       update=False):
+        # ==============================================================================更新零件的各个属性
+        if position is None:
+            position = self.Pos
+        if armor is None:
+            armor = self.Amr
+        if length is None:
+            length = self.Len
+        if height is None:
+            height = self.Hei
+        if frontWidth is None:
+            frontWidth = self.FWid
+        if backWidth is None:
+            backWidth = self.BWid
+        if frontSpread is None:
+            frontSpread = self.FSpr
+        if backSpread is None:
+            backSpread = self.BSpr
+        if upCurve is None:
+            upCurve = self.UCur
+        if downCurve is None:
+            downCurve = self.DCur
+        if heightScale is None:
+            heightScale = self.HScl
+        if heightOffset is None:
+            heightOffset = self.HOff
+        try:
+            self.Pos = [round(float(i), 3) for i in position]
+            self.Amr = int(armor)
+            self.Len = float(length)
+            self.Hei = float(height)
+            self.FWid = float(frontWidth)
+            self.BWid = float(backWidth)
+            self.FSpr = float(frontSpread)
+            self.BSpr = float(backSpread)
+            self.UCur = float(upCurve)
+            self.DCur = float(downCurve)
+            self.HScl = float(heightScale)  # 高度缩放
+            self.HOff = float(heightOffset)  # 高度偏移
+            self._y_limit = [-self.Hei / 2, self.Hei / 2]
+        except ValueError:
+            return False
+        # ==============================================================================初始化零件的各个坐标
+        self.front_z = self.Len / 2  # 零件前端的z坐标
+        self.back_z = -self.Len / 2  # 零件后端的z坐标
+        self.half_height_scale = self.Hei * self.HScl / 2  # 高度缩放的一半
+        self.center_height_offset = self.HOff * self.Hei  # 高度偏移
+        self.front_down_y = self.center_height_offset - self.half_height_scale  # 零件前端下端的y坐标
+        self.front_up_y = self.center_height_offset + self.half_height_scale  # 零件前端上端的y坐标
+        if self.front_down_y < self._y_limit[0]:
+            self.front_down_y = self._y_limit[0]
+        elif self.front_down_y > self._y_limit[1]:
+            self.front_down_y = self._y_limit[1]
+        if self.front_up_y > self._y_limit[1]:
+            self.front_up_y = self._y_limit[1]
+        elif self.front_up_y < self._y_limit[0]:
+            self.front_up_y = self._y_limit[0]
+        self.back_down_y = - self.Hei / 2
+        self.back_up_y = self.Hei / 2
+        self.front_down_x = self.FWid / 2
+        self.back_down_x = self.BWid / 2
+        self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
+        self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
+        # ==============================================================================计算绘图所需的数据
+        self.operation_dot_nodes = []  # 位置变换后，曲面变换前的所有点
+        self.plot_all_dots = []  # 曲面变换，位置变换后的所有点
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
+        self.plot_faces = self.get_plot_faces()
+        if update:
+            # 重绘
+            self.glWin.paintGL()
+            self.glWin.update()
+        return True
+
+    def export2AdjustableHull(self) -> AdjustableHull:
+        obj = AdjustableHull(
+            self.read_na_obj, self.Id, self.Pos, self.Rot, self.Scl, self.Col, self.Amr,
+            self.Len, self.Hei, self.FWid, self.BWid, self.FSpr, self.BSpr, self.UCur, self.DCur,
+            self.HScl, self.HOff,
+            _from_temp_data=True, _back_down_y=self.back_down_y, _back_up_y=self.back_up_y,
+            _front_down_y=self.front_down_y, _front_up_y=self.front_up_y,
+            _operation_dot_nodes=self.operation_dot_nodes, _plot_all_dots=self.plot_all_dots,
+            _vertex_coordinates=self.vertex_coordinates, _plot_lines=self.plot_lines, _plot_faces=self.plot_faces
+        )
+        # 添加颜色
+        _color = f"#{obj.Col}"
+        if _color not in self.read_na_obj.ColorPartsMap.keys():
+            self.ColorPartsMap[_color] = []
+        self.read_na_obj.ColorPartsMap[_color].append(obj)
+        self.read_na_obj.Parts.append(obj)
+        NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj
+        return obj
+
+    def draw(self, gl, material="被选中", theme_color=None):
+        # 材料设置
+        gl.glColor4f(*theme_color["被选中"][0])
+        for draw_method, faces_dots in self.plot_faces.items():
+            # draw_method是字符串，需要转换为OpenGL的常量
+            for face in faces_dots:
+                gl.glBegin(eval(f"gl.{draw_method}"))
+                if len(face) == 3 or len(face) == 4:
+                    normal = get_normal(face[0], face[1], face[2])
+                elif len(face) > 12:
+                    normal = get_normal(face[0], face[6], face[12])
+                else:
+                    continue
+                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                for dot in face:
+                    gl.glVertex3f(dot[0], dot[1], dot[2])
+                gl.glEnd()
+        gl.glColor4f(*theme_color["橙色"][0])
+        gl.glLineWidth(3)
+        for _line_name, line in self.plot_lines.items():
+            # 首尾不相连
+            gl.glBegin(gl.GL_LINE_STRIP)
+            for dot in line:
+                gl.glVertex3f(dot[0], dot[1], dot[2])
+            gl.glEnd()

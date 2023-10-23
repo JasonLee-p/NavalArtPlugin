@@ -30,7 +30,7 @@ try:
     from GUI.dialogs import SelectNaDialog, StartWelcomeDialog
     from GL_plot import *
     from path_utils import find_ptb_path, find_na_root_path
-    from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu
+    from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu, reset_matrix
     from right_element_view import (
         Mod1AllPartsView, Mod1SinglePartView, Mod1VerticalPartSetView, Mod1HorizontalPartSetView,
         Mod1VerHorPartSetView)
@@ -686,17 +686,11 @@ class GLWin(OpenGLWin):
         active_textEdit = Handler.right_widget.tab2_mod1_widget_singlePart.content[parameter_name]["QLineEdit"][0]
         Handler.right_widget.tab2_mod1_widget_singlePart.mouse_wheel([active_textEdit, event])
 
-    def paintGL(self) -> None:
-        super().paintGL()
+    @reset_matrix
+    def draw_2D_objs(self):
+        if self.select_start and self.select_end:
+            self.draw_select_box()
         if self.sub_menu_start is not None and self.sub_menu_end is not None:
-            # 保存原来的矩阵
-            self.gl2_0.glMatrixMode(GL_PROJECTION)
-            self.gl2_0.glPushMatrix()
-            self.gl2_0.glLoadIdentity()
-            self.gl2_0.glOrtho(0, self.width, self.height, 0, -1, 1)
-            self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            self.gl2_0.glPushMatrix()
-            self.gl2_0.glLoadIdentity()
             # 画线
             self.gl2_0.glLineWidth(8)
             self.gl2_0.glEnable(self.gl2_0.GL_LIGHT1)
@@ -719,12 +713,6 @@ class GLWin(OpenGLWin):
             self.gl2_0.glVertex2f(self.sub_menu_end.x(), self.sub_menu_end.y())
             self.gl2_0.glEnd()
             self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
-            # 恢复原来的矩阵
-            self.gl2_0.glMatrixMode(GL_PROJECTION)
-            self.gl2_0.glPopMatrix()
-            self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            self.gl2_0.glPopMatrix()
-            self.update()
 
     def singlePart_add2xyLayer(self):
         super(GLWin, self).singlePart_add2xyLayer()

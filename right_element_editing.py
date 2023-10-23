@@ -288,7 +288,11 @@ class Mod1SinglePartEditing(QWidget):
 
     def add_layer_(self, direction):
         relation_map = self.selected_obj.allParts_relationMap.basicMap
-        if relation_map[self.selected_obj][direction]:  # 已经有零件
+        if (
+                self.selected_obj in relation_map and
+                direction in relation_map[self.selected_obj] and
+                relation_map[self.selected_obj][direction]
+        ):
             glWin = self.selected_obj.glWin
             _next = list(relation_map[self.selected_obj][direction].keys())[0]
             if type(_next) == NAPart:
@@ -300,7 +304,7 @@ class Mod1SinglePartEditing(QWidget):
             glWin.update()
         else:  # 没有零件，添加零件
             self.hide()
-            AddLayerOperation.add_layer([self.selected_obj], direction)
+            AddLayerOperation(direction, [self.selected_obj])
 
     def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
         """
@@ -452,8 +456,6 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.layout = QGridLayout()
         self.setLayout(self.layout)
         self.init_layout()
-        # 绑定滚轮事件
-        self.wheelEvent = self.mouse_wheel
 
     def init_layout(self):
         self.layout.setSpacing(7)
@@ -561,10 +563,7 @@ class Mod1VerticalPartSetEditing(QWidget):
 
     def add_layer_(self, direction):
         self.hide()
-        AddLayerOperation.add_layer(self.selected_objs, direction)
-
-    def mouse_wheel(self, event):
-        self.wheelEvent(event)
+        AddLayerOperation(direction, self.selected_objs)
 
 
 class Mod1HorizontalPartSetEditing(QWidget):
@@ -602,8 +601,6 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.layout = QGridLayout()
         self.setLayout(self.layout)
         self.init_layout()
-        # 绑定滚轮事件
-        self.wheelEvent = self.mouse_wheel
 
     def init_layout(self):
         self.layout.setSpacing(7)
@@ -711,10 +708,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
 
     def add_layer_(self, direction):
         self.hide()
-        AddLayerOperation.add_layer(self.selected_objs, direction)
-
-    def mouse_wheel(self, event):
-        self.wheelEvent(event)
+        AddLayerOperation(direction, self.selected_objs)
 
 
 class Mod1VerHorPartSetEditing(QWidget):

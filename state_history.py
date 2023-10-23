@@ -5,7 +5,6 @@
 import copy
 from typing import List, Union
 
-from OpenGLWindow import OpenGLWin
 from GL_plot.na_hull import (
     PartRelationMap as PRM, NAHull, NaHullXYLayer, NaHullXZLayer, NaHullLeftView,
     NAPart, NAPartNode, NAXYLayerNode, NAXZLayerNode, NALeftViewNode

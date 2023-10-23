@@ -4,6 +4,9 @@
 当触发某些操作的时候，这些控件会从隐藏状态变为显示状态
 """
 from typing import Literal
+
+from GL_plot.na_hull import TempAdjustableHull
+from state_history import push_operation
 from util_funcs import CONST
 
 from GUI import *
@@ -33,7 +36,9 @@ class AddLayerEditing(OperationEditing):
         向某方向添加层
         """
         super().__init__()
+        self.operation = None
         self.direction = ''
+        self.receive_result = {}  # Dict[AdjustableHull: TempAdjustableHull]
         self.title = MyLabel(f"向{Direction2Chinese[self.direction]}方添加层", FONT_10, side=Qt.AlignCenter)
         # 单选框，用户选择当宽度编辑的时候相应的扩散是否修改，默认为修改。
         self.circle_bt = CircleSelectButton(7, False)
@@ -67,6 +72,10 @@ class AddLayerEditing(OperationEditing):
 
     def reset_ui(self):
         OperationEditing.is_editing = True
+        # 清空原来的内容
+        for i in range(self.context_layout.count()):
+            self.context_layout.itemAt(i).widget().deleteLater()
+        # 添加新的内容
         text_font = FONT_9
         for i, key_ in enumerate(self.content):
             # 添加标签
@@ -90,9 +99,12 @@ class AddLayerEditing(OperationEditing):
                 # # 绑定值修改信号
                 # lineEdit.textChanged.connect(self.update_obj_when_editing)
 
-    def update_direction(self, direction: Literal["front", "back", "left", "right", "top", "bottom"], content: dict):
+    def update_direction(self, operation, direction: Literal["front", "back", "left", "right", "top", "bottom"],
+                         result: dict, content: dict):
+        self.operation = operation
         self.title.setText(f"向{Direction2Chinese[direction]}方添加层")
         self.direction = direction
+        self.receive_result = result  # Dict[AdjustableHull: TempAdjustableHull]
         self.content = content
         self.reset_ui()
         self.show()
@@ -104,23 +116,18 @@ class AddLayerEditing(OperationEditing):
         :param event:
         :return:
         """
-        if type(event) == list:  # [QTextEdit, QWheelEvent]
-            # 是自己的程序在其他地方的调用，第一项就是需要修改的输入框
-            active_textEdit = event[0]
-            event = event[1]
-        else:
-            # 通过鼠标位置检测当前输入框
-            active_textEdit = None
-            key = None
-            pos = self.context_widget.mapFromGlobal(QCursor.pos())
-            for key_ in self.content:
-                for lineEdit in self.content[key_]["QLineEdit"]:
-                    if lineEdit.geometry().contains(pos):
-                        active_textEdit = lineEdit
-                        key = key_
-                        break
-                if active_textEdit:
+        # 通过鼠标位置检测当前输入框
+        active_textEdit = None
+        key = None
+        pos = self.context_widget.mapFromGlobal(QCursor.pos())
+        for key_ in self.content:
+            for lineEdit in self.content[key_]["QLineEdit"]:
+                if lineEdit.geometry().contains(pos):
+                    active_textEdit = lineEdit
+                    key = key_
                     break
+            if active_textEdit:
+                break
         if active_textEdit is None:
             return None
         step = 0.1
@@ -129,9 +136,85 @@ class AddLayerEditing(OperationEditing):
             step = - step
         if step != 0:
             self.update_(step, key, active_textEdit)
+            self.update_temp_obj(key)
 
-    @staticmethod
-    def update_(step, key, active_textEdit):
+    def update_temp_obj(self, key):
+        if len(self.receive_result) == 1:
+            org_hull = list(self.receive_result.keys())[0]
+            tmp_hull: TempAdjustableHull = list(self.receive_result.values())[0]
+            # 四个方向一致的行为：
+            if key == "上弧度":
+                _UCur = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                tmp_hull.change_attrs_T(upCurve=_UCur, update=True)
+            elif key == "下弧度":
+                _DCur = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                tmp_hull.change_attrs_T(downCurve=_DCur, update=True)
+            elif key == "前扩散":
+                _FSpr = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                tmp_hull.change_attrs_T(frontSpread=_FSpr, update=True)
+            elif key == "后扩散":
+                _BSpr = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                tmp_hull.change_attrs_T(backSpread=_BSpr, update=True)
+            # 四个方向不一致的行为：
+            elif self.direction == CONST.FRONT:
+                if key == "原长度":
+                    # 长度和Pos
+                    _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1],
+                            org_hull.Pos[2] + _Len * org_hull.Scl[2]]
+                    tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
+                elif key == "前宽度":
+                    _FWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    tmp_hull.change_attrs_T(frontWidth=_FWid, update=True)
+            elif self.direction == CONST.BACK:
+                if key == "原长度":
+                    # 长度和Pos
+                    _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1],
+                            org_hull.Pos[2] - _Len * org_hull.Scl[2]]
+                    tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
+                elif key == "后宽度":
+                    _BWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    tmp_hull.change_attrs_T(backWidth=_BWid, update=True)
+            elif self.direction == CONST.UP:
+                """
+                lineEdits = {
+                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
+                    "前扩散": {"value": _FSpr, "QLineEdit": [QLineEdit()]},
+                    "后扩散": {"value": _BSpr, "QLineEdit": [QLineEdit()]},
+                }
+                """
+                if key == "原高度":
+                    # 高度和Pos
+                    _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1] + _Hei * org_hull.Scl[1],
+                            org_hull.Pos[2]]
+                    tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
+            elif self.direction == CONST.DOWN:
+                """
+                lineEdits = {
+                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
+                    "前宽度": {"value": _FWid, "QLineEdit": [QLineEdit()]},
+                    "后宽度": {"value": _BWid, "QLineEdit": [QLineEdit()]},
+                }
+                """
+                if key == "原高度":
+                    # 高度和Pos
+                    _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1] - _Hei * org_hull.Scl[1],
+                            org_hull.Pos[2]]
+                    tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
+                elif key == "前宽度":
+                    # 在修改宽度的时候为了保持上宽度不变，需要修改扩散
+                    _FWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _FSpr = tmp_hull.original_hull_data["FLD"] - _FWid
+                    tmp_hull.change_attrs_T(frontWidth=_FWid, frontSpread=_FSpr, update=True)
+                elif key == "后宽度":
+                    _BWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                    _BSpr = tmp_hull.original_hull_data["BLD"] - _BWid
+                    tmp_hull.change_attrs_T(backWidth=_BWid, backSpread=_BSpr, update=True)
+
+    def update_(self, step, key, active_textEdit):
         # 获取输入框的值
         step_type = type(step)
         if active_textEdit.text() == "":
@@ -146,7 +229,22 @@ class AddLayerEditing(OperationEditing):
             else:
                 active_textEdit.setText(str(round(float(active_textEdit.text()) + step, 4)))
 
-    def ensure_button_clicked(self):
+    def export_adjustable_hull(self):
+        """
+        导出可调整的船体
+        :return:
+        """
+        result = {}
+        for org_hull, temp_hull in self.receive_result.items():
+            new_adjustable_hull = temp_hull.export2AdjustableHull()
+            result[org_hull] = new_adjustable_hull
+        return result
+
+    @push_operation
+    def ensure_button_clicked(self, event=None):
         MyMessageBox().information(self, "提示", "该功能尚未完成，敬请期待！")
         OperationEditing.is_editing = False
+        self.operation.added_parts_dict = self.export_adjustable_hull()
+        self.operation.execute()
         self.hide()
+        return self.operation

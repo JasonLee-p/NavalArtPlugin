@@ -7,12 +7,12 @@ import copy
 from typing import List, Literal, Union
 
 from PyQt5.QtWidgets import QLineEdit
-
 # 包内文件
 from .basic import Operation
 # 其他本地库
 from GUI import QMessageBox
 from ship_reader import NAPart, AdjustableHull
+from GL_plot import TempAdHull
 from state_history import push_operation
 from util_funcs import CONST, not_implemented, get_part_world_dirs
 from right_operation_editing import OperationEditing, AddLayerEditing
@@ -160,8 +160,8 @@ class CutSinglePartOperation(Operation):
         NAPart.hull_design_tab_id_map[id(P1) % 4294967296] = P1
         NAPart.hull_design_tab_id_map[id(P2) % 4294967296] = P2
         # 添加到关系图
-        if self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and self.original_part.Rot[
-            2] % 90 == 0:
+        if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
+                self.original_part.Rot[2] % 90 == 0):
             self.allParts_relationMap.replace_2(P1, P2, self.original_part, None)
         # 重新渲染
         for _mode in self.glWin.gl_commands.keys():
@@ -188,8 +188,8 @@ class CutSinglePartOperation(Operation):
         # 从hull_design_tab_id_map（绘制所需）恢复原来的零件
         NAPart.hull_design_tab_id_map[id(self.original_part) % 4294967296] = self.original_part
         # 恢复关系图
-        if self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and self.original_part.Rot[
-            2] % 90 == 0:
+        if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
+                self.original_part.Rot[2] % 90 == 0):
             self.allParts_relationMap.back_replace_2(P1, P2, self.original_part, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
@@ -244,7 +244,8 @@ class AddLayerOperation(Operation):
             self._original_parts = base_parts
         self.get_data_in_world_coordinate()
         # 初始化需要添加的零件
-        self.added_parts = self.generate_added_parts(self.original_parts_data, self.add_direction)
+        self.generate_added_parts(self.original_parts_data, self.add_direction)
+        self.added_parts_dict = {}
 
     def find_original_parts(self, base_part):
         outer_parts = [self.base_parts[0]]
@@ -271,8 +272,7 @@ class AddLayerOperation(Operation):
             if _data is not None:
                 self.original_parts_data[part] = _data
 
-    @staticmethod
-    def generate_added_parts(original_parts_data, add_direction):
+    def generate_added_parts(self, original_parts_data, add_direction):
         """
         生成需要添加的零件
         :param original_parts_data: 源零件的数据
@@ -284,11 +284,10 @@ class AddLayerOperation(Operation):
             "L": x11
         }
         :param add_direction: 添加方向（全局坐标系）
-        :return:
+        :return: Dict[AdjustableHull, TempAdHull]
         """
         # 打开右侧编辑器
-        result: List[AdjustableHull] = []
-        np_data = {}
+        result = {}
         lineEdits = {}
         if original_parts_data == {}:
             return result
@@ -296,61 +295,124 @@ class AddLayerOperation(Operation):
         if len(original_parts_data) == 1:  # 000000000000000000000000000000000000000000 单个零件
             part = list(original_parts_data.keys())[0]
             data = list(original_parts_data.values())[0]
+            _glWin = part.glWin
             if add_direction == CONST.FRONT:
-                # 不变的信息
-                np_data = {
-                    "Hei": data["FH"],
-                    "BWid": data["FLD"],
-                    "BSpr": data["FLU"] - data["FLD"],
-                }
+                # 不变信息初始化
+                _Hei = data["FH"]
+                _BWid = data["FLD"]
+                _BSpr = data["FLU"] - data["FLD"]
+                # 可变信息初始化
+                _Len = data["L"]
+                _FWid = data["FLU"]
+                _FSpr = data["FLU"] - data["FLD"]
+                _Pos = [part.Pos[0], part.Pos[1], part.Pos[2] + _Len * part.Scl[2]]
+                _UCur = part.UCur
+                _DCur = part.DCur
+                if part.Rot == [0, 0, 0]:
+                    if part.HOff != 0:
+                        _Pos = _Pos[0], _Pos[1] + part.HOff, _Pos[2]
+                elif part.Rot == [0, 0, 180]:  # 绕z轴旋转180度
+                    if part.HOff != 0:
+                        _Pos = _Pos[0], _Pos[1] - part.HOff, _Pos[2]
+                    _UCur = part.DCur
+                    _DCur = part.UCur
+                elif part.Rot == [180, 0, 0]:
+                    _UCur = part.DCur
+                    _DCur = part.UCur
+                result[part] = TempAdHull(
+                    part.read_na_obj, _glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                    _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, _UCur, _DCur,
+                    1, 0,
+                    original_hull_data=data
+                )
                 # 可编辑的信息初始化
                 lineEdits = {
-                    "原长度": {"value": data["L"], "QLineEdit": [QLineEdit()]},
-                    "前宽度": {"value": data["FLU"], "QLineEdit": [QLineEdit()]},
-                    "前扩散": {"value": data["FLU"] - data["FLD"], "QLineEdit": [QLineEdit()]},
-                    "上弧度": {"value": part.UCur, "QLineEdit": [QLineEdit()]},
-                    "下弧度": {"value": part.DCur, "QLineEdit": [QLineEdit()]},
+                    "原长度": {"value": _Len, "QLineEdit": [QLineEdit()]},
+                    "前宽度": {"value": _FWid, "QLineEdit": [QLineEdit()]},
+                    "前扩散": {"value": _FSpr, "QLineEdit": [QLineEdit()]},
+                    "上弧度": {"value": _UCur, "QLineEdit": [QLineEdit()]},
+                    "下弧度": {"value": _DCur, "QLineEdit": [QLineEdit()]},
                 }
             elif add_direction == CONST.BACK:
-                # 不变的信息
-                np_data = {
-                    "Hei": data["BH"],
-                    "FWid": data["BLD"],
-                    "FSpr": data["BLU"] - data["BLD"],
-                }
+                # 不变信息初始化
+                _Hei = data["BH"]
+                _FWid = data["BLD"]
+                _FSpr = data["BLU"] - data["BLD"]
+                # 可变信息初始化
+                _Len = data["L"]
+                _BWid = data["BLU"]
+                _BSpr = data["BLU"] - data["BLD"]
+                _Pos = [part.Pos[0], part.Pos[1], part.Pos[2] - _Len * part.Scl[2]]
+                _UCur = part.UCur
+                _DCur = part.DCur
+                if part.Rot == [0, 0, 180]:
+                    _UCur = part.DCur
+                    _DCur = part.UCur
+                elif part.Rot == [180, 0, 0]:
+                    if part.HOff != 0:
+                        _Pos = _Pos[0], _Pos[1] - part.HOff, _Pos[2]
+                    _UCur = part.DCur
+                    _DCur = part.UCur
+                elif part.Rot == [0, 180, 0]:
+                    if part.HOff != 0:
+                        _Pos = _Pos[0], _Pos[1] + part.HOff, _Pos[2]
+                result[part] = TempAdHull(
+                    part.read_na_obj, _glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                    _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, _UCur, _DCur,
+                    1, 0,
+                    original_hull_data=data
+                )
                 # 可编辑的信息初始化
                 lineEdits = {
-                    "原长度": {"value": data["L"], "QLineEdit": [QLineEdit()]},
-                    "后宽度": {"value": data["BLU"], "QLineEdit": [QLineEdit()]},
-                    "后扩散": {"value": data["BLU"] - data["BLD"], "QLineEdit": [QLineEdit()]},
-                    "上弧度": {"value": part.UCur, "QLineEdit": [QLineEdit()]},
-                    "下弧度": {"value": part.DCur, "QLineEdit": [QLineEdit()]},
+                    "原长度": {"value": _Len, "QLineEdit": [QLineEdit()]},
+                    "后宽度": {"value": _BWid, "QLineEdit": [QLineEdit()]},
+                    "后扩散": {"value": _BSpr, "QLineEdit": [QLineEdit()]},
+                    "上弧度": {"value": _UCur, "QLineEdit": [QLineEdit()]},
+                    "下弧度": {"value": _DCur, "QLineEdit": [QLineEdit()]},
                 }
             elif add_direction == CONST.UP:
-                # 不变的信息
-                np_data = {
-                    "Len": data["L"],
-                    "FWid": data["FLU"],
-                    "BWid": data["BLU"],
-                }
+                # 不变信息初始化
+                _Len = data["L"]
+                _FWid = data["FLU"]
+                _BWid = data["BLU"]
+                # 可变信息初始化
+                _Hei = data["H"]
+                _Pos = [part.Pos[0], part.Pos[1] + _Hei * part.Scl[1], part.Pos[2]]
+                _FSpr = data["FLU"] - data["FLD"]
+                _BSpr = data["BLU"] - data["BLD"]
+                result[part] = TempAdHull(
+                    part.read_na_obj, _glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                    _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, 0, 0,
+                    1, 0,
+                    original_hull_data=data
+                )
                 lineEdits = {
-                    "原高度": {"value": data["H"], "QLineEdit": [QLineEdit()]},
-                    "前扩散": {"value": data["FLU"] - data["FLD"], "QLineEdit": [QLineEdit()]},
-                    "后扩散": {"value": data["BLU"] - data["BLD"], "QLineEdit": [QLineEdit()]},
+                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
+                    "前扩散": {"value": _FSpr, "QLineEdit": [QLineEdit()]},
+                    "后扩散": {"value": _BSpr, "QLineEdit": [QLineEdit()]},
                 }
                 # 可编辑的信息初始化
             elif add_direction == CONST.DOWN:
-                # 不变的信息
-                np_data = {
-                    "Len": data["L"],
-                    "FUWid": data["FLD"],
-                    "BUWid": data["BLD"],
-                }
+                # 不变信息初始化
+                _Len = data["L"]
+                _FWid = 2 * data["FLD"] - data["FLU"]
+                _BWid = 2 * data["BLD"] - data["BLU"]
+                # 可变信息初始化
+                _Hei = data["H"]
+                _Pos = [part.Pos[0], part.Pos[1] - _Hei * part.Scl[1], part.Pos[2]]
+                _FSpr = data["FLU"] - data["FLD"]
+                _BSpr = data["BLU"] - data["BLD"]
+                result[part] = TempAdHull(
+                    part.read_na_obj, _glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                    _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, 0, 0,
+                    1, 0,
+                    original_hull_data=data
+                )
                 # 可编辑的信息初始化
                 lineEdits = {
-                    "原高度": {"value": data["H"], "QLineEdit": [QLineEdit()]},
-                    "前宽度": {"value": data["FLU"], "QLineEdit": [QLineEdit()]},
-                    "后宽度": {"value": data["BLU"], "QLineEdit": [QLineEdit()]},
+                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
+                    "前宽度": {"value": _FWid, "QLineEdit": [QLineEdit()]},
+                    "后宽度": {"value": _BWid, "QLineEdit": [QLineEdit()]},
                 }
             elif add_direction == CONST.LEFT:
                 return result
@@ -368,6 +430,7 @@ class AddLayerOperation(Operation):
                 for part, data in original_parts_data.items():
                     # 不变的信息
                     np_datas[part] = {
+                        "Col": part.Col, "Amr": part.Amr,
                         "Hei": data["FH"],
                         "BWid": data["FLD"],
                         "BSpr": data["FLU"] - data["FLD"],
@@ -381,6 +444,7 @@ class AddLayerOperation(Operation):
                 for part, data in original_parts_data.items():
                     # 不变的信息
                     np_datas[part] = {
+                        "Col": part.Col, "Amr": part.Amr,
                         "Hei": data["BH"],
                         "FWid": data["BLD"],
                         "FSpr": data["BLU"] - data["BLD"],
@@ -394,6 +458,7 @@ class AddLayerOperation(Operation):
                 for part, data in original_parts_data.items():
                     # 不变的信息
                     np_datas[part] = {
+                        "Col": part.Col, "Amr": part.Amr,
                         "Len": data["L"],
                         "FWid": data["FLU"],
                         "BWid": data["BLU"],
@@ -407,6 +472,7 @@ class AddLayerOperation(Operation):
                 for part, data in original_parts_data.items():
                     # 不变的信息
                     np_datas[part] = {
+                        "Col": part.Col, "Amr": part.Amr,
                         "Len": data["L"],
                         "FUWid": data["FLD"],
                         "BUWid": data["BLD"],
@@ -416,10 +482,11 @@ class AddLayerOperation(Operation):
             elif add_direction == CONST.RIGHT:
                 return result
         # 更新右侧编辑器的栏目
-        AddLayerOperation.right_frame.update_direction(add_direction, lineEdits)
+        AddLayerOperation.right_frame.update_direction(self, add_direction, result, lineEdits)
         return result
 
     def execute(self):
+        TempAdHull.all_objs.clear()
         pass
 
     def undo(self):
@@ -427,14 +494,3 @@ class AddLayerOperation(Operation):
 
     def redo(self):
         self.execute()
-
-    @staticmethod
-    @push_operation
-    def add_layer(original_parts, direction):
-        """
-        将操作推入操作栈
-        :param original_parts:
-        :param direction:
-        :return:
-        """
-        return AddLayerOperation(direction, original_parts)

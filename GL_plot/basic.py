@@ -3,6 +3,7 @@
 """
 
 import math
+
 from PyQt5.QtGui import QVector3D
 
 
@@ -273,29 +274,29 @@ class Cube(SolidObject):
         self.color = color
         self.dot_set = {
             '上面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                   (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
+                     (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
             '下面': [(radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                   (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
+                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
             '左面': [(-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                   (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
+                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
             '右面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                   (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                   (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
+                     (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
             '前面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                   (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                   (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
+                     (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
+                     (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
             '后面': [(radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                   (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                   (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2])]
+                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2])]
         }
         super(Cube, self).__init__(gl)
         self.faces = {
@@ -306,3 +307,14 @@ class Cube(SolidObject):
             "faces": [self.dot_set['上面'], self.dot_set['下面'], self.dot_set['左面'],
                       self.dot_set['右面'], self.dot_set['前面'], self.dot_set['后面']]
         }
+
+
+class TempObj(SolidObject):
+    all_objs = []
+
+    def __init__(self):
+        super().__init__(None)
+        TempObj.all_objs.append(self)
+
+    def draw(self, gl, material="被选中", theme_color=None):
+        pass
