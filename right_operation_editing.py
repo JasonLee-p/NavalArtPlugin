@@ -160,8 +160,8 @@ class AddLayerEditing(OperationEditing):
                 if key == "原长度":
                     # 长度和Pos
                     _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
-                    _Pos = [org_hull.Pos[0], org_hull.Pos[1],
-                            org_hull.Pos[2] + _Len * org_hull.Scl[2]]
+                    _z = org_hull.Pos[2] + (_Len + tmp_hull.original_hull_data["L"]) * org_hull.Scl[2] / 2
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1], _z]
                     tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
                 elif key == "前宽度":
                     _FWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
@@ -170,39 +170,25 @@ class AddLayerEditing(OperationEditing):
                 if key == "原长度":
                     # 长度和Pos
                     _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
-                    _Pos = [org_hull.Pos[0], org_hull.Pos[1],
-                            org_hull.Pos[2] - _Len * org_hull.Scl[2]]
+                    _z = org_hull.Pos[2] - (_Len + tmp_hull.original_hull_data["L"]) * org_hull.Scl[2] / 2
+                    _Pos = [org_hull.Pos[0], org_hull.Pos[1], _z]
                     tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
                 elif key == "后宽度":
                     _BWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
                     tmp_hull.change_attrs_T(backWidth=_BWid, update=True)
             elif self.direction == CONST.UP:
-                """
-                lineEdits = {
-                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
-                    "前扩散": {"value": _FSpr, "QLineEdit": [QLineEdit()]},
-                    "后扩散": {"value": _BSpr, "QLineEdit": [QLineEdit()]},
-                }
-                """
                 if key == "原高度":
                     # 高度和Pos
                     _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
-                    _Pos = [org_hull.Pos[0], org_hull.Pos[1] + _Hei * org_hull.Scl[1],
-                            org_hull.Pos[2]]
+                    _y = org_hull.Pos[1] + (_Hei + tmp_hull.original_hull_data["H"]) * org_hull.Scl[1] / 2
+                    _Pos = [org_hull.Pos[0], _y, org_hull.Pos[2]]
                     tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
             elif self.direction == CONST.DOWN:
-                """
-                lineEdits = {
-                    "原高度": {"value": _Hei, "QLineEdit": [QLineEdit()]},
-                    "前宽度": {"value": _FWid, "QLineEdit": [QLineEdit()]},
-                    "后宽度": {"value": _BWid, "QLineEdit": [QLineEdit()]},
-                }
-                """
                 if key == "原高度":
                     # 高度和Pos
                     _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
-                    _Pos = [org_hull.Pos[0], org_hull.Pos[1] - _Hei * org_hull.Scl[1],
-                            org_hull.Pos[2]]
+                    _y = org_hull.Pos[1] - (_Hei + tmp_hull.original_hull_data["H"]) * org_hull.Scl[1] / 2
+                    _Pos = [org_hull.Pos[0], _y, org_hull.Pos[2]]
                     tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
                 elif key == "前宽度":
                     # 在修改宽度的时候为了保持上宽度不变，需要修改扩散
