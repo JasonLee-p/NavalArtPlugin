@@ -482,6 +482,9 @@ class MainWin(MainWindow):
     def __init__(self, parent=None):
         MainWindow.__init__(self, parent)
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        super().keyPressEvent(event)
+
 
 class GLWin(OpenGLWin):
     key_state = {
@@ -540,8 +543,12 @@ class GLWin(OpenGLWin):
         super().keyPressEvent(event)
         if event.key() == Qt.Key_Alt:
             show_state("Alt快捷键指南：\t上下左右： 选区移动\t右键拖动： 快捷菜单", "warning")
+        # Enter
+        if event.key() == Qt.Key_Return:
+            Handler.right_widget.tab2_operation_addPartLayer.ensure_button_clicked()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
+
         for key in self.key_state.keys():
             if key == event.key():
                 self.key_state[key] = False

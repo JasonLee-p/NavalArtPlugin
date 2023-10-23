@@ -749,8 +749,10 @@ class TempAdjustableHull(TempObj):
         return obj
 
     def draw(self, gl, material="被选中", theme_color=None):
+        # 启用辅助光源
+        gl.glEnable(gl.GL_LIGHT1)
         # 材料设置
-        gl.glColor4f(*theme_color["被选中"][0])
+        gl.glColor4f(*theme_color["被选中"][0][:3], 0.5)
         for draw_method, faces_dots in self.plot_faces.items():
             # draw_method是字符串，需要转换为OpenGL的常量
             for face in faces_dots:
@@ -773,3 +775,5 @@ class TempAdjustableHull(TempObj):
             for dot in line:
                 gl.glVertex3f(dot[0], dot[1], dot[2])
             gl.glEnd()
+        # 关闭辅助光
+        gl.glDisable(gl.GL_LIGHT1)

@@ -47,16 +47,21 @@ class SinglePartOperation(Operation):
         if self.step_type == int:
             self.active_textEdit.setText(str(self.new_value))
         elif self.step_type == float:
-            if self.active_textEdit in [singlePart_e.content["坐标"]["QLineEdit"][0],
-                                        singlePart_e.content["坐标"]["QLineEdit"][1],
-                                        singlePart_e.content["坐标"]["QLineEdit"][2]] and \
-                    singlePart_e.selected_obj.allParts_relationMap.basicMap[singlePart_e.selected_obj]:
+            if (
+                    self.active_textEdit in [
+                singlePart_e.content["坐标"]["QLineEdit"][0],
+                singlePart_e.content["坐标"]["QLineEdit"][1],
+                singlePart_e.content["坐标"]["QLineEdit"][2]]
+                    and singlePart_e.selected_obj in singlePart_e.selected_obj.allParts_relationMap
+                    and singlePart_e.selected_obj.allParts_relationMap.basicMap[singlePart_e.selected_obj] != {}
+            ):
                 # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
                 # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
-                reply = QMessageBox.warning(None, "警告", str("更改单个零件的位置，会解除与其他所有零件的方位关系！\n"
-                                                              "我们非常不建议您这么做！\n"
-                                                              "是否继续？"),
-                                            QMessageBox.Yes | QMessageBox.No | QMessageBox.Help)
+                reply = QMessageBox.warning(
+                    None, "警告",
+                    f"""更改单个零件的位置，会解除与其他所有零件的方位关系！\n我们非常不建议您这么做！\n是否继续？""",
+                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Help
+                )
                 if reply == QMessageBox.No:
                     return
                 elif reply == QMessageBox.Help:
@@ -238,7 +243,10 @@ class AddLayerOperation(Operation):
                 self._original_parts = base_parts
             else:  # 寻找该单零件垂直于添加方向的所有关系零件:
                 self.partRelationMap = self.base_parts[0].allParts_relationMap
-                self.find_original_parts(_p)
+                if _p in self.partRelationMap.basicMap and self.partRelationMap.basicMap[_p] != {}:
+                    self.find_original_parts(_p)
+                else:
+                    self._original_parts = base_parts
         else:
             self.partRelationMap = self.base_parts[0].allParts_relationMap
             self._original_parts = base_parts
@@ -487,6 +495,8 @@ class AddLayerOperation(Operation):
 
     def execute(self):
         TempAdHull.all_objs.clear()
+        glWin = self.base_parts[0].glWin
+        glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [add_p for add_p in self.added_parts_dict.values()]
         pass
 
     def undo(self):

@@ -1055,6 +1055,7 @@ class OpenGLWin(QOpenGLWidget):
                         else:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
                     self.paintGL()
+                    self.show_statu_func(f"已选中{len(self.selected_gl_objects[self.show_3d_obj_mode])}个对象", 'success')
                 self.select_start = None
                 self.select_end = None
         self.update()

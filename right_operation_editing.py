@@ -200,7 +200,8 @@ class AddLayerEditing(OperationEditing):
                     _BSpr = tmp_hull.original_hull_data["BLD"] - _BWid
                     tmp_hull.change_attrs_T(backWidth=_BWid, backSpread=_BSpr, update=True)
 
-    def update_(self, step, key, active_textEdit):
+    @staticmethod
+    def update_(step, key, active_textEdit):
         # 获取输入框的值
         step_type = type(step)
         if active_textEdit.text() == "":
@@ -228,6 +229,9 @@ class AddLayerEditing(OperationEditing):
 
     @push_operation
     def ensure_button_clicked(self, event=None):
+        # 如果处于隐藏状态，直接返回None
+        if not self.isVisible():
+            return None
         MyMessageBox().information(self, "提示", "该功能尚未完成，敬请期待！")
         OperationEditing.is_editing = False
         self.operation.added_parts_dict = self.export_adjustable_hull()
