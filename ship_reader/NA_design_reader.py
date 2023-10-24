@@ -1408,7 +1408,6 @@ class AdjustableHull(NAPart):
         gl.glEndList()
 
     def draw(self, gl, transparent=False):
-        gl.glLoadName(id(self) % 4294967296)
         alpha = 1 if transparent is False else 0.3
         color = "#" + self.Col
         # 16进制颜色转换为RGBA
@@ -1420,7 +1419,7 @@ class AdjustableHull(NAPart):
             return
         self.genList = gl.glGenLists(1)
         gl.glNewList(self.genList, gl.GL_COMPILE_AND_EXECUTE)
-
+        gl.glLoadName(id(self) % 4294967296)
         try:
             self.plot_faces = self.plot_faces
         except AttributeError:

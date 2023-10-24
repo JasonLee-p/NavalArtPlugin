@@ -548,7 +548,6 @@ class GLWin(OpenGLWin):
             Handler.right_widget.tab2_operation_addPartLayer.ensure_button_clicked()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
-
         for key in self.key_state.keys():
             if key == event.key():
                 self.key_state[key] = False

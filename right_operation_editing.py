@@ -139,10 +139,11 @@ class AddLayerEditing(OperationEditing):
             self.update_temp_obj(key)
 
     def update_temp_obj(self, key):
+        # 00000000000000000000000000000000000000000000000000000000000000000000000000000 单零件
         if len(self.receive_result) == 1:
             org_hull = list(self.receive_result.keys())[0]
             tmp_hull: TempAdjustableHull = list(self.receive_result.values())[0]
-            # 四个方向一致的行为：
+            # 四个方向的一致的行为：
             if key == "上弧度":
                 _UCur = round(float(self.content[key]["QLineEdit"][0].text()), 4)
                 tmp_hull.change_attrs_T(upCurve=_UCur, update=True)
@@ -199,6 +200,55 @@ class AddLayerEditing(OperationEditing):
                     _BWid = round(float(self.content[key]["QLineEdit"][0].text()), 4)
                     _BSpr = tmp_hull.original_hull_data["BLD"] - _BWid
                     tmp_hull.change_attrs_T(backWidth=_BWid, backSpread=_BSpr, update=True)
+        # 00000000000000000000000000000000000000000000000000000000000000000000000000000 多零件
+        else:
+            if self.direction == CONST.FRONT:
+                for org_hull, tmp_hull in self.receive_result.items():
+                    if key == "步进长度":
+                        _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        _z = org_hull.Pos[2] + (_Len + tmp_hull.original_hull_data["L"]) * org_hull.Scl[2] / 2
+                        _Pos = [org_hull.Pos[0], org_hull.Pos[1], _z]
+                        tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
+                    elif key == "宽度扩散":
+                        # 修改宽度，不修改扩散，LineEdit内的值是相对于原零件的修改值
+                        _Wid_change = float(self.content[key]["QLineEdit"][0].text())
+                        _FWid = tmp_hull.original_hull_data["FLD"] + _Wid_change
+                        tmp_hull.change_attrs_T(frontWidth=_FWid, update=True)
+            elif self.direction == CONST.BACK:
+                for org_hull, tmp_hull in self.receive_result.items():
+                    if key == "步进长度":
+                        _Len = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        _z = org_hull.Pos[2] - (_Len + tmp_hull.original_hull_data["L"]) * org_hull.Scl[2] / 2
+                        _Pos = [org_hull.Pos[0], org_hull.Pos[1], _z]
+                        tmp_hull.change_attrs_T(position=_Pos, length=_Len, update=True)
+                    elif key == "宽度收缩":
+                        # 修改宽度，不修改扩散，LineEdit内的值是相对于原零件的修改值
+                        _Wid_change = float(self.content[key]["QLineEdit"][0].text())
+                        _BWid = tmp_hull.original_hull_data["BLD"] - _Wid_change
+                        tmp_hull.change_attrs_T(backWidth=_BWid, update=True)
+            elif self.direction == CONST.UP:
+                for org_hull, tmp_hull in self.receive_result.items():
+                    if key == "步进高度":
+                        _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        _y = org_hull.Pos[1] + (_Hei + tmp_hull.original_hull_data["H"]) * org_hull.Scl[1] / 2
+                        _Pos = [org_hull.Pos[0], _y, org_hull.Pos[2]]
+                        tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
+                    elif key == "步进扩散":
+                        _Spr = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        tmp_hull.change_attrs_T(frontSpread=_Spr, backSpread=_Spr, update=True)
+            elif self.direction == CONST.DOWN:
+                for org_hull, tmp_hull in self.receive_result.items():
+                    if key == "步进高度":
+                        _Hei = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        _y = org_hull.Pos[1] - (_Hei + tmp_hull.original_hull_data["H"]) * org_hull.Scl[1] / 2
+                        _Pos = [org_hull.Pos[0], _y, org_hull.Pos[2]]
+                        tmp_hull.change_attrs_T(position=_Pos, height=_Hei, update=True)
+                    elif key == "步进收缩":
+                        _Spr = round(float(self.content[key]["QLineEdit"][0].text()), 4)
+                        _FWid = tmp_hull.original_hull_data["FLD"] - _Spr
+                        _BWid = tmp_hull.original_hull_data["BLD"] - _Spr
+                        tmp_hull.change_attrs_T(frontWidth=_FWid, backWidth=_BWid, frontSpread=_Spr, backSpread=_Spr,
+                                                update=True)
 
     @staticmethod
     def update_(step, key, active_textEdit):
@@ -211,7 +261,7 @@ class AddLayerEditing(OperationEditing):
             active_textEdit.setText(str(int(active_textEdit.text()) + step))
         elif step_type == float:
             # 限制为正数
-            if step < 0 and float(active_textEdit.text()) <= 0 and ("高度" in key or "长度" in key or "宽度" in key):
+            if step < 0 and float(active_textEdit.text()) <= 0 and ("高度" in key or "长度" in key or "宽度" in key) and "扩散" not in key:
                 active_textEdit.setText("0.0")
             else:
                 active_textEdit.setText(str(round(float(active_textEdit.text()) + step, 4)))
@@ -237,4 +287,5 @@ class AddLayerEditing(OperationEditing):
         self.operation.added_parts_dict = self.export_adjustable_hull()
         self.operation.execute()
         self.hide()
+        self.receive_result = {}
         return self.operation

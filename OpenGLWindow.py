@@ -393,7 +393,9 @@ class OpenGLWin(QOpenGLWidget):
         if not self.all_3d_obj["钢铁"] and self.using_various_mode:
             self.draw_loading_objs()
         else:  # 绘制船体
+            self.gl2_0.glLoadName(0)
             self.draw_main_objs()
+            self.gl2_0.glLoadName(0)
             self.draw_selected_objs()
             self.draw_temp_objs()
         self.draw_2D_objs()
@@ -680,7 +682,7 @@ class OpenGLWin(QOpenGLWidget):
                 self.gl2_0.glViewport(0, 0, self.width, self.height)
                 self.gl2_0.glMatrixMode(GL_PROJECTION)
                 self.gl2_0.glPushMatrix()
-                self.gl2_0.glLoadIdentity()
+                self.gl2_0.glLoadIdentity()  # 重置矩阵
                 gluPickMatrix(_x, _y, 1, 1, [0, 0, self.width, self.height])
                 # 设置透视投影
                 aspect_ratio = self.width / self.height
@@ -783,29 +785,25 @@ class OpenGLWin(QOpenGLWidget):
             self.gl2_0.glViewport(0, 0, self.width, self.height)
             self.gl2_0.glMatrixMode(GL_PROJECTION)
             self.gl2_0.glPushMatrix()
-            self.gl2_0.glLoadIdentity()
-            aspect_ratio = self.width / self.height
+            self.gl2_0.glLoadIdentity()  # 重置矩阵
             # 设置选择框
             gluPickMatrix(
                 (max_x + min_x) / 2, (max_y + min_y) / 2, max_x - min_x, max_y - min_y, [0, 0, self.width, self.height]
             )
             # 设置透视投影
-            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)
-            # 转换回模型视图矩阵
+            aspect_ratio = self.width / self.height
+            gluPerspective(self.fovy, aspect_ratio, 0.1, 2000.0)  # 设置透视投影
             self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            self.paintGL()
-            # 恢复原来的矩阵
+            self.paintGL()  # 重新渲染场景
             self.gl2_0.glMatrixMode(GL_PROJECTION)
             self.gl2_0.glPopMatrix()
-            # 转换回模型视图矩阵
             self.gl2_0.glMatrixMode(GL_MODELVIEW)
-            # 获取选择框内的物体
             hits = glRenderMode(GL_RENDER)
         else:  # 如果是正交投影模式：
             glSelectBuffer(2 ** 20)
             glRenderMode(GL_SELECT)
             glInitNames()
-            glPushName(0)
+            glPushName(1)
             self.gl2_0.glViewport(0, 0, self.width, self.height)
             self.gl2_0.glMatrixMode(GL_PROJECTION)
             self.gl2_0.glPushMatrix()
@@ -821,10 +819,11 @@ class OpenGLWin(QOpenGLWidget):
             self.gl2_0.glMatrixMode(GL_MODELVIEW)
             hits = glRenderMode(GL_RENDER)
         if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):
-            id_map = NAPart.hull_design_tab_id_map
+            id_map = NAPart.hull_design_tab_id_map.copy()
         else:
-            id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map
-        for hit in hits[:-1]:  # TODO: 如果不舍弃最后一个，会把一个其他零件也选中，原因未知
+            id_map = self.selectObjOrigin_map[self.show_3d_obj_mode].id_map.copy()
+        print()
+        for hit in hits:
             _name = hit.names[0]
             if _name in id_map:
                 part = id_map[_name]
@@ -979,17 +978,6 @@ class OpenGLWin(QOpenGLWidget):
                 # 判断是否按下shift，如果没有按下，就清空选中列表
                 if QApplication.keyboardModifiers() != Qt.ShiftModifier:
                     self.selected_gl_objects[self.show_3d_obj_mode].clear()
-                    add_part = self.add_selected_objects_when_click()
-                    if add_part is not None:
-                        self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
-                else:  # shift按下时，判断是否点击到了已经选中的物体
-                    add_part = self.add_selected_objects_when_click()
-                    if add_part is not None:
-                        if add_part in self.selected_gl_objects[self.show_3d_obj_mode]:
-                            self.selected_gl_objects[self.show_3d_obj_mode].remove(add_part)
-                        else:
-                            self.selected_gl_objects[self.show_3d_obj_mode].append(add_part)
-                self.paintGL()
             else:
                 self.lastPos = event.pos()
         elif event.button() == Qt.RightButton:  # 右键按下
@@ -1007,8 +995,9 @@ class OpenGLWin(QOpenGLWidget):
                 return
             # 如果shift没有按下，清空选中列表
             if QApplication.keyboardModifiers() != Qt.ShiftModifier and not self.select_end:
-                self.selected_gl_objects[self.show_3d_obj_mode].clear()
-                self.paintGL()
+                if abs(event.x() - self.select_start.x()) > 3 or abs(event.y() - self.select_start.y()) > 3:
+                    self.selected_gl_objects[self.show_3d_obj_mode].clear()
+                    self.paintGL()
             self.select_end = event.pos() if self.operation_mode == OpenGLWin.Selectable else None
             self.lastPos = event.pos() if self.operation_mode == OpenGLWin.UnSelectable else None
         elif event.buttons() == Qt.RightButton or event.buttons() == Qt.MidButton:  # 右键或中键旋转
@@ -1047,15 +1036,19 @@ class OpenGLWin(QOpenGLWidget):
                     self.select_end = None
                     return
                 if self.select_start and self.select_end:
-                    # 往选中列表中添加选中的物体
-                    add_list = self.add_selected_objects_of_selectBox()
+                    if abs(event.x() - self.select_start.x()) < 3 and abs(event.y() - self.select_start.y()) < 3:
+                        # 作为单击事件处理，调用click拾取函数
+                        add_list = [self.add_selected_objects_when_click()]
+                    else:
+                        # 往选中列表中添加选中的物体
+                        add_list = self.add_selected_objects_of_selectBox()
                     for add_obj in add_list:
                         if add_obj in self.selected_gl_objects[self.show_3d_obj_mode]:
                             self.selected_gl_objects[self.show_3d_obj_mode].remove(add_obj)
                         else:
                             self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
                     self.paintGL()
-                    self.show_statu_func(f"已选中{len(self.selected_gl_objects[self.show_3d_obj_mode])}个对象", 'success')
+                    self.show_statu_func(f"已选中{len(self.selected_gl_objects[self.show_3d_obj_mode])}个对象", 'process')
                 self.select_start = None
                 self.select_end = None
         self.update()

@@ -311,8 +311,8 @@ class AddLayerOperation(Operation):
                 _BSpr = data["FLU"] - data["FLD"]
                 # 可变信息初始化
                 _Len = data["L"]
-                _FWid = data["FLU"]
-                _FSpr = data["FLU"] - data["FLD"]
+                _FWid = max(2 * data["FLD"] - data["BLD"], 0)
+                _FSpr = 2 * (data["FLU"] - data["FLD"]) - (data["BLU"] - data["BLD"])
                 _Pos = [part.Pos[0], part.Pos[1], part.Pos[2] + _Len * part.Scl[2]]
                 _UCur = part.UCur
                 _DCur = part.DCur
@@ -348,8 +348,8 @@ class AddLayerOperation(Operation):
                 _FSpr = data["BLU"] - data["BLD"]
                 # 可变信息初始化
                 _Len = data["L"]
-                _BWid = data["BLU"]
-                _BSpr = data["BLU"] - data["BLD"]
+                _BWid = max(2 * data["BLD"] - data["FLD"], 0)
+                _BSpr = 2 * (data["BLU"] - data["BLD"]) - (data["FLU"] - data["FLD"])
                 _Pos = [part.Pos[0], part.Pos[1], part.Pos[2] - _Len * part.Scl[2]]
                 _UCur = part.UCur
                 _DCur = part.DCur
@@ -435,14 +435,36 @@ class AddLayerOperation(Operation):
                     "步进长度": {"value": original_parts_data[_first_p]["L"], "QLineEdit": [QLineEdit()]},
                     "宽度扩散": {"value": 0, "QLineEdit": [QLineEdit()]},
                 }
+                _z = _first_p.Pos[2] + _first_p.Scl[2] * original_parts_data[_first_p]["L"]
                 for part, data in original_parts_data.items():
-                    # 不变的信息
-                    np_datas[part] = {
-                        "Col": part.Col, "Amr": part.Amr,
-                        "Hei": data["FH"],
-                        "BWid": data["FLD"],
-                        "BSpr": data["FLU"] - data["FLD"],
-                    }
+                    # 不变信息初始化
+                    _Hei = data["FH"]
+                    _BWid = data["FLD"]
+                    _BSpr = data["FLU"] - data["FLD"]
+                    # 可变信息初始化
+                    _Len = data["L"]
+                    _FWid = data["FLD"]
+                    _FSpr = data["FLU"] - data["FLD"]
+                    _Pos = [part.Pos[0], part.Pos[1], _z]
+                    _UCur = part.UCur
+                    _DCur = part.DCur
+                    if part.Rot == [0, 0, 0]:
+                        if part.HOff != 0:
+                            _Pos = _Pos[0], _Pos[1] + part.HOff, _Pos[2]
+                    elif part.Rot == [0, 0, 180]:  # 绕z轴旋转180度
+                        if part.HOff != 0:
+                            _Pos = _Pos[0], _Pos[1] - part.HOff, _Pos[2]
+                        _UCur = part.DCur
+                        _DCur = part.UCur
+                    elif part.Rot == [180, 0, 0]:
+                        _UCur = part.DCur
+                        _DCur = part.UCur
+                    result[part] = TempAdHull(
+                        part.read_na_obj, part.glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                        _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, part.UCur, part.DCur,
+                        1, 0,
+                        original_hull_data=data
+                    )
             elif add_direction == CONST.BACK:
                 # 可编辑的信息初始化
                 lineEdits = {
@@ -450,13 +472,35 @@ class AddLayerOperation(Operation):
                     "宽度收缩": {"value": 0, "QLineEdit": [QLineEdit()]},
                 }
                 for part, data in original_parts_data.items():
-                    # 不变的信息
-                    np_datas[part] = {
-                        "Col": part.Col, "Amr": part.Amr,
-                        "Hei": data["BH"],
-                        "FWid": data["BLD"],
-                        "FSpr": data["BLU"] - data["BLD"],
-                    }
+
+                    # 不变信息初始化
+                    _Hei = data["BH"]
+                    _FWid = data["BLD"]
+                    _FSpr = data["BLU"] - data["BLD"]
+                    # 可变信息初始化
+                    _Len = data["L"]
+                    _BWid = data["BLD"]
+                    _BSpr = data["BLU"] - data["BLD"]
+                    _Pos = [part.Pos[0], part.Pos[1], part.Pos[2] - _Len * part.Scl[2]]
+                    _UCur = part.UCur
+                    _DCur = part.DCur
+                    if part.Rot == [0, 0, 180]:
+                        _UCur = part.DCur
+                        _DCur = part.UCur
+                    elif part.Rot == [180, 0, 0]:
+                        if part.HOff != 0:
+                            _Pos = _Pos[0], _Pos[1] - part.HOff, _Pos[2]
+                        _UCur = part.DCur
+                        _DCur = part.UCur
+                    elif part.Rot == [0, 180, 0]:
+                        if part.HOff != 0:
+                            _Pos = _Pos[0], _Pos[1] + part.HOff, _Pos[2]
+                    result[part] = TempAdHull(
+                        part.read_na_obj, part.glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                        _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, part.UCur, part.DCur,
+                        1, 0,
+                        original_hull_data=data
+                    )
             elif add_direction == CONST.UP:
                 # 可编辑的信息初始化
                 lineEdits = {
@@ -464,13 +508,21 @@ class AddLayerOperation(Operation):
                     "步进扩散": {"value": 0, "QLineEdit": [QLineEdit()]},
                 }
                 for part, data in original_parts_data.items():
-                    # 不变的信息
-                    np_datas[part] = {
-                        "Col": part.Col, "Amr": part.Amr,
-                        "Len": data["L"],
-                        "FWid": data["FLU"],
-                        "BWid": data["BLU"],
-                    }
+                    # 不变信息初始化
+                    _Len = data["L"]
+                    _FWid = data["FLU"]
+                    _BWid = data["BLU"]
+                    # 可变信息初始化
+                    _Hei = data["H"]
+                    _Pos = [part.Pos[0], part.Pos[1] + _Hei * part.Scl[1], part.Pos[2]]
+                    _FSpr = 0
+                    _BSpr = 0
+                    result[part] = TempAdHull(
+                        part.read_na_obj, part.glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                        _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, 0, 0,
+                        1, 0,
+                        original_hull_data=data
+                    )
             elif add_direction == CONST.DOWN:
                 # 可编辑的信息初始化
                 lineEdits = {
@@ -478,13 +530,21 @@ class AddLayerOperation(Operation):
                     "步进收缩": {"value": 0, "QLineEdit": [QLineEdit()]},
                 }
                 for part, data in original_parts_data.items():
-                    # 不变的信息
-                    np_datas[part] = {
-                        "Col": part.Col, "Amr": part.Amr,
-                        "Len": data["L"],
-                        "FUWid": data["FLD"],
-                        "BUWid": data["BLD"],
-                    }
+                    # 不变信息初始化
+                    _Len = data["L"]
+                    _FWid = data["FLD"]
+                    _BWid = data["BLD"]
+                    # 可变信息初始化
+                    _Hei = data["H"]
+                    _Pos = [part.Pos[0], part.Pos[1] - _Hei * part.Scl[1], part.Pos[2]]
+                    _FSpr = 0
+                    _BSpr = 0
+                    result[part] = TempAdHull(
+                        part.read_na_obj, part.glWin, part.Id, _Pos, [0, 0, 0], part.Scl, part.Col, part.Amr,
+                        _Len, _Hei, _FWid, _BWid, _FSpr, _BSpr, 0, 0,
+                        1, 0,
+                        original_hull_data=data
+                    )
             elif add_direction == CONST.LEFT:
                 return result
             elif add_direction == CONST.RIGHT:
