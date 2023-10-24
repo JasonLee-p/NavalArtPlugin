@@ -557,10 +557,17 @@ class AddLayerOperation(Operation):
         TempAdHull.all_objs.clear()
         glWin = self.base_parts[0].glWin
         glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [add_p for add_p in self.added_parts_dict.values()]
-        pass
 
     def undo(self):
-        pass
+        glWin = self.base_parts[0].glWin
+        # 从DrawMap和hull_design_tab_id_map中删除添加的零件
+        for add_p in self.added_parts_dict.values():
+            self.base_parts[0].read_na_obj.DrawMap[f"#{add_p.Col}"].remove(add_p)
+            NAPart.hull_design_tab_id_map.pop(id(add_p) % 4294967296)
+        # 刷新显示
+        glWin.selected_gl_objects[glWin.show_3d_obj_mode] = self.base_parts
+        glWin.paintGL()
+        glWin.update()
 
     def redo(self):
         self.execute()

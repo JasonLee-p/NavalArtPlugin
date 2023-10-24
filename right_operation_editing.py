@@ -285,7 +285,6 @@ class AddLayerEditing(OperationEditing):
         MyMessageBox().information(self, "提示", "该功能尚未完成，敬请期待！")
         OperationEditing.is_editing = False
         self.operation.added_parts_dict = self.export_adjustable_hull()
-        self.operation.execute()
         self.hide()
         self.receive_result = {}
         return self.operation

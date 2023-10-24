@@ -718,7 +718,6 @@ class GLWin(OpenGLWin):
             self.gl2_0.glVertex2f(self.sub_menu_start.x(), self.sub_menu_start.y())
             self.gl2_0.glVertex2f(self.sub_menu_end.x(), self.sub_menu_end.y())
             self.gl2_0.glEnd()
-            self.gl2_0.glDisable(self.gl2_0.GL_LIGHT1)
 
     def singlePart_add2xyLayer(self):
         super(GLWin, self).singlePart_add2xyLayer()

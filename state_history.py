@@ -120,10 +120,11 @@ class StateHistory:
             if not isinstance(self.stateStack[self.current_index], Memento):
                 self.stateStack[self.current_index].undo()
                 self.show_statu_func(f"Ctrl+Z 撤回 {self.stateStack[self.current_index].name}\t{self.current_index}", "process")
+                self.current_index -= 1
             else:
                 self.show_statu_func(f"Ctrl+Z 撤回 {self.current_index}", "process")
-            self.current_index -= 1
-            self.reset_information()
+                self.current_index -= 1
+                self.reset_information()
         else:
             self.show_statu_func("Ctrl+Z 没有更多的历史记录", "warning")
 
