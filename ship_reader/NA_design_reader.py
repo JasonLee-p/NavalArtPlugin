@@ -1696,7 +1696,6 @@ class ReadNA:
 
 
 class PartRelationMap:
-
     last_map = None
 
     def __init__(self, read_na, show_statu_func):
@@ -1722,7 +1721,7 @@ class PartRelationMap:
         }  # 每一前后截面层的零件，根据basicMap的上下左右关系，将零件分为同一层，优化basicMap添加零件的速度
         self.yzPartsLayerMap = {  # x: [Part0, Part1, ...]
         }  # 每一左右截面层的零件，根据basicMap的上下前后关系，将零件分为同一层，优化basicMap添加零件的速度
-        """零件关系图"""
+        """零件关系"""
         self.basicMap = {  # 以零件为基础的关系图，包含零件的上下左右前后和距离关系
             # 零件对象： {方向0：{对象0：距离0, 对象1：距离1, ...}, 方向1：{对象0：距离0, 对象1：距离1, ...}, ...}
             # NAPart: {PartRelationMap.FRONT: {FrontPart0: FrontValue0, ...},
@@ -1926,6 +1925,9 @@ class PartRelationMap:
                 direction = CONST.LEFT_RIGHT
                 if part0.Pos[0] < part1.Pos[0]:
                     part0, part1 = part1, part0
+        if not direction:  # 如果仍然没有判断出方向，就不替换
+            return
+        # 初始化新零件的关系
         new_map0 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
         new_map1 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
         # 定义一个方向映射，以便根据不同的方向进行操作
@@ -1934,13 +1936,12 @@ class PartRelationMap:
             CONST.UP_DOWN: (CONST.UP, CONST.DOWN),
             CONST.LEFT_RIGHT: (CONST.LEFT, CONST.RIGHT)
         }
+        # 定义一个方向索引映射，以便根据不同的方向进行操作
         dir_index_map = {
             CONST.FRONT_BACK: 2,
             CONST.UP_DOWN: 1,
             CONST.LEFT_RIGHT: 0
         }
-        if not direction:
-            return
         new_map0[direction_map[direction][1]] = {
             part1: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
         new_map1[direction_map[direction][0]] = {
@@ -1949,6 +1950,7 @@ class PartRelationMap:
         if replaced_part not in self.basicMap.keys():  # TODO: 这里不明原因，被替换零件不在basicMap中，可能是因为撤回操作DrawMap取深拷贝的问题
             return
         replaced_relation_map = self.basicMap[replaced_part]
+        # 遍历被替换零件的关系，将其关系添加到新零件的关系图中
         for part in replaced_relation_map[direction_map[direction][0]].keys():
             # 给新零件添加关系
             new_map0[direction_map[direction][0]][part] = abs(
