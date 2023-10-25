@@ -47,12 +47,11 @@ class SinglePartOperation(Operation):
         if self.step_type == int:
             self.active_textEdit.setText(str(self.new_value))
         elif self.step_type == float:
-            if (
-                    self.active_textEdit in [
+            if (self.active_textEdit in [
                 singlePart_e.content["坐标"]["QLineEdit"][0],
                 singlePart_e.content["坐标"]["QLineEdit"][1],
                 singlePart_e.content["坐标"]["QLineEdit"][2]]
-                    and singlePart_e.selected_obj in singlePart_e.selected_obj.allParts_relationMap
+                    and singlePart_e.selected_obj in singlePart_e.selected_obj.allParts_relationMap.basicMap
                     and singlePart_e.selected_obj.allParts_relationMap.basicMap[singlePart_e.selected_obj] != {}
             ):
                 # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
@@ -250,6 +249,9 @@ class AddLayerOperation(Operation):
         else:
             self.partRelationMap = self.base_parts[0].allParts_relationMap
             self._original_parts = base_parts
+        # 向被选物体中添加零件
+        glWin = self.base_parts[0].glWin
+        glWin.selected_gl_objects[glWin.show_3d_obj_mode] = self._original_parts.copy()
         self.get_data_in_world_coordinate()
         # 初始化需要添加的零件
         self.generate_added_parts(self.original_parts_data, self.add_direction)
