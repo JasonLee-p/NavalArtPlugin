@@ -498,8 +498,8 @@ class GLWin(OpenGLWin):
     }
 
     def __init__(self, parent=None, various_mode=False, show_statu_func=None):
-        self.sub_menu_start = None
-        self.sub_menu_end = None
+        self.sub_menu_start = None  # 快捷子菜单的起始点
+        self.sub_menu_end = None  # 快捷子菜单的终止点
         self.b0 = QPushButton("扩选到xy平面")
         self.b1 = QPushButton("扩选到xz平面")
         self.b2 = QPushButton("元素检视器")
@@ -558,7 +558,7 @@ class GLWin(OpenGLWin):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
-            Handler.right_widget.update_tab()
+            ...
         # 右键和Alt，记录快捷子菜单的起始点
         elif event.button() == Qt.RightButton:
             if event.modifiers() == Qt.AltModifier:
@@ -644,8 +644,6 @@ class GLWin(OpenGLWin):
             #     b = list(self.button_pos_map.keys())[i]
             #     if b.geometry().contains(pos):
             #         self.button_func_map[b](0)
-            self.paintGL()
-            self.update()
             self.sub_menu_start = None
             self.sub_menu_end = None
             # 按钮清除
@@ -656,6 +654,8 @@ class GLWin(OpenGLWin):
         elif event.button() == Qt.RightButton and Handler.right_widget.ActiveTab == "船体设计":
             if Handler.hull_design_tab.ThreeDFrame.rotate_start == Handler.hull_design_tab.ThreeDFrame.lastPos:
                 Handler.hull_design_tab.menu.exec_(QCursor.pos())
+        self.paintGL()
+        self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         if self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) and len(
