@@ -304,7 +304,7 @@ class AddLayerOperation(Operation):
         # 如果只有一个零件
         if len(original_parts_data) == 1:  # 000000000000000000000000000000000000000000 单个零件
             part = list(original_parts_data.keys())[0]
-            data = list(original_parts_data.values())[0]
+            data = original_parts_data[part]
             _glWin = part.glWin
             if add_direction == CONST.FRONT:
                 # 不变信息初始化
