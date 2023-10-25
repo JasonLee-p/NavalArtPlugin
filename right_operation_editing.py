@@ -261,7 +261,9 @@ class AddLayerEditing(OperationEditing):
             active_textEdit.setText(str(int(active_textEdit.text()) + step))
         elif step_type == float:
             # 限制为正数
-            if step < 0 and float(active_textEdit.text()) <= 0 and ("高度" in key or "长度" in key or "宽度" in key) and "扩散" not in key:
+            if step < 0 and float(active_textEdit.text()) <= 0 and (
+                    "高度" in key or "长度" in key or "宽度" in key
+            ) and "扩散" not in key and "收缩" not in key:
                 active_textEdit.setText("0.0")
             else:
                 active_textEdit.setText(str(round(float(active_textEdit.text()) + step, 4)))
