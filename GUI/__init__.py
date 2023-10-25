@@ -28,9 +28,9 @@ from .interfaces import ICO_, ADD_, CHOOSE_, ADD_Y, ADD_Z, minimize, maximize, m
 # 控件
 from .basic import MyLabel, MyMessageBox, MyComboBox, MySlider, MyLineEdit
 from .basic import CircleSelectButton, CircleSelectButtonGroup, SelectWidgetGroup
-from .basic import BasicDialog, ShortCutWidget
+from .basic import BasicDialog, ShortCutWidget, HSLColorPicker
 from .interfaces import MainWindow, MainTabWidget
-from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ExportDialog, UserGuideDialog, SelectPrjDialog
+from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, SensitiveDialog, ColorDialog, ColorPicker, ExportDialog, UserGuideDialog, SelectPrjDialog
 # 函数
 from .basic import set_tool_bar_style, set_buttons, set_top_button_style, set_button_style, getFG_fromBG, front_completion, create_rounded_thumbnail
 __all__ = [
@@ -61,9 +61,9 @@ __all__ = [
     # 控件
     "MyLabel", "MyMessageBox", "MyComboBox", "MySlider", "MyLineEdit",
     "CircleSelectButton", "CircleSelectButtonGroup", "SelectWidgetGroup",
-    "BasicDialog", "ShortCutWidget",
+    "BasicDialog", "ShortCutWidget", "HSLColorPicker",
     "MainWindow", "MainTabWidget",
-    "CheckNewVersionDialog", "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ExportDialog", "UserGuideDialog", "SelectPrjDialog",
+    "CheckNewVersionDialog", "NewProjectDialog", "ThemeDialog", "SensitiveDialog", "ColorDialog", "ColorPicker", "ExportDialog", "UserGuideDialog", "SelectPrjDialog",
     # 函数
     "set_tool_bar_style", "set_buttons", "set_top_button_style", "set_button_style", "getFG_fromBG", "front_completion", "create_rounded_thumbnail"
 ]

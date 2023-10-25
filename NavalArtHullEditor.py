@@ -461,17 +461,17 @@ class ProjectHandler(PF):
 
 
 class NewEmptyPrj(ProjectHandler):
-    def __init__(self, name, path):
+    def __init__(self, name, path, color: QColor):
         super().__init__(name, path, None, None, None, None, mode=PF.EMPTY)
         self.stateHistory = StateHistory(show_state)
         self.na_hull = NAHull(
             show_statu_func=show_state,
             design_tab=True,
-            data={"#999999": [{
+            data={color.name(): [{
                 "Typ": "AdjustableHull",
                 "Id": "0",
-                "Pos": [0., 0., 0.], "Rot": [0., 0., 0.], "Scl": [1., 1., 1.], "Col": "999999", "Amr": 5,
-                "Len": 6., "Hei": 6., "FWid": 6., "BWid": 6., "FSpr": 0., "BSpr": 0.,
+                "Pos": [0., 0., 0.], "Rot": [0., 0., 0.], "Scl": [1., 1., 1.], "Col": color.name()[1:], "Amr": 5,
+                "Len": 6., "Hei": 2., "FWid": 12., "BWid": 12., "FSpr": 0., "BSpr": 0.,
                 "UCur": 0., "DCur": 1., "HScl": 1., "HOff": 0.
             }]},
             glWin=Handler.hull_design_tab.ThreeDFrame,
@@ -930,8 +930,12 @@ class MainHandler:
         except IndexError:
             show_state(f"保存工程失败：未选择文件", 'error')
             return
+        # 取色
+        color_dialog = ColorPicker(self.window)
+        color_dialog.exec_()
+        _color = color_dialog.current_color
         # 新建空白工程文件对象
-        prj = NewEmptyPrj(_name, _prj_path)
+        prj = NewEmptyPrj(_name, _prj_path, _color)
         na_hull = prj.na_hull
         Handler.hull_design_tab.init_NaHull_partRelationMap_Layers(na_hull)
         # 在这里继续执行后续操作，如下所示

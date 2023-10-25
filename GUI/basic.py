@@ -10,9 +10,11 @@ from abc import abstractmethod
 # 第三方库
 from typing import List, Union
 
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QLocale, QRect, QPoint
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath, QLinearGradient, QPen, \
+    QBrush, QPolygon, QIntValidator
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy, QTabWidget, \
+    QColorDialog, QStylePainter, QStyleOptionSlider, QStyle
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -439,7 +441,8 @@ class CircleSelectButton(QPushButton):
             set_buttons([self], sizes=self.size, border_radius=self.half_size, bg=self.check_color)
         else:
             self.setChecked(False)
-            set_buttons([self], sizes=self.size, border=1, border_color=FG_COLOR0, border_radius=self.half_size, bg=self.color)
+            set_buttons([self], sizes=self.size, border=1, border_color=FG_COLOR0, border_radius=self.half_size,
+                        bg=self.color)
 
 
 class CircleSelectButtonGroup:
@@ -787,3 +790,273 @@ class ShortCutWidget(QWidget):
             _l = i % 4 + 1
             _r = i // 4
             self.layout.addWidget(self.shortcut_labels[i], _l, _r)
+
+
+class ColorSlider(QSlider):
+    H = "h"
+    S = "s"
+    L = "l"
+
+    def __init__(self, _type, height=30):
+        super().__init__(Qt.Horizontal)
+        # 设置track不可见
+        self.hei = height
+        self.hue_slider = None
+        self.saturation_slider = None
+        self.lightness_slider = None
+        self.type = _type
+
+    def init_slider(self, hue_slider, saturation_slider, lightness):
+        self.hue_slider = hue_slider
+        self.saturation_slider = saturation_slider
+        self.lightness_slider = lightness
+        if self.type == ColorSlider.H:
+            self.setRange(0, 359)
+            self.setValue(180)
+        elif self.type == ColorSlider.S:
+            self.setRange(0, 255)
+            self.setValue(0)
+        elif self.type == ColorSlider.L:
+            self.setRange(0, 255)
+            self.setValue(127)
+        self.setFixedSize(400, self.hei)
+
+    def mousePressEvent(self, event):
+        # 将颜色直接设置到鼠标点击的位置
+        if event.button() == Qt.LeftButton:
+            value = int(event.x() / self.width() * self.maximum())
+            self.setValue(value)
+            self.update()
+
+    def mouseMoveEvent(self, event):
+        # 将颜色直接设置到鼠标点击的位置
+        if event.buttons() == Qt.LeftButton:
+            value = int(event.x() / self.width() * self.maximum())
+            self.setValue(value)
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        rect = QRect(0, 5, self.width(), self.hei - 10)
+        gradient = QLinearGradient(rect.topLeft(), rect.topRight())
+        if self.type == ColorSlider.H:
+            for i in range(0, 360):
+                gradient.setColorAt(i / 360, QColor.fromHsl(i, 255, 127))
+        elif self.type == ColorSlider.S:
+            l_color = QColor.fromHsl(self.hue_slider.value(), 0, self.lightness_slider.value())
+            r_color = QColor.fromHsl(self.hue_slider.value(), 255, self.lightness_slider.value())
+            gradient.setColorAt(0, l_color)
+            gradient.setColorAt(1, r_color)
+        elif self.type == ColorSlider.L:
+            for i in range(0, 256):
+                gradient.setColorAt(i / 255, QColor.fromHsl(self.hue_slider.value(), self.saturation_slider.value(), i))
+        painter.fillRect(rect, gradient)
+        # 绘制游标
+        pos_x = int(self.value() / self.maximum() * self.width())
+        # 半透明矩形
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(0, 0, 0, 127))
+        painter.drawRect(pos_x - 6, 5, 12, self.hei - 10)
+        # 绘制游标上的三角形（FG_COLOR0）
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(FG_COLOR0))
+        painter.drawPolygon(QPolygon([
+            QPoint(pos_x - 5, 0),
+            QPoint(pos_x + 5, 0),
+            QPoint(pos_x, 5),
+        ]))
+
+    def update(self):
+        self.repaint()
+        super().update()
+
+
+class HSLColorPicker(QWidget):
+    def __init__(self):
+        self.current_color = QColor.fromHsl(180, 255, 127)
+        self.updating = False
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.HSL_layout = QGridLayout()
+        self.layoutContentMargins = (10, 10, 10, 10)
+        self.layoutVerticalSpacing = 10
+        self.layoutHorizontalSpacing = 20
+        self.sliderHei = 30
+        self.hue_slider = ColorSlider(ColorSlider.H, self.sliderHei)
+        self.hue_label = MyLabel("色相:")
+        self.saturation_slider = ColorSlider(ColorSlider.S, self.sliderHei)
+        self.saturation_label = MyLabel("饱和:")
+        self.lightness_slider = ColorSlider(ColorSlider.L, self.sliderHei)
+        self.brightness_label = MyLabel("明度:")
+        self.hue_slider.init_slider(self.hue_slider, self.saturation_slider, self.lightness_slider)
+        self.saturation_slider.init_slider(self.hue_slider, self.saturation_slider, self.lightness_slider)
+        self.lightness_slider.init_slider(self.hue_slider, self.saturation_slider, self.lightness_slider)
+        self.color_preview = QLabel()
+        # 下方RBG色值显示
+        self.message_layout = QHBoxLayout()
+        self.RGB_layout = QGridLayout()
+        self.labelR = MyLabel("R:")
+        self.labelG = MyLabel("G:")
+        self.labelB = MyLabel("B:")
+        self.labelR_value = MyLineEdit()
+        self.labelG_value = MyLineEdit()
+        self.labelB_value = MyLineEdit()
+        # 设置值范围
+        self.labelR_value.setValidator(QIntValidator(0, 255))
+        self.labelG_value.setValidator(QIntValidator(0, 255))
+        self.labelB_value.setValidator(QIntValidator(0, 255))
+        self.initUI()
+
+    def initUI(self):
+        self.initHSL()
+        self.initMessage()
+        self.setLayout(self.layout)
+
+    def initHSL(self):
+        self.HSL_layout.setContentsMargins(*self.layoutContentMargins)
+        self.HSL_layout.setVerticalSpacing(self.layoutVerticalSpacing)
+        self.HSL_layout.setHorizontalSpacing(self.layoutHorizontalSpacing)
+        self.HSL_layout.setAlignment(Qt.AlignCenter)
+        color_preview_r = 3 * self.sliderHei + 2 * self.layoutVerticalSpacing - 8
+        self.color_preview.setFixedSize(color_preview_r, color_preview_r)
+        self.color_preview.setStyleSheet(f"""
+            QLabel{{
+                border-radius: 10px;
+                background-color: {BG_COLOR1};
+                border: 0px solid {BG_COLOR1};
+            }}
+        """)
+        self.update_color()
+
+        self.hue_slider.valueChanged.connect(self.update_color)
+        self.saturation_slider.valueChanged.connect(self.update_color)
+        self.lightness_slider.valueChanged.connect(self.update_color)
+
+        self.HSL_layout.addWidget(self.hue_label, 0, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.HSL_layout.addWidget(self.hue_slider, 0, 1, alignment=Qt.AlignCenter)
+        self.HSL_layout.addWidget(self.saturation_label, 1, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.HSL_layout.addWidget(self.saturation_slider, 1, 1, alignment=Qt.AlignCenter)
+        self.HSL_layout.addWidget(self.brightness_label, 2, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.HSL_layout.addWidget(self.lightness_slider, 2, 1, alignment=Qt.AlignCenter)
+        self.HSL_layout.addWidget(self.color_preview, 0, 2, 3, 1, alignment=Qt.AlignCenter)
+        self.layout.addLayout(self.HSL_layout)
+
+    def mousePressEvent(self, event):
+        # 鼠标在控件外的时候，取色
+        if event.button() == Qt.LeftButton:
+            if not self.rect().contains(event.pos()):
+                print("取色")
+                # 获取鼠标位置的颜色
+                _pos = event.globalPos()
+                _color = QColor.fromRgb(QPixmap.grabWindow(QApplication.desktop().winId()).toImage().pixel(_pos))
+                self.current_color = _color
+                # 移动滑动条
+                _h = self.current_color.hue()
+                _s = self.current_color.saturation()
+                _l = self.current_color.lightness()
+                self.hue_slider.setValue(_h)
+                self.saturation_slider.setValue(_s)
+                self.lightness_slider.setValue(_l)
+                # 更新RGB值
+                self.labelR_value.setText(str(self.current_color.red()))
+                self.labelG_value.setText(str(self.current_color.green()))
+                self.labelB_value.setText(str(self.current_color.blue()))
+
+    def initMessage(self):
+        self.message_layout.setContentsMargins(0, 0, 0, 0)
+        self.RGB_layout.setContentsMargins(25, 0, 25, 0)
+        self.RGB_layout.setVerticalSpacing(5)
+        self.RGB_layout.setHorizontalSpacing(10)
+        self.RGB_layout.setAlignment(Qt.AlignCenter)
+        self.labelR_value.setFixedSize(50, 30)
+        self.labelG_value.setFixedSize(50, 30)
+        self.labelB_value.setFixedSize(50, 30)
+
+        self.RGB_layout.addWidget(self.labelR, 0, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.RGB_layout.addWidget(self.labelR_value, 0, 1, alignment=Qt.AlignCenter)
+        self.RGB_layout.addWidget(self.labelG, 1, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.RGB_layout.addWidget(self.labelG_value, 1, 1, alignment=Qt.AlignCenter)
+        self.RGB_layout.addWidget(self.labelB, 2, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        self.RGB_layout.addWidget(self.labelB_value, 2, 1, alignment=Qt.AlignCenter)
+
+        # 绑定到输入事件
+        self.labelR_value.textChanged.connect(self.update_rgb_color)
+        self.labelG_value.textChanged.connect(self.update_rgb_color)
+        self.labelB_value.textChanged.connect(self.update_rgb_color)
+
+        self.message_layout.addStretch(1)
+        self.message_layout.addLayout(self.RGB_layout)
+        self.layout.addLayout(self.message_layout)
+
+    def update_color(self):
+        if self.updating:
+            return
+        self.updating = True
+        hue = self.hue_slider.value()
+        saturation = self.saturation_slider.value()
+        lightness = self.lightness_slider.value()
+
+        self.current_color = QColor.fromHsl(hue, saturation, lightness)
+        # 更新滑动条颜色
+        self.hue_slider.update()
+        self.saturation_slider.update()
+        self.lightness_slider.update()
+        # 更新RGB值
+        self.labelR_value.setText(str(self.current_color.red()))
+        self.labelG_value.setText(str(self.current_color.green()))
+        self.labelB_value.setText(str(self.current_color.blue()))
+        self.update_color_preview()
+        self.updating = False
+
+    def update_rgb_color(self):
+        if self.updating:
+            return
+        self.updating = True
+        try:
+            r = int(self.labelR_value.text())
+            g = int(self.labelG_value.text())
+            b = int(self.labelB_value.text())
+        except ValueError:
+            return
+        self.current_color = QColor(r, g, b)
+        # 移动滑动条
+        _h = self.current_color.hue()
+        _s = self.current_color.saturation()
+        _l = self.current_color.lightness()
+        _hsl_color = QColor.fromHsl(_h, _s, _l)
+        self.hue_slider.setValue(_h)
+        self.saturation_slider.setValue(_s)
+        self.lightness_slider.setValue(_l)
+        self.update_color_preview()
+        self.updating = False
+
+    def update_color_preview(self):
+        self.color_preview.setStyleSheet(f"""
+            QLabel{{
+                border-radius: 10px;
+                background-color: {self.current_color.name()};
+                border: 0px solid {BG_COLOR1};
+            }}
+        """)
+
+
+if __name__ == '__main__':
+    import sys
+    from PyQt5.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    mainWin = QWidget()
+    mainLayout = QVBoxLayout()
+    mainWin.setLayout(mainLayout)
+    mainWin.setWindowTitle('HSL取色器')
+    mainWin.setGeometry(450, 300, 450, 300)
+    mainWin.setStyleSheet(f"""
+        QWidget{{
+            background-color:{BG_COLOR1};
+            color:{FG_COLOR0};
+        }}
+    """)
+    mainWin.show()
+    ex = HSLColorPicker()
+    mainLayout.addWidget(ex)
+    sys.exit(app.exec_())

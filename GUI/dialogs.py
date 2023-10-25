@@ -1308,6 +1308,24 @@ class ColorDialog(BasicDialog):
             _p.close()
 
 
+class ColorPicker(BasicDialog):
+    def ensure(self):
+        self.current_color = self.HSL_colorPicker.current_color
+        super().ensure()
+
+    def __init__(self, parent, title="选择颜色", size=QSize(700, 350)):
+        self.color = None
+        self.center_layout = QVBoxLayout()
+        self.center_layout.setContentsMargins(40, 5, 40, 5)
+        self.HSL_colorPicker = HSLColorPicker()
+        self.center_layout.addWidget(self.HSL_colorPicker)
+        self.current_color = self.HSL_colorPicker.current_color
+        super().__init__(parent, 10, title, size, self.center_layout)
+        # 隐藏close_button，cancel_button
+        self.close_button.setFixedWidth(0)
+        self.cancel_button.setFixedWidth(0)
+
+
 class ExportDialog(BasicDialog):
     def __init__(self, parent, title="导出", size=QSize(300, 200)):
         # 和外界交互的变量
