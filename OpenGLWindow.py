@@ -1029,8 +1029,8 @@ class OpenGLWin(QOpenGLWidget):
                 # if self.select_start and self.select_end:
                 if abs(event.x() - self.select_start.x()) < 3 and abs(event.y() - self.select_start.y()) < 3:
                     # 作为单击事件处理，调用click拾取函数
-                    print("clicked")
-                    add_list = [self.add_selected_objects_when_click()]
+                    _p = self.add_selected_objects_when_click()
+                    add_list = [_p] if _p is not None else []
                 else:
                     # 往选中列表中添加选中的物体
                     add_list = self.add_selected_objects_of_selectBox()
@@ -1039,11 +1039,9 @@ class OpenGLWin(QOpenGLWidget):
                         self.selected_gl_objects[self.show_3d_obj_mode].remove(add_obj)
                     else:
                         self.selected_gl_objects[self.show_3d_obj_mode].append(add_obj)
-                self.paintGL()
                 self.show_statu_func(f"已选中{len(self.selected_gl_objects[self.show_3d_obj_mode])}个对象", 'process')
                 self.select_start = None
                 self.select_end = None
-        self.update()
 
     def set_camera(self):
         gluLookAt(self.camera.pos.x(), self.camera.pos.y(), self.camera.pos.z(),
@@ -1137,6 +1135,7 @@ class OpenGLWin(QOpenGLWidget):
         glEnable(GL_CULL_FACE)  # 启用背面剔除
         glCullFace(GL_BACK)  # 剔除背面
         glFrontFace(GL_CCW)  # 设置逆时针为正面
+        glPolygonOffset(1, 1)  # 设置多边形偏移
 
 
 class DesignTabGLWinMenu(QMenu):
