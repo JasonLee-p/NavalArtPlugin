@@ -297,6 +297,19 @@ def empty_func(*args, **kwargs):
     pass
 
 
+def get_mac_address():
+    """
+    获取本机物理地址
+    :return:
+    """
+    import uuid
+    mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
+    if mac == "005056c00008":
+        # return mac
+        return True
+    return mac
+
+
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()

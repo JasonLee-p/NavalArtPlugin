@@ -52,59 +52,24 @@ def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
     :param rot_: 第二个旋转角度的列表 [rx_, ry_, rz_]
     :return: 字符串，表示两个旋转之间的关系，如 'l'、'r'、'u'、'd'、'x'、'y'、'z'、'o'、None
     """
-    # 将角度转换为弧度
-    rot = np.radians(rot)
-    rot_ = np.radians(rot_)
-
-    # 计算两个旋转矩阵
-    R = np.eye(3)
-    R_ = np.eye(3)
-
-    for i in range(3):
-        if i == 0:
-            R = np.dot(R, np.array([[1, 0, 0],
-                                    [0, np.cos(rot[i]), -np.sin(rot[i])],
-                                    [0, np.sin(rot[i]), np.cos(rot[i])]]))
-            R_ = np.dot(R_, np.array([[1, 0, 0],
-                                      [0, np.cos(rot_[i]), -np.sin(rot_[i])],
-                                      [0, np.sin(rot_[i]), np.cos(rot_[i])]]))
-        elif i == 1:
-            R = np.dot(R, np.array([[np.cos(rot[i]), 0, np.sin(rot[i])],
-                                    [0, 1, 0],
-                                    [-np.sin(rot[i]), 0, np.cos(rot[i])]]))
-            R_ = np.dot(R_, np.array([[np.cos(rot_[i]), 0, np.sin(rot_[i])],
-                                      [0, 1, 0],
-                                      [-np.sin(rot_[i]), 0, np.cos(rot_[i])]]))
-        elif i == 2:
-            R = np.dot(R, np.array([[np.cos(rot[i]), -np.sin(rot[i]), 0],
-                                    [np.sin(rot[i]), np.cos(rot[i]), 0],
-                                    [0, 0, 1]]))
-            R_ = np.dot(R_, np.array([[np.cos(rot_[i]), -np.sin(rot_[i]), 0],
-                                      [np.sin(rot_[i]), np.cos(rot_[i]), 0],
-                                      [0, 0, 1]]))
-
-    # 计算旋转矩阵之间的差异
-    diff_matrix = np.dot(R_.T, R)
-
-    # 根据差异矩阵判断关系
-    if np.allclose(diff_matrix, np.eye(3)):
+    if rot_ == rot:
         return None
-    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]])):
+    elif rot_ == [(rot[0] + 180) % 360, rot[1], rot[2]]:
         return 'x'
-    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]])):
+    elif rot_ == [rot[0], (rot[1] + 180) % 360, rot[2]]:
         return 'y'
-    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]])):
+    elif rot_ == [rot[0], rot[1], (rot[2] + 180) % 360]:
         return 'z'
-    elif np.allclose(diff_matrix, -np.eye(3)):
+    elif rot_ == [(rot[0] + 180) % 360, (rot[1] + 180) % 360, rot[2]]:
         return 'o'
-    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])):
-        return 'u'
-    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])):
-        return 'd'
-    elif np.allclose(diff_matrix, np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])):
-        return 'r'
-    elif np.allclose(diff_matrix, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])):
+    elif rot_ == [rot[0], (rot[1] + 90) % 360, rot[2]]:
         return 'l'
+    elif rot_ == [rot[0], (rot[1] - 90) % 360, rot[2]]:
+        return 'r'
+    elif rot_ == [(rot[0] + 90) % 360, rot[1], rot[2]]:
+        return 'u'
+    elif rot_ == [(rot[0] - 90) % 360, rot[1], rot[2]]:
+        return 'd'
     else:
         return None
 
@@ -391,7 +356,8 @@ class AdjustableHull(NAPart):
             length, height, frontWidth, backWidth, frontSpread, backSpread, upCurve, downCurve,
             heightScale, heightOffset,
             _from_temp_data=False, _back_down_y=None, _back_up_y=None, _front_down_y=None, _front_up_y=None,
-            _operation_dot_nodes=None, _plot_all_dots=None, _vertex_coordinates=None, _plot_lines=None, _plot_faces=None,
+            _operation_dot_nodes=None, _plot_all_dots=None, _vertex_coordinates=None, _plot_lines=None,
+            _plot_faces=None,
     ):
         """
         :param Id: 字符串，零件ID
@@ -619,7 +585,8 @@ class AdjustableHull(NAPart):
                   self.vertex_coordinates["front_up_left"].copy(), self.vertex_coordinates["back_up_left"].copy(),
                   self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["front_up_right"].copy()],
             "2": [self.vertex_coordinates["front_down_left"].copy(), self.vertex_coordinates["back_down_left"].copy(),
-                  self.vertex_coordinates["back_down_right"].copy(), self.vertex_coordinates["front_down_right"].copy()],
+                  self.vertex_coordinates["back_down_right"].copy(),
+                  self.vertex_coordinates["front_down_right"].copy()],
             "3": [self.vertex_coordinates["back_up_left"].copy(), self.vertex_coordinates["back_down_left"].copy()],
             "4": [self.vertex_coordinates["back_up_right"].copy(), self.vertex_coordinates["back_down_right"].copy()]
         }
@@ -643,11 +610,35 @@ class AdjustableHull(NAPart):
             "back_down_right": np.array([-self.back_down_x, self.back_down_y, self.back_z]),
         }
 
-    def change_attrs(self, position, armor,
-                     length, height, frontWidth, backWidth, frontSpread, backSpread,
-                     upCurve, downCurve, heightScale, heightOffset,
+    def change_attrs(self, position=None, armor=None,
+                     length=None, height=None, frontWidth=None, backWidth=None, frontSpread=None, backSpread=None,
+                     upCurve=None, downCurve=None, heightScale=None, heightOffset=None,
                      update=False):
         # ==============================================================================更新零件的各个属性
+        if not position:
+            position = self.Pos
+        if not armor:
+            armor = self.Amr
+        if not length:
+            length = self.Len
+        if not height:
+            height = self.Hei
+        if not frontWidth:
+            frontWidth = self.FWid
+        if not backWidth:
+            backWidth = self.BWid
+        if not frontSpread:
+            frontSpread = self.FSpr
+        if not backSpread:
+            backSpread = self.BSpr
+        if not upCurve:
+            upCurve = self.UCur
+        if not downCurve:
+            downCurve = self.DCur
+        if not heightScale:
+            heightScale = self.HScl
+        if not heightOffset:
+            heightOffset = self.HOff
         try:
             self.Pos = [round(float(i), 3) for i in position]
             self.Amr = int(armor)
@@ -884,7 +875,7 @@ class AdjustableHull(NAPart):
             #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
             self.glWin.update()
 
-    def get_data_in_coordinate(self, other_part=None):
+    def get_data_in_coordinate(self, other_part: Union[NAPart, None] = None):
         """
         将零件的前后左右上下节点信息转化到世界坐标或其他零件的坐标系中
         例如一个零件在绕y轴旋转180度后，其左前下节点变为右后下节点
@@ -953,7 +944,7 @@ class AdjustableHull(NAPart):
                 "L": self.Hei
             }
         elif rotation_relation == 'd':
-            # 零件低头90度（z+为下）
+            # 零件低头90度（y-为下）
             part_data = {
                 "FLU": self.BWid + self.BSpr, "FRU": self.BWid + self.BSpr, "FLD": self.FWid + self.FSpr,
                 "FRD": self.FWid + self.FSpr,
@@ -2059,7 +2050,9 @@ class PartRelationMap:
             i += 1
         self.show_statu_func(f"零件关系图初始化完成! 耗时：{time.time() - st}s", "success")
         self.sort()
-        self.show_statu_func(f"零件关系重新绑定完成! 耗时：{time.time() - st}s", "success")
+        ttt = time.time() - st
+        self.show_statu_func(f"零件关系重新绑定完成! 耗时：{ttt}s", "success")
+        return ttt
 
     def init(self, na_hull, init=True):
         """

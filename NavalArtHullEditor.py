@@ -14,14 +14,13 @@ import traceback
 import webbrowser
 from typing import Union
 
-from PyQt5.QtCore import QPropertyAnimation
-
-from right_operation_editing import OperationEditing, AddLayerEditing
-
 try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
+    from PyQt5.QtCore import QPropertyAnimation
+
     # 本地库
+    from developer_console import open_developer_console
     from connection import Connection, extract_number_from_version
     from state_history import StateHistory, push_global_statu
     from util_funcs import *
@@ -37,12 +36,14 @@ try:
     from right_element_editing import (
         Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing,
         Mod1VerHorPartSetEditing)
+    from right_operation_editing import (
+        OperationEditing, AddLayerEditing)
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
     from operation import AddLayerOperation
 
-except Exception as e:
-    print(e)
+except:
+    traceback.print_exc()
     input("无法正确导入库！请按回车键退出")
     sys.exit(0)
 
@@ -750,6 +751,7 @@ class MainHandler:
                 "界面主题": self.set_theme,
                 "操作灵敏度": self.set_sensitivity,
                 "框线显示": self.set_lines,
+                "开发者控制台": self.show_console,
             },
             " 视图": {
                 "切换视图": self.switch_view,
@@ -972,6 +974,25 @@ class MainHandler:
         #     # TODO: 导出为OBJ文件
         #     show_state(f"{ProjectHandler.current.Name}  已导出到  {path}", 'success')
 
+    def reload(self):
+        # 重新从文件加载当前
+        if self.LoadingProject:
+            MyMessageBox.information(self.window, "提示", "正在读取工程，请稍后再试！")
+            return
+        if self.SavingProject:
+            MyMessageBox.information(self.window, "提示", "正在保存工程，请稍后再试！")
+            return
+        if not ProjectHandler.current:
+            show_state("当前没有工程", 'error')
+            return
+        # 重新加载
+        show_state("正在重新加载工程...", 'process')
+        self.LoadingProject = True
+        self.window.read_project_thread = ProjectOpeningThread(ProjectHandler.current.Path)
+        self.window.read_project_thread.update_state.connect(show_state)
+        self.window.read_project_thread.finished.connect(after_open)
+        self.window.read_project_thread.start()
+
     def export2Na(self, na_path):
         """
         导出为NA文件
@@ -1048,6 +1069,24 @@ class MainHandler:
     def set_lines(self, event):
         # 提示用户功能未实现
         MyMessageBox.information(self.window, "提示", "该功能暂未实现！")
+
+    def show_console(self, event):
+        if (address := get_mac_address()) is not True:  # 不是我的电脑
+            # 对地址进行加密
+            from hashlib import md5
+            address_md5 = md5(address.encode()).hexdigest()
+            text = f"""
+            您没有权限访问开发者控制台！是否申请权限？
+            """
+            if MyMessageBox.information(self.window, "提示", text, MyMessageBox.Yes | MyMessageBox.No) == QMessageBox.Yes:
+                text2 = f"""
+                您的申请码为：
+                {address_md5}\n
+                请将申请码发送至邮箱：2593292614@qq.com
+                """
+                MyMessageBox.information(self.window, "提示", text2, MyMessageBox.Ok)
+        else:
+            open_developer_console(Handler, ProjectHandler)
 
     def switch_view(self, event):
         # 将hull_design_tab.ThreeDFrame的视图进行切换（透视或者正交）
@@ -2237,21 +2276,9 @@ def handle_exception(_exception):
     raise _exception
 
 
-if __name__ == '__main__':
+def main():
+    global PTBPath, NAPath, ThumbnailPath, Config, QApp, QtWindow, Handler
     try:
-        """
-        if is_admin():
-            print("程序已获取管理员身份")
-        else:
-            print("程序非管理员身份启动，正在获取管理员权限")
-        c = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-        if c != 0:
-            print("获取管理员权限成功")
-            # sys.exit(0)
-        else:
-            print("获取管理员权限失败")
-            # os.system("pause")
-        """
         # 初始化路径
         PTBPath = find_ptb_path()
         NAPath = os.path.join(find_na_root_path(), "ShipSaves")
@@ -2313,7 +2340,34 @@ if __name__ == '__main__':
             # 运行引导程序
             user_guide(ask_save=False)
             Config.Config["Guided"] = True
+        # 检查本机地址
+        if get_mac_address() is True:  # 是我的电脑
+            open_developer_console(Handler, ProjectHandler)
         # 主循环
         sys.exit(QApp.exec_())
     except Exception as e:
         handle_exception(e)
+
+
+if __name__ == '__main__':
+    """
+    if is_admin():
+        print("程序已获取管理员身份")
+    else:
+        print("程序非管理员身份启动，正在获取管理员权限")
+    c = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+    if c != 0:
+        print("获取管理员权限成功")
+        # sys.exit(0)
+    else:
+        print("获取管理员权限失败")
+        # os.system("pause")
+    """
+    PTBPath: Union[str, None] = None
+    NAPath: Union[str, None] = None
+    ThumbnailPath: Union[str, None] = None
+    Config: Union[ConfigFile, None] = None
+    QApp: Union[QApplication, None] = None
+    QtWindow: Union[MainWin, None] = None
+    Handler: Union[MainHandler, None] = None
+    main()
