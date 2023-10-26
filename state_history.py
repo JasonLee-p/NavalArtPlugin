@@ -34,12 +34,14 @@ class Memento:
             ("naXZLayerNodes", [node for node in NAXZLayerNode.id_map.values()], True),
             ("naLeftViewNodes", [node for node in NALeftViewNode.id_map.values()], True)
         ]
-
-        for attr_name, source, use_deepcopy in self.attributes_to_copy:
-            if use_deepcopy:
-                setattr(self, attr_name, copy.deepcopy(source))
-            else:
-                setattr(self, attr_name, source)
+        try:
+            for attr_name, source, use_deepcopy in self.attributes_to_copy:
+                if use_deepcopy:
+                    setattr(self, attr_name, copy.deepcopy(source))
+                else:
+                    setattr(self, attr_name, source)
+        except Exception as e:
+            print(e)
 
 
 def operating_control(func):

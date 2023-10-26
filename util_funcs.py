@@ -304,7 +304,8 @@ def get_mac_address():
     """
     import uuid
     mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
-    if mac == "005056c00008":
+    print(mac)
+    if mac == "ac675d19d986":
         # return mac
         return True
     return mac

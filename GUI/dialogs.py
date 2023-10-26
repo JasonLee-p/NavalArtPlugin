@@ -471,7 +471,7 @@ class NewProjectDialog(BasicDialog):
         elif self.select_circle1.isChecked():
             self.generate_mode = 'NA'
             self.ProjectName = self.input_name.text()
-            self.ProjectPath = self.input_path.text() + '/' + self.ProjectName + '.json'
+            self.ProjectPath = self.input_path.text() + '/' + self.ProjectName + '.naprj'
         elif self.select_circle2.isChecked():
             self.generate_mode = '预设'
         elif self.select_circle3.isChecked():

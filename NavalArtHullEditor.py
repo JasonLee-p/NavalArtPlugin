@@ -125,7 +125,7 @@ def open_project(file_path=None):
     if not file_path:
         if Config.Projects == {}:  # 如果没有历史记录，打开自带文件选择框
             select_path_dialog = QFileDialog(Handler.window, "打开工程", Config.ProjectsFolder)
-            select_path_dialog.setNameFilter("工程文件 (*.json)")
+            select_path_dialog.setNameFilter("工程文件 (*.naprj)")
             select_path_dialog.setFileMode(QFileDialog.ExistingFile)
             select_path_dialog.exec_()
             # 判断用户是否点击确定
@@ -367,8 +367,8 @@ class ProjectHandler(PF):
         :param path:
         :return:
         """
-        # 判断是否为json
-        if not path.endswith('.json'):
+        # 判断是否为naprj
+        if not path.endswith('.naprj'):
             return None
         try:
             with open(path, 'r', encoding='utf-8') as f:
@@ -879,7 +879,7 @@ class MainHandler:
                 save_dialog = QFileDialog(self.window, "选择工程保存路径", chosen_path)
                 save_dialog.setFileMode(QFileDialog.AnyFile)
                 save_dialog.setAcceptMode(QFileDialog.AcceptSave)
-                save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+                save_dialog.setNameFilter("NavalArt Project files (*.naprj)")  # 仅让用户选择路径和文件名称，文件类型为naprj（json）
                 save_dialog.selectFile(default_name)
                 save_dialog.exec_()
             except Exception as _e:
@@ -918,7 +918,7 @@ class MainHandler:
             save_dialog = QFileDialog(self.window, "选择工程保存路径", chosen_path)
             save_dialog.setFileMode(QFileDialog.AnyFile)
             save_dialog.setAcceptMode(QFileDialog.AcceptSave)
-            save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+            save_dialog.setNameFilter("NavalArt Project files (*.naprj)")  # 仅让用户选择路径和文件名称，文件类型为naprj（json）
             save_dialog.selectFile(default_name)
             save_dialog.exec_()
         except Exception as _e:
@@ -1816,7 +1816,7 @@ class HullDesignTab(QWidget):
                 save_dialog = QFileDialog(self, "选择工程保存路径", chosen_path)
                 save_dialog.setFileMode(QFileDialog.AnyFile)
                 save_dialog.setAcceptMode(QFileDialog.AcceptSave)
-                save_dialog.setNameFilter("json files (*.json)")  # 仅让用户选择路径和文件名称，文件类型为json
+                save_dialog.setNameFilter("NavalArt Project (*.naprj)")  # 设置文件过滤器
                 save_dialog.selectFile(default_name)
                 save_dialog.exec_()
             except Exception as _e:
@@ -2276,8 +2276,7 @@ def handle_exception(_exception):
     raise _exception
 
 
-def main():
-    global PTBPath, NAPath, ThumbnailPath, Config, QApp, QtWindow, Handler
+if __name__ == '__main__':
     try:
         # 初始化路径
         PTBPath = find_ptb_path()
@@ -2347,27 +2346,3 @@ def main():
         sys.exit(QApp.exec_())
     except Exception as e:
         handle_exception(e)
-
-
-if __name__ == '__main__':
-    """
-    if is_admin():
-        print("程序已获取管理员身份")
-    else:
-        print("程序非管理员身份启动，正在获取管理员权限")
-    c = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
-    if c != 0:
-        print("获取管理员权限成功")
-        # sys.exit(0)
-    else:
-        print("获取管理员权限失败")
-        # os.system("pause")
-    """
-    PTBPath: Union[str, None] = None
-    NAPath: Union[str, None] = None
-    ThumbnailPath: Union[str, None] = None
-    Config: Union[ConfigFile, None] = None
-    QApp: Union[QApplication, None] = None
-    QtWindow: Union[MainWin, None] = None
-    Handler: Union[MainHandler, None] = None
-    main()

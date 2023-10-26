@@ -88,7 +88,7 @@ class ProjectFile:
     ):
         """
         工程文件类，用于处理工程文件的读写
-        工程文件用json格式存储，包含以下内容：
+        工程文件用naprj（json）格式存储，包含以下内容：
         1. 工程名称
         2. 创建工程的设备安全码（验证工程是否是本机创建，防止盗取工程）
         3. 工程创建时间
@@ -141,8 +141,8 @@ class ProjectFile:
         :param path:
         :return:
         """
-        # 判断是否为json
-        if not path.endswith('.json'):
+        # 判断是否naprj文件
+        if not path.endswith('.naprj'):
             # 提示错误
             # QMessageBox(QMessageBox.Warning, '警告', '工程文件格式错误！').exec_()
             return None
@@ -210,7 +210,7 @@ class ProjectFile:
         if not folder_path:
             _path = self.Path
         else:
-            _path = os.path.join(folder_path, self.Name + '.json')
+            _path = os.path.join(folder_path, self.Name + '.naprj')
         with open(_path, 'w', encoding='utf-8') as f:
             json.dump(self._json_data, f, ensure_ascii=False, indent=2)
 
