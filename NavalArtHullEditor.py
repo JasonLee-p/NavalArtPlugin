@@ -114,38 +114,41 @@ def open_project(file_path=None):
     开启ProjectOpeningThread线程，读取工程
     :return:
     """
-    if Handler.LoadingProject:
-        MyMessageBox.information(Handler.window, "提示", "正在读取工程，请稍后再试！")
-        return
-    if Handler.SavingProject:
-        MyMessageBox.information(Handler.window, "提示", "正在保存工程，请稍后再试！")
-        return
-    Handler.LoadingProject = True
-    # 选择路径
-    if not file_path:
-        if Config.Projects == {}:  # 如果没有历史记录，打开自带文件选择框
-            select_path_dialog = QFileDialog(Handler.window, "打开工程", Config.ProjectsFolder)
-            select_path_dialog.setNameFilter("工程文件 (*.naprj)")
-            select_path_dialog.setFileMode(QFileDialog.ExistingFile)
-            select_path_dialog.exec_()
-            # 判断用户是否点击确定
-            if not select_path_dialog.selectedFiles():
-                Handler.LoadingProject = False
-                return
-            file_path = select_path_dialog.selectedFiles()[0]
-            del select_path_dialog
-        else:
-            select_prj_dialog = SelectPrjDialog(None, config_projects=Config.Projects)
-            select_prj_dialog.exec_()
-            file_path = select_prj_dialog.selected_project_path
-            del select_prj_dialog
-            if not file_path:
-                Handler.LoadingProject = False
-                return
-    Handler.window.open_project_thread = ProjectOpeningThread(file_path)
-    Handler.window.open_project_thread.update_state.connect(show_state)
-    Handler.window.open_project_thread.finished.connect(after_open)
-    Handler.window.open_project_thread.start()
+    try:
+        if Handler.LoadingProject:
+            MyMessageBox.information(None, "提示", "正在读取工程，请稍后再试！")
+            return
+        if Handler.SavingProject:
+            MyMessageBox.information(None, "提示", "正在保存工程，请稍后再试！")
+            return
+        Handler.LoadingProject = True
+        # 选择路径
+        if not file_path:
+            if Config.Projects == {}:  # 如果没有历史记录，打开自带文件选择框
+                select_path_dialog = QFileDialog(None, "打开工程", Config.ProjectsFolder)
+                select_path_dialog.setNameFilter("工程文件 (*.naprj)")
+                select_path_dialog.setFileMode(QFileDialog.ExistingFile)
+                select_path_dialog.exec_()
+                # 判断用户是否点击确定
+                if not select_path_dialog.selectedFiles():
+                    Handler.LoadingProject = False
+                    return
+                file_path = select_path_dialog.selectedFiles()[0]
+                del select_path_dialog
+            else:
+                select_prj_dialog = SelectPrjDialog(None, config_projects=Config.Projects)
+                select_prj_dialog.exec_()
+                file_path = select_prj_dialog.selected_project_path
+                del select_prj_dialog
+                if not file_path:
+                    Handler.LoadingProject = False
+                    return
+        Handler.window.open_project_thread = ProjectOpeningThread(file_path)
+        Handler.window.open_project_thread.update_state.connect(show_state)
+        Handler.window.open_project_thread.finished.connect(after_open)
+        Handler.window.open_project_thread.start()
+    except Exception as e:
+        handle_exception(e)
 
 
 def after_open():
@@ -193,7 +196,7 @@ class ProjectOpeningThread(QThread):
             Handler.LoadingProject = False
             self.finished.emit()
         except Exception as _e:
-            raise _e
+            handle_exception(_e)
 
 
 # noinspection PyUnresolvedReferences
@@ -259,7 +262,7 @@ class ReadNAHullThread(QThread):
                 Handler.window.new_project_thread.finished.connect(after_new)
                 Handler.window.new_project_thread.start()
         except Exception as _e:
-            raise _e
+            handle_exception(_e)
 
 
 def after_new():
@@ -299,7 +302,7 @@ class ProjectLoadingNewThread(QThread):
             Handler.LoadingProject = False
             self.finished.emit()
         except Exception as _e:
-            raise _e
+            handle_exception(_e)
 
 
 class ProjectHandler(PF):
@@ -902,7 +905,7 @@ class MainHandler:
             self.window.new_project_thread.finished.connect(after_new)
             self.window.new_project_thread.start()
         except Exception as _e:
-            raise _e
+            handle_exception(_e)
 
     def new_prj_empty(self, event):
         if self.LoadingProject:
@@ -1849,7 +1852,7 @@ class HullDesignTab(QWidget):
                 _end()
                 return
         except Exception as _e:
-            raise _e
+            handle_exception(_e)
 
     def convertAdhull_button_pressed(self):
         """
@@ -2089,7 +2092,7 @@ class ReadPTBAdHullTab(QWidget):
                 self.convertAdhull_button_pressed()
                 return
         except Exception as _e:
-            raise Exception
+            handle_exception(_e)
 
     def show_add_hull(self, adhull_obj: AdvancedHull):
         self.all_3d_obj["钢铁"].append(adhull_obj)
@@ -2216,7 +2219,7 @@ class ReadNAHullTab(QWidget):
             color_dialog.exec_()
             self.show_na_hull(na_hull)
         except Exception as _e:
-            raise Exception
+            handle_exception(_e)
 
     def show_na_hull(self, na_hull_obj):
         self.all_3d_obj["钢铁"].append(na_hull_obj)
