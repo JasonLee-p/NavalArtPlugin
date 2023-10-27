@@ -213,12 +213,8 @@ class StartWelcomeDialog(BasicDialog):
         self.animation1 = QPropertyAnimation(self, b"geometry")
         self.animation1.setStartValue(QRect(self.x() + 100, self.y() + 100, 0, 0))
         self.animation1.setEndValue(QRect(self.x(), self.y(), self.Wid, self.Hei))
-        # 窗口总体饱和度
-        self.animation2 = QPropertyAnimation(self, b"saturation")
-        self.animation2.setStartValue(0)
-        self.animation2.setEndValue(1)
 
-        self.animations = [self.animation0, self.animation1, self.animation2]
+        self.animations = [self.animation0, self.animation1]
         for a in self.animations:
             a.setDuration(DUR)
             a.start()
@@ -510,11 +506,12 @@ class NewProjectDialog(BasicDialog):
         self.input_name = MyLineEdit()  # 工程名称输入框
         self.input_path = MyLineEdit()  # 工程路径输入框
 
-        self.select_circle0 = QPushButton()
-        self.select_circle1 = QPushButton()
-        self.select_circle2 = QPushButton()
-        self.select_circle3 = QPushButton()
-        self.select_circle4 = QPushButton()
+        self.circle_size = 8
+        self.select_circle0 = CircleSelectButton(self.circle_size)
+        self.select_circle1 = CircleSelectButton(self.circle_size)
+        self.select_circle2 = CircleSelectButton(self.circle_size)
+        self.select_circle3 = CircleSelectButton(self.circle_size)
+        self.select_circle4 = CircleSelectButton(self.circle_size)
 
         self.combobox_template = MyComboBox()  # 预设下拉框
         self.show_na_path = MyLineEdit()  # NA船体路径显示框
@@ -558,13 +555,15 @@ class NewProjectDialog(BasicDialog):
         self.center_layout.addLayout(self.center_bottom_layout1)
         self.center_bottom_layout1.addWidget(MyLabel('船长：'), 0, 0)
         self.center_bottom_layout1.addWidget(self.length_slider, 0, 1)
+        self.center_bottom_layout1.addWidget(self.length_slider.valueLabel, 0, 2)
         self.center_bottom_layout1.addWidget(MyLabel('船宽：'), 1, 0)
         self.center_bottom_layout1.addWidget(self.width_slider, 1, 1)
+        self.center_bottom_layout1.addWidget(self.width_slider.valueLabel, 1, 2)
         self.center_bottom_layout1.addWidget(MyLabel('型深：'), 2, 0)
         self.center_bottom_layout1.addWidget(self.depth_slider, 2, 1)
+        self.center_bottom_layout1.addWidget(self.depth_slider.valueLabel, 2, 2)
         # 设置控件属性
-        self.selected_color = "tan"
-        self.circle_size = 8
+        self.selected_color = BG_COLOR3
         self.set_widgets()
         # 设置信号槽
         self.search_prj_path_button.clicked.connect(self.check_path)
@@ -593,16 +592,6 @@ class NewProjectDialog(BasicDialog):
         for te in [self.input_name, self.input_path, self.show_na_path, self.show_ptb_path, self.show_preset_path]:
             te.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # 设置小圆圈
-        self.select_circle0.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
-        self.select_circle1.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
-        self.select_circle2.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
-        self.select_circle3.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
-        self.select_circle4.setFixedSize(2 * self.circle_size, 2 * self.circle_size)
-        self.select_circle0.setCheckable(True)
-        self.select_circle1.setCheckable(True)
-        self.select_circle2.setCheckable(True)
-        self.select_circle3.setCheckable(True)
-        self.select_circle4.setCheckable(True)
         self.button0_clicked()
         self.select_circle0.clicked.connect(self.button0_clicked)
         self.select_circle1.clicked.connect(self.button1_clicked)

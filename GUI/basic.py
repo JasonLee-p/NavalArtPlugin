@@ -8,13 +8,12 @@ import json
 import os
 from abc import abstractmethod
 # 第三方库
-from typing import List, Union
+from typing import List
 
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QLocale, QRect, QPoint
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath, QLinearGradient, QPen, \
-    QBrush, QPolygon, QIntValidator
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy, QTabWidget, \
-    QColorDialog, QStylePainter, QStyleOptionSlider, QStyle
+from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect, QPoint
+from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPainter, QPainterPath, QLinearGradient, QPen, \
+    QPolygon, QIntValidator
+from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -388,29 +387,44 @@ class MySlider(QSlider):
         self.setMaximum(value_range[1])
         self.setValue(current_value)
         # 设置滑块样式
-        self.setStyleSheet(
-            f"QSlider::groove:horizontal{{background-color:{BG_COLOR2};"  # 滑块背景颜色
-            "border-radius:4px;"
-            "height:10px;"
-            "margin:1px 1px;}}"
-            f"QSlider::handle:horizontal{{background-color:{BG_COLOR3};"  # 滑块颜色
-            "border-radius:4px;"
-            "width:10px;"
-            "margin:-10px 0px -10px 0px;}}"
-            f"QSlider::add-page:horizontal{{background-color:{BG_COLOR3};"  # 滑块右边颜色
-            "border-radius:4px;"
-            "height:10px;}}"
-            f"QSlider::sub-page:horizontal{{background-color:{BG_COLOR3};"  # 滑块左边颜色
-            "border-radius:4px;"
-            "height:10px;}}"
-        )
+        self.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                background-color: {BG_COLOR0};
+                border-radius: 4px;
+                height: 10px;
+                margin: 1px 1px;
+            }}
+            QSlider::handle:horizontal {{
+                background-color: {FG_COLOR0};
+                border-radius: 4px;
+                width: 10px;
+                margin: -10px 0px -10px 0px;
+            }}
+            QSlider::add-page:horizontal {{
+                background-color: {BG_COLOR0};
+                border-radius: 4px;
+                height: 10px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background-color: {BG_COLOR3};
+                border-radius: 4px;
+                height: 10px;
+            }}
+        """)
         # 在滑块上显示当前值
         self.valueLabel = QLabel(str(self.value()))
         self.valueLabel.setAttribute(Qt.WA_TranslucentBackground)
-        self.valueLabel.setStyleSheet(f"color:{FG_COLOR0};")
-        self.valueLabel.setFont(QFont("微软雅黑", 8))
-        self.valueLabel.setFixedSize(50, 20)
-        self.valueLabel.setParent(self)
+        self.valueLabel.setStyleSheet(f"""
+            QLabel{{
+                background-color: transparent;
+                color: {FG_COLOR0};
+                border-radius: 0px;
+                border: 0px solid {FG_COLOR0};
+            }}
+        """)
+        self.valueLabel.setFont(FONT_8)
+        self.valueLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.valueLabel.setFixedSize(30, 20)
         # 值变化绑定
         self.valueChanged.connect(self.valueLabel.setNum)
 

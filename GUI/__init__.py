@@ -2,7 +2,7 @@
 
 """
 # 引入Qt库
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize, QPoint
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QPoint
 from PyQt5.QtGui import QMouseEvent, QWheelEvent, QKeyEvent, QCursor, QKeySequence, QIcon, QPixmap, QImage
 from PyQt5.QtGui import QMatrix4x4, QVector3D, QColor, QDoubleValidator
 from PyQt5.QtWidgets import QWidget, QLabel, QFrame, QPushButton, QToolBar, QMessageBox, QTabWidget, QAction, QScrollArea
@@ -35,7 +35,7 @@ from .dialogs import CheckNewVersionDialog, NewProjectDialog, ThemeDialog, Sensi
 from .basic import set_tool_bar_style, set_buttons, set_top_button_style, set_button_style, getFG_fromBG, front_completion, create_rounded_thumbnail
 __all__ = [
     # 引入Qt库
-    "Qt", "QThread", "pyqtSignal", "QSize", "QPoint",
+    "Qt", "pyqtSignal", "QSize", "QPoint",
     "QMouseEvent", "QWheelEvent", "QKeyEvent", "QCursor", "QKeySequence", "QIcon", "QPixmap", "QImage",
     "QMatrix4x4", "QVector3D", "QColor", "QDoubleValidator",
     "QWidget", "QLabel", "QFrame", "QPushButton", "QToolBar", "QMessageBox", "QTabWidget", "QAction", "QScrollArea",

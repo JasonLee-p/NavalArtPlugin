@@ -216,11 +216,6 @@ class OpenGLWin(QOpenGLWidget):
         image = self.grabFramebuffer()
         image = image.copy(cut, cut, image.width() - 2 * cut, image.height() - 2 * cut)
         image = image.convertToFormat(QImage.Format_ARGB32)
-
-        # fbo = GL_FRAMEBUFFER
-        # fbo.bind()
-        # image = fbo.toImage()
-        # fbo.release()
         # 检查路径
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -281,25 +276,23 @@ class OpenGLWin(QOpenGLWidget):
             self.xzLayer_node = []  # 所有横剖面的节点
             self.xyLayer_node = []  # 所有纵剖面的节点
             self.leftView_node = []  # 所有左视图的节点
-            # self.showMode_showSet_map = {  # 正常显示的映射
-            #     (OpenGLWin.ShowAll, OpenGLWin.ShowObj): self.all_3d_obj,
-            #     (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): self.all_3d_obj,
-            #     (OpenGLWin.ShowXZ, OpenGLWin.ShowObj): self.xz_layer_obj,
-            #     (OpenGLWin.ShowXZ, OpenGLWin.ShowDotNode): self.xz_layer_obj,
-            #     (OpenGLWin.ShowXY, OpenGLWin.ShowObj): self.xy_layer_obj,
-            #     (OpenGLWin.ShowXY, OpenGLWin.ShowDotNode): self.xy_layer_obj,
-            #     (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): self.left_view_obj,
-            #     (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): self.left_view_obj
-            # }
         self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
-            if type(gl_plot_obj) == NAHull:
+            if isinstance(gl_plot_obj, NAHull):
                 for _color, parts in gl_plot_obj.PartsColorMap.items():
                     for part in parts:
                         self.prj_all_parts.append(part)
                 self.xz_layer_obj.extend(gl_plot_obj.xzLayers)
                 self.xy_layer_obj.extend(gl_plot_obj.xyLayers)
                 self.left_view_obj.extend(gl_plot_obj.leftViews)
+        # =========================================================================================事件
+        self.camera = Camera(self.width, self.height, camera_sensitivity)
+        self.initialized = False
+        self.camera_movable = True  # 摄像机是否可移动
+        self.lastPos = QPoint()  # 上一次鼠标位置
+        self.select_start = None  # 选择框起点
+        self.select_end = None  # 选择框终点
+        self.rotate_start = None  # 旋转起点
         self.selectObjOrigin_map = {  # 从哪个集合中取出选中的对象
             (OpenGLWin.ShowAll, OpenGLWin.ShowObj): NAPart,
             (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): NAPartNode,
@@ -310,14 +303,6 @@ class OpenGLWin(QOpenGLWidget):
             (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): NaHullLeftView,
             (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): NALeftViewNode
         }
-        # =========================================================================================事件
-        self.camera = Camera(self.width, self.height, camera_sensitivity)
-        self.initialized = False
-        self.camera_movable = True  # 摄像机是否可移动
-        self.lastPos = QPoint()  # 上一次鼠标位置
-        self.select_start = None  # 选择框起点
-        self.select_end = None  # 选择框终点
-        self.rotate_start = None  # 旋转起点
         self.selected_gl_objects = {
             (OpenGLWin.ShowAll, OpenGLWin.ShowObj): [],  # 选中的零件
             (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): [],  # 选中的节点
@@ -432,7 +417,7 @@ class OpenGLWin(QOpenGLWidget):
         parts = AdjustableHull.hull_design_tab_id_map.copy().values()
         for part in parts:  # TODO: 优化绘制
             part.glWin = self
-            if type(part) == AdjustableHull:
+            if isinstance(part, AdjustableHull):
                 part.draw_pre(self.gl2_0)
                 ...
         self.update()
@@ -446,7 +431,7 @@ class OpenGLWin(QOpenGLWidget):
                 if self.using_various_mode:
                     for part in NAPart.hull_design_tab_id_map.copy().values():
                         part.glWin = self
-                        if type(part) != AdjustableHull:
+                        if not isinstance(part, AdjustableHull):
                             continue
                         part.draw(self.gl2_0)
                 else:
@@ -458,7 +443,7 @@ class OpenGLWin(QOpenGLWidget):
                 if self.using_various_mode:
                     for part in NAPart.hull_design_tab_id_map.copy().values():
                         part.glWin = self
-                        if type(part) != AdjustableHull:
+                        if not isinstance(part, AdjustableHull):
                             continue
 
                         part.draw(self.gl2_0, transparent=True)
@@ -482,12 +467,12 @@ class OpenGLWin(QOpenGLWidget):
     def draw_selected_objs(self):
         if self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowObj):  # 如果是模式1的部件模式
             for obj in self.selected_gl_objects[self.show_3d_obj_mode]:
-                if type(obj) != AdjustableHull:
+                if not isinstance(obj, AdjustableHull):
                     continue  # TODO: 未来要加入Part类的绘制方法，而不是只能绘制AdjustableHull
                 obj.draw_selected(self.gl2_0, theme_color=self.theme_color)
         elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
             for node in self.selected_gl_objects[self.show_3d_obj_mode]:
-                if type(node) != NAPartNode:
+                if not isinstance(NAPartNode, AdjustableHull):
                     continue
                 if node.selected_genList and not node.update_selectedList:
                     self.gl2_0.glCallList(node.selected_genList)
@@ -1294,7 +1279,7 @@ class OpenGLWin2(QOpenGLWidget):
             }
         self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
-            if type(gl_plot_obj) == NAHull:
+            if isinstance(gl_plot_obj, NAHull):
                 for _color, parts in gl_plot_obj.PartsColorMap.items():
                     for part in parts:
                         self.prj_all_parts.append(part)

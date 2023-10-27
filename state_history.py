@@ -6,9 +6,11 @@ import copy
 from typing import List, Union
 
 from GL_plot.na_hull import (
-    PartRelationMap as PRM, NAHull, NaHullXYLayer, NaHullXZLayer, NaHullLeftView,
+    NAHull, NaHullXYLayer, NaHullXZLayer, NaHullLeftView,
     NAPart, NAPartNode, NAXYLayerNode, NAXZLayerNode, NALeftViewNode
 )
+
+from ship_reader.NA_design_reader import PartRelationMap as PRM
 
 
 class Memento:

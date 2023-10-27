@@ -17,9 +17,9 @@ from typing import Union
 try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
-    from PyQt5.QtCore import QPropertyAnimation
-
+    from PyQt5.QtCore import QPropertyAnimation, QMutex
     # 本地库
+    from QThreadHandler import MyQThread, handle_thread_error
     from developer_console import open_developer_console
     from connection import Connection, extract_number_from_version
     from state_history import StateHistory, push_global_statu
@@ -76,17 +76,17 @@ def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] 
 
 
 def check_version():
-    class __CheckVersionThread(QThread):
-        finished = pyqtSignal()
+    class __CheckVersionThread(MyQThread):
 
         def __init__(self):
             self.latest_version = None
             self.links = {}
             super().__init__()
 
+        @handle_thread_error
         def run(self):
             self.latest_version, self.links = Connection.get_latest_version()
-            self.finished.emit()
+            super().run()
 
         def is_finished(self):
             if self.latest_version is None:
@@ -106,6 +106,8 @@ def check_version():
         print("browser open")
         webbrowser.open(Handler.window.check_version_thread.links[1])
         webbrowser.open(Handler.window.check_version_thread.links[0])
+    # 直接退出线程
+    Handler.window.check_version_thread.terminate()
 
 
 # noinspection PyUnresolvedReferences
@@ -144,11 +146,13 @@ def open_project(file_path=None):
                     Handler.LoadingProject = False
                     return
         Handler.window.open_project_thread = ProjectOpeningThread(file_path)
+        Handler.window.open_project_thread.error_occurred.connect(handle_exception)
+        Handler.window.open_project_thread.print.connect(color_print)
         Handler.window.open_project_thread.update_state.connect(show_state)
         Handler.window.open_project_thread.finished.connect(after_open)
         Handler.window.open_project_thread.start()
-    except Exception as e:
-        handle_exception(e)
+    except Exception as _e:
+        handle_exception(_e)
 
 
 def after_open():
@@ -166,26 +170,30 @@ def after_open():
     Handler.LoadingProject = False
 
 
-class ProjectOpeningThread(QThread):
-    finished = pyqtSignal()
+class ProjectOpeningThread(MyQThread):
     update_state = pyqtSignal(str, str)  # 用于更新状态信息
+    is_running = False
 
     def __init__(self, file_path):
+        if ProjectOpeningThread.is_running:
+            Handler.LoadingProject = False
+            return
         super().__init__()
         self.file_path = file_path
 
     # noinspection PyUnresolvedReferences
+    @handle_thread_error
     def run(self):
         try:
+            self.mutex.lock()
             self.update_state.emit(f"正在读取{self.file_path}...", 'process')  # 发射更新状态信息信号
-            obj = ProjectHandler.load_project(self.file_path)  # 新建工程文件对象
+            obj = ProjectHandler.load_project(self.file_path, config_obj=Config)  # 新建工程文件对象
             if obj is None:
                 self.finished.emit()
                 self.update_state.emit(f"{self.file_path}读取失败", 'error')  # 发射更新状态信息信号
                 return
             # 读取成功，开始绘制
             # 通过读取的船体设计文件，新建NaHull对象
-            print("Im here")  # TODO: 不print会报错-1073741819 (0xC0000005)，原因未知
             na_hull = NAHull(data=obj.NAPartsData,
                              show_statu_func=self.update_state,
                              glWin=Handler.hull_design_tab.ThreeDFrame,
@@ -195,9 +203,10 @@ class ProjectOpeningThread(QThread):
             # 显示船体设计
             self.update_state.emit(f"{self.file_path}加载成功", 'success')  # 发射更新状态信息信号
             Handler.LoadingProject = False
-            self.finished.emit()
+            self.mutex.unlock()
+            super().run()
         except Exception as _e:
-            handle_exception(_e)
+            self.error_occurred.emit(_e)
 
 
 # noinspection PyUnresolvedReferences
@@ -230,20 +239,24 @@ def new_project():
             Handler.window.read_na_hull_thread.start()
 
 
-class ReadNAHullThread(QThread):
-    finished = pyqtSignal()
+class ReadNAHullThread(MyQThread):
     update_state = pyqtSignal(str, str)  # 用于更新状态信息
+    is_running = False
 
     def __init__(self, original_na_path):
+        if ReadNAHullThread.is_running:
+            Handler.LoadingProject = False
+            return
         super().__init__()
         # 通过读取的船体设计文件，新建NaHull对象
         self.original_na_path = original_na_path
         self.na_hull = None
 
     # noinspection PyUnresolvedReferences
+    @handle_thread_error
     def run(self) -> None:
         self.na_hull = NAHull(path=self.original_na_path, show_statu_func=self.update_state, design_tab=True)
-        self.finished.emit()
+        super().run()
 
     # noinspection PyUnresolvedReferences
     def after_read_na_hull(self):
@@ -263,7 +276,7 @@ class ReadNAHullThread(QThread):
                 Handler.window.new_project_thread.finished.connect(after_new)
                 Handler.window.new_project_thread.start()
         except Exception as _e:
-            handle_exception(_e)
+            self.error_occurred.emit(_e)
 
 
 def after_new():
@@ -276,11 +289,14 @@ def after_new():
     Handler.LoadingProject = False
 
 
-class ProjectLoadingNewThread(QThread):
-    finished = pyqtSignal()
+class ProjectLoadingNewThread(MyQThread):
     update_state = pyqtSignal(str, str)
+    is_running = False
 
     def __init__(self, na_hull, name, path, original_na_path):
+        if ProjectLoadingNewThread.is_running:
+            Handler.LoadingProject = False
+            return
         super().__init__()
         self.na_hull = na_hull
         self.name = name
@@ -288,6 +304,7 @@ class ProjectLoadingNewThread(QThread):
         self.original_na_path = original_na_path
 
     # noinspection PyUnresolvedReferences
+    @handle_thread_error
     def run(self):
         try:
             # 生成工程文件对象
@@ -303,7 +320,7 @@ class ProjectLoadingNewThread(QThread):
             Handler.LoadingProject = False
             self.finished.emit()
         except Exception as _e:
-            handle_exception(_e)
+            self.error_occurred.emit(_e)
 
 
 class ProjectHandler(PF):
@@ -344,7 +361,7 @@ class ProjectHandler(PF):
         self.stateHistory = StateHistory(show_state)
 
     @staticmethod
-    def load_project(path) -> Union[None, 'ProjectHandler', 'PF']:
+    def load_project(path, config_obj) -> Union[None, 'ProjectHandler', 'PF']:
         """
         从文件加载工程
         :param path:
@@ -354,8 +371,8 @@ class ProjectHandler(PF):
         if prj is None:  # 当没有读取到工程文件时，返回None
             # 删除Config中的该条目
             try:
-                del Config.Projects[os.path.basename(path).split('.')[0]]
-                Config.save_config()  # 保存配置文件
+                del config_obj.Projects[os.path.basename(path).split('.')[0]]
+                config_obj.save_config()  # 保存配置文件
             except KeyError:
                 pass
             finally:
@@ -402,10 +419,16 @@ class ProjectHandler(PF):
                 return
             Handler.SavingProject = True
             # 截取图片
+            color_print("\n正在截取图片...", "yellow")
             Handler.hull_design_tab.ThreeDFrame.save_current_image(ThumbnailPath, self.Name)
+            color_print("截取图片成功！", "green")
             # 保存
+            color_print("正在转化为json...", "yellow")
             self.NAPartsData = NAHull.toJson(self.na_hull.DrawMap)
+            color_print("转化为json成功！", "green")
+            color_print("正在保存...", "yellow")
             super().save()
+            color_print("保存成功！\n", "green")
             # 更新状态栏
             _time = f"{time.localtime().tm_year}-{time.localtime().tm_mon}-{time.localtime().tm_mday} " \
                     f"{time.localtime().tm_hour}:{time.localtime().tm_min}:{time.localtime().tm_sec}"
@@ -993,6 +1016,7 @@ class MainHandler:
         show_state("正在重新加载工程...", 'process')
         self.LoadingProject = True
         self.window.read_project_thread = ProjectOpeningThread(ProjectHandler.current.Path)
+        self.window.read_project_thread.error_occurred.connect(handle_exception)
         self.window.read_project_thread.update_state.connect(show_state)
         self.window.read_project_thread.finished.connect(after_open)
         self.window.read_project_thread.start()
@@ -1919,7 +1943,7 @@ class HullDesignTab(QWidget):
         self.xz_layer_obj.extend(na_hull.xzLayers)
         self.xy_layer_obj.extend(na_hull.xyLayers)
         self.left_view_obj.extend(na_hull.leftViews)
-        # 更新ThreeDFrame的paintGL
+        # 更新ThreeDFrame
         self.ThreeDFrame.paintGL()
         self.ThreeDFrame.update()
 
@@ -2120,7 +2144,7 @@ class ReadNAHullTab(QWidget):
         # 初始化界面布局
         self.main_layout = QVBoxLayout()
         self.up_layout = QHBoxLayout()
-        self.ThreeDFrame = GLWin(Config.Sensitivity, various_mode=False, show_statu_func=show_state)
+        self.ThreeDFrame = OpenGLWin(Config.Sensitivity, show_statu_func=show_state)
         self.down_layout = QHBoxLayout()
         self.down_tool_bar = QToolBar()
         self.init_layout()
@@ -2265,13 +2289,15 @@ def handle_exception(_exception):
     """
     MyMessageBox().information(None, _title, information, MyMessageBox.Ok)
 
-    class QQMailThread(QThread):
+    class QQMailThread(MyQThread):
         def __init__(self):
             super().__init__(None)
 
+        @handle_thread_error
         def run(self):
             Connection.send_email(f"Fatal Error：{_exception}\n{traceback.format_exc()}")
             time.sleep(3)
+            super().run()
 
     _qqmail_t = QQMailThread()
     _qqmail_t.start()
@@ -2281,6 +2307,7 @@ def handle_exception(_exception):
 
 
 if __name__ == '__main__':
+    print("Naval Art Hull Editor")
     try:
         # 初始化路径
         PTBPath = find_ptb_path()
@@ -2290,6 +2317,7 @@ if __name__ == '__main__':
         Config = ConfigFile()
         # 初始化界面和事件处理器
         QApp = QApplication(sys.argv)
+        # 设置图标
         QApp.setWindowIcon(QIcon(QPixmap.fromImage(QImage.fromData(ICO_))))
         QApp.setStyleSheet(f"""
             QWidget{{
@@ -2328,6 +2356,12 @@ if __name__ == '__main__':
         QtWindow.hide()
         QtWindow.showMaximized()
         mainWinAnimation.start()
+        # 检查是否需要引导
+        if not Config.Config["Guided"]:
+            # 运行引导程序
+            user_guide(ask_save=False)
+            Config.Config["Guided"] = True
+        # 检查是否需要打开最近的工程
         if start_dialog.open_recent_project and Config.Projects != {}:  # 打开最近的工程
             try:
                 open_project(list(Config.Projects.values())[-1])
@@ -2338,11 +2372,6 @@ if __name__ == '__main__':
             new_project()
         elif start_dialog.open_project:  # 打开工程
             open_project()
-        # 检查是否需要引导
-        if not Config.Config["Guided"]:
-            # 运行引导程序
-            user_guide(ask_save=False)
-            Config.Config["Guided"] = True
         # 检查本机地址
         if get_mac_address() is True:  # 是我的电脑
             open_developer_console(Handler, ProjectHandler)

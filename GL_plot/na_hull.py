@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 定义了NavalArt内物体的绘制对象
 """
@@ -6,7 +7,7 @@ import math
 import numpy as np
 
 from ship_reader.NA_design_reader import (
-    ReadNA, AdjustableHull, NAPart, MainWeapon, PartRelationMap, NAPartNode,
+    ReadNA, AdjustableHull, NAPart, NAPartNode,
     rotate_quaternion0, rotate_quaternion1, rotate_quaternion2)
 from .basic import SolidObject, DotNode, get_normal, TempObj
 
@@ -115,7 +116,7 @@ class NAHull(ReadNA, SolidObject):
         color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
         gl.glColor4f(*color_)
         for part in part_set:
-            if type(part) != AdjustableHull:
+            if not isinstance(part, AdjustableHull):
                 continue
             if not part.updateList and part.genList:
                 gl.glCallList(part.genList)
@@ -131,7 +132,7 @@ class NAHull(ReadNA, SolidObject):
                 gl.glNewList(part.genList, gl.GL_COMPILE_AND_EXECUTE)
             gl.glLoadName(id(part) % 4294967296)
             part.glWin = self.glWin
-            if type(part) != AdjustableHull:
+            if not isinstance(part, AdjustableHull):
                 continue
             for draw_method, faces_dots in part.plot_faces.items():
                 # draw_method是字符串，需要转换为OpenGL的常量
@@ -202,7 +203,7 @@ class NaHullXZLayer(SolidObject):
     def get_partsDotsMap(self):
         result = {}
         for part in self.y_parts:
-            if type(part) != AdjustableHull:
+            if not isinstance(part, AdjustableHull):
                 continue
             for i in range(len(part.plot_all_dots)):
                 dot = list(part.plot_all_dots[i])
@@ -282,7 +283,7 @@ class NaHullXYLayer(SolidObject):
     def get_partsDotsMap(self):
         result = {}
         for part in self.z_parts:
-            if type(part) != AdjustableHull:
+            if not isinstance(part, AdjustableHull):
                 continue
             for i in range(len(part.plot_all_dots)):
                 dot = list(part.plot_all_dots[i])

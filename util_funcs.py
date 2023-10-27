@@ -6,9 +6,8 @@ import ctypes
 from typing import Literal
 
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QVector3D, QPixmap, QPainter, QPainterPath
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from PyQt5.QtGui import QVector3D
+from PyQt5.QtWidgets import QMessageBox
 from quaternion import quaternion
 
 
@@ -272,6 +271,7 @@ def open_url(url):
         from PyQt5.QtCore import QUrl
         from PyQt5.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl(url))
+
     return func
 
 
@@ -318,3 +318,14 @@ def is_admin():
     except Exception as _e:
         print(_e)
         return False
+
+
+def color_print(text, color: Literal["red", "green", "yellow", "blue", "magenta", "cyan", "white"] = "green"):
+    """
+    输出带颜色的文字
+    :param text: 文字
+    :param color: 颜色
+    :return:
+    """
+    color_dict = {"red": 31, "green": 32, "yellow": 33, "blue": 34, "magenta": 35, "cyan": 36, "white": 37}
+    print(f"\033[{color_dict[color]}m{text}\033[0m")

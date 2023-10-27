@@ -31,7 +31,7 @@ class ConfigFile:
             self.Guided = True if self.Config['Guided'] == 'True' else False
             self.Projects = data['Projects']
             self.ProjectsFolder = data['ProjectsFolder']
-        except:
+        except (FileNotFoundError, KeyError, AttributeError):
             self.UsingTheme = "Night"
             self.Sensitivity = {
                 '缩放': 0.5,
@@ -212,7 +212,8 @@ class ProjectFile:
         else:
             _path = os.path.join(folder_path, self.Name + '.naprj')
         with open(_path, 'w', encoding='utf-8') as f:
-            json.dump(self._json_data, f, ensure_ascii=False, indent=2)
+            # json.dump(self._json_data, f, ensure_ascii=False, indent=2)
+            json.dump(self._json_data, f, ensure_ascii=False)
 
     def save_as_na(self, original_na_path, output_file_path):  # 导出为NA船体
         # 以xml形式，na文件格式保存
