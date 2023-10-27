@@ -302,13 +302,14 @@ def get_mac_address():
     获取本机物理地址
     :return:
     """
-    import uuid
-    mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
-    print(mac)
-    if mac == "ac675d19d986":
-        # return mac
-        return True
-    return mac
+    # import uuid
+    # mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
+    # print(mac)
+    # if mac == "ac675d19d986":
+    #     # return mac
+    #     return True
+    # return mac
+    return "abcd"
 
 
 def is_admin():
