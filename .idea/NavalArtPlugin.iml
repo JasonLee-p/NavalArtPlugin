@@ -8,7 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/NAAssertData" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
     </content>
-    <orderEntry type="jdk" jdkName="3.8 NavalArtPlugin" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (NavalArtPlugin_pyside)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

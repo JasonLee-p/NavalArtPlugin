@@ -10,14 +10,14 @@ from abc import abstractmethod
 # 第三方库
 from typing import List, Union
 
-from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QLocale, QRect, QPoint
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath, QLinearGradient, QPen, \
+from PySide2.QtCore import Qt, QSize, QPropertyAnimation, QLocale, QRect, QPoint
+from PySide2.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPalette, QPainter, QPainterPath, QLinearGradient, QPen, \
     QBrush, QPolygon, QIntValidator
-from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy, QTabWidget, \
+from PySide2.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy, QTabWidget, \
     QColorDialog, QStylePainter, QStyleOptionSlider, QStyle
-from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PySide2.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
+from PySide2.QtWidgets import QGraphicsDropShadowEffect
 from base64 import b64decode
 # 本地库
 from path_utils import find_na_root_path
@@ -1042,7 +1042,7 @@ class HSLColorPicker(QWidget):
 
 if __name__ == '__main__':
     import sys
-    from PyQt5.QtWidgets import QApplication
+    from PySide2.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
     mainWin = QWidget()

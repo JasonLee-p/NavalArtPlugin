@@ -7,13 +7,13 @@ import time
 
 import numpy as np
 from OpenGL import GL
-from PyQt5.QtCore import QByteArray
+from PySide2.QtCore import QByteArray
 
-from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtGui import (
+from PySide2.QtWidgets import QOpenGLWidget
+from PySide2.QtGui import (
     QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer,
     QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat, QOffscreenSurface, QOpenGLContext)
-from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
+# from PySide2 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *

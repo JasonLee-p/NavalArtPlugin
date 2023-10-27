@@ -17,7 +17,7 @@ from typing import Union
 try:
     # 第三方库
     from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW
-    from PyQt5.QtCore import QPropertyAnimation
+    from PySide2.QtCore import QPropertyAnimation
 
     # 本地库
     from developer_console import open_developer_console
@@ -77,7 +77,7 @@ def show_state(txt, msg_type: Literal['warning', 'success', 'process', 'error'] 
 
 def check_version():
     class __CheckVersionThread(QThread):
-        finished = pyqtSignal()
+        finished = Signal()
 
         def __init__(self):
             self.latest_version = None
@@ -167,8 +167,8 @@ def after_open():
 
 
 class ProjectOpeningThread(QThread):
-    finished = pyqtSignal()
-    update_state = pyqtSignal(str, str)  # 用于更新状态信息
+    finished = Signal()
+    update_state = Signal(str, str)  # 用于更新状态信息
 
     def __init__(self, file_path):
         super().__init__()
@@ -230,8 +230,8 @@ def new_project():
 
 
 class ReadNAHullThread(QThread):
-    finished = pyqtSignal()
-    update_state = pyqtSignal(str, str)  # 用于更新状态信息
+    finished = Signal()
+    update_state = Signal(str, str)  # 用于更新状态信息
 
     def __init__(self, original_na_path):
         super().__init__()
@@ -276,8 +276,8 @@ def after_new():
 
 
 class ProjectLoadingNewThread(QThread):
-    finished = pyqtSignal()
-    update_state = pyqtSignal(str, str)
+    finished = Signal()
+    update_state = Signal(str, str)
 
     def __init__(self, na_hull, name, path, original_na_path):
         super().__init__()

@@ -3,7 +3,7 @@
 主界面
 """
 # 第三方库
-from PyQt5.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
+from PySide2.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
 # 本地库
 from .basic import *
 

@@ -5,9 +5,9 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation, QAbstractAnimation, QEvent
-from PyQt5.QtGui import QTextBlockFormat
-from PyQt5.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget, QDialog
+from PySide2.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation, QAbstractAnimation, QEvent
+from PySide2.QtGui import QTextBlockFormat
+from PySide2.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget, QDialog
 
 from util_funcs import open_url
 from path_utils import find_ptb_path, find_na_root_path
@@ -1150,7 +1150,7 @@ class SensitiveDialog(BasicDialog):
 
 
 class ColorDialog(BasicDialog):
-    color_selected = pyqtSignal()
+    color_selected = Signal()
 
     def __init__(self, parent, na_hull):
         self.canceled = True
