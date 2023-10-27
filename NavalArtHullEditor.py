@@ -185,6 +185,7 @@ class ProjectOpeningThread(QThread):
                 return
             # 读取成功，开始绘制
             # 通过读取的船体设计文件，新建NaHull对象
+            print("Im here")  # TODO: 不print会报错-1073741819 (0xC0000005)，原因未知
             na_hull = NAHull(data=obj.NAPartsData,
                              show_statu_func=self.update_state,
                              glWin=Handler.hull_design_tab.ThreeDFrame,
