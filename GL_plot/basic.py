@@ -58,10 +58,6 @@ class LineGroupObject(GLObject):
 
     def draw(self, gl, theme_color, material):
         gl.glLoadName(id(self) % 4294967296)
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[material][3])
         for num, line in self.lines.items():
             gl.glLineWidth(line[1])
             gl.glColor4f(*line[0])

@@ -185,7 +185,6 @@ class ProjectOpeningThread(MyQThread):
     @handle_thread_error
     def run(self):
         try:
-            self.mutex.lock()
             self.update_state.emit(f"正在读取{self.file_path}...", 'process')  # 发射更新状态信息信号
             obj = ProjectHandler.load_project(self.file_path, config_obj=Config)  # 新建工程文件对象
             if obj is None:
@@ -203,7 +202,6 @@ class ProjectOpeningThread(MyQThread):
             # 显示船体设计
             self.update_state.emit(f"{self.file_path}加载成功", 'success')  # 发射更新状态信息信号
             Handler.LoadingProject = False
-            self.mutex.unlock()
             super().run()
         except Exception as _e:
             self.error_occurred.emit(_e)

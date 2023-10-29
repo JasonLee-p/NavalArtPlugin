@@ -5,9 +5,9 @@
 # 本地库
 import os
 
-from PyQt5.QtCore import QPropertyAnimation, QRect, QTimer, QVariantAnimation, QAbstractAnimation, QEvent
+from PyQt5.QtCore import QPropertyAnimation, QRect
 from PyQt5.QtGui import QTextBlockFormat
-from PyQt5.QtWidgets import QProgressBar, QSizePolicy, QOpenGLWidget, QDialog
+from PyQt5.QtWidgets import QProgressBar, QSizePolicy
 
 from util_funcs import open_url
 from path_utils import find_ptb_path, find_na_root_path
@@ -383,8 +383,6 @@ class StartWelcomeDialog(BasicDialog):
         self.ico.setFixedSize(254, 254)
         self.ico.setStyleSheet(f"background-color: #889998;"
                                f"border-radius: 50px;")
-        # 颜色动效
-        self.init_ico_animation()
         # 添加布局
         self.right_layout.addWidget(self.ico, alignment=Qt.AlignCenter)
         # 文字
@@ -416,22 +414,6 @@ class StartWelcomeDialog(BasicDialog):
             """)
         self.right_widget.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};")
         self.right_layout.addStretch(2)
-
-    def init_ico_animation(self):
-        # 创建颜色动画
-        color_animation = QPropertyAnimation(self.ico, b"background-color")
-
-        # 设置动画的持续时间（毫秒）
-        color_animation.setDuration(5000)
-
-        # 设置动画的起始颜色和结束颜色
-        start_color = QColor("#aaeedd")
-        end_color = QColor("#ff0000")
-        color_animation.setStartValue(start_color)
-        color_animation.setEndValue(end_color)
-
-        # 启动动画
-        color_animation.start()
 
     # noinspection PyUnresolvedReferences
     def connect_funcs(self, setting_func=None, help_func=None, about_func=None):
