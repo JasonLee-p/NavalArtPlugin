@@ -8,7 +8,7 @@ import traceback
 from base64 import b64decode
 from io import StringIO
 
-from PyQt5.QtGui import QFontMetrics, QFont
+from PyQt5.QtGui import QFontMetrics, QFont, QTextCharFormat
 
 from GUI.basic import close
 from GUI import *
@@ -33,6 +33,8 @@ python_keyWords_list = ['fromkeys', 'break', 'global', 'zip', 'del', 'min', 'com
                         '__hash__', 'eval', 'buffer', '__format__', 'elif', '__doc__']
 
 python_keyWords_list = list(set(python_keyWords_list))
+
+TBG1 = f"({QColor(BG_COLOR1).red()}, {QColor(BG_COLOR1).green()}, {QColor(BG_COLOR1).blue()}, 200)"
 
 
 def open_developer_console(Handler, ProjectHandler):
@@ -67,6 +69,7 @@ class DeveloperConsole(QWidget):
         self.pos = QPoint(4 * WinWid / 5, 3 * WinHei / 5)
         self.setWindowIcon(Handler.window.windowIcon())
         self.setWindowFlags(Qt.WindowStaysOnTopHint)  # 保持在顶层
+        self.setWindowOpacity(0.9)
         # 设置窗口可缩放
         self.setFixedSize(self.width, self.height)
         self.move(self.pos - self.rect().center())
@@ -93,7 +96,7 @@ class DeveloperConsole(QWidget):
     def init_UI(self):
         self.setStyleSheet(f"""
             QWidget {{
-                background-color: {BG_COLOR1};
+                background-color: rgba{TBG1};
                 color: {FG_COLOR0};
                 border: 1px solid {FG_COLOR0};
                 border-radius: 15px;
@@ -119,7 +122,7 @@ class DeveloperConsole(QWidget):
         self.top_widget.setAcceptDrops(True)  # 接受拖拽
         self.top_widget.setStyleSheet(f"""
             QWidget {{
-                background-color: {BG_COLOR1};
+                background-color: rgba{TBG1};
                 color: {FG_COLOR0};
                 border: 1px solid {FG_COLOR0};
                 border-top-left-radius: 15px;
@@ -137,7 +140,8 @@ class DeveloperConsole(QWidget):
         self.close_button.setFocusPolicy(Qt.NoFocus)
         cb_size = (40, 43)
         self.close_button.clicked.connect(self.close)
-        set_buttons([self.close_button], sizes=cb_size, border_radius=14, border=0, bg=(BG_COLOR1, "#F76677", "#F76677", "#F76677"))
+        set_buttons([self.close_button], sizes=cb_size, border_radius=14, border=0,
+                    bg=(BG_COLOR1, "#F76677", "#F76677", "#F76677"))
         self.top_layout.addWidget(self.close_button, alignment=Qt.AlignCenter)
         self.top_widget.setLayout(self.top_layout)
 
@@ -173,7 +177,7 @@ class OutputTextEdit(QTextEdit):
         self.console = console
         self.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {BG_COLOR1};
+                background-color: rgba{TBG1};
                 color: {FG_COLOR0};
                 border: 1px solid {FG_COLOR0};
                 border-radius: 10px;
@@ -193,12 +197,12 @@ class InputTextEdit(QTextEdit):
     def __init__(self, console):
         super().__init__()
         self.current_text_list = []
-        self.hints_labels = []
+        self.hints_bts = []
         self.current_hint_index = 0
         self.console = console
         self.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {BG_COLOR1};
+                background-color: rgba{TBG1};
                 color: {FG_COLOR0};
                 border: 1px solid {FG_COLOR0};
                 border-radius: 10px;
@@ -207,6 +211,8 @@ class InputTextEdit(QTextEdit):
         """)
         self.setFont(FONT_11)
         self.setTabStopWidth(8 * QFontMetrics(FONT_11).width(' '))
+        # 禁用富文本
+        self.setAcceptRichText(False)
         # 将输入框的光标设置为竖线
         self.textCursor().insertText(' ')
         self.textCursor().deletePreviousChar()
@@ -246,7 +252,7 @@ class InputTextEdit(QTextEdit):
             }}
         """)
         # 提示词的字体
-        self.hints_font = QFont("Consolas", 11)
+        self.hints_font = QFont("Consolas", 10)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Return:
@@ -262,7 +268,7 @@ class InputTextEdit(QTextEdit):
                 # 如果有shift键，则换行
                 self.insertPlainText('\n')
         elif event.key() == Qt.Key_Tab:
-            if self.hints_labels:
+            if self.hints_bts:
                 # 如果按下了Tab键，则将第一个提示词补全到输入框中
                 # 从self中删除current_text_list的最后一个元素，然后添加提示词
                 del_ = self.current_text_list[-1]
@@ -270,56 +276,26 @@ class InputTextEdit(QTextEdit):
                 for i in range(len(del_)):
                     self.textCursor().deletePreviousChar()
                 # 往输入框添加
-                self.insertPlainText(self.hints_labels[self.current_hint_index].text())
+                self.insertPlainText(self.hints_bts[self.current_hint_index].text())
         elif event.key() == Qt.Key_Up:
-            if self.hints_labels:
+            if self.hints_bts:
                 # 如果按下了上箭头，则current_hint指向上一个提示词
                 if self.current_hint_index > 0:
-                    self.hints_labels[self.current_hint_index].setStyleSheet(f"""
-                        QLabel {{
-                            background-color: {BG_COLOR0};
-                            color: {FG_COLOR0};
-                            border: 0px;
-                            border-radius: 5px;
-                            padding-left: 5px;
-                            padding-right: 5px;
-                        }}
-                    """)
+                    self.hints_bts[self.current_hint_index].setChecked(False)
                     self.current_hint_index -= 1
-                    self.hints_labels[self.current_hint_index].setStyleSheet(f"""
-                        QLabel {{
-                            background-color: {BG_COLOR3};
-                            color: {FG_COLOR0};
-                            border: 0px;
-                            border-radius: 5px;
-                            padding-left: 5px;
-                            padding-right: 5px;
-                        }}
-                    """)
-            elif event.key() == Qt.Key_Down:
+                    self.hints_bts[self.current_hint_index].setChecked(True)
+                    self.hints_area.verticalScrollBar().setValue(max(0, self.hints_area.verticalScrollBar().value() - 32))
+                    return
+        elif event.key() == Qt.Key_Down:
+            if self.hints_bts:
                 # 如果按下了下箭头，则current_hint指向下一个提示词
-                if self.current_hint_index < len(self.hints_labels) - 1:
-                    self.hints_labels[self.current_hint_index].setStyleSheet(f"""
-                        QLabel {{
-                            background-color: {BG_COLOR0};
-                            color: {FG_COLOR0};
-                            border: 0px;
-                            border-radius: 5px;
-                            padding-left: 5px;
-                            padding-right: 5px;
-                        }}
-                    """)
+                if self.current_hint_index < len(self.hints_bts) - 1:
+                    self.hints_bts[self.current_hint_index].setChecked(False)
                     self.current_hint_index += 1
-                    self.hints_labels[self.current_hint_index].setStyleSheet(f"""
-                        QLabel {{
-                            background-color: {BG_COLOR3};
-                            color: {FG_COLOR0};
-                            border: 0px;
-                            border-radius: 5px;
-                            padding-left: 5px;
-                            padding-right: 5px;
-                        }}
-                    """)
+                    self.hints_bts[self.current_hint_index].setChecked(True)
+                    self.hints_area.verticalScrollBar().setValue(min(self.hints_area.verticalScrollBar().maximum(),
+                                                                     self.hints_area.verticalScrollBar().value() + 32))
+                    return
         else:
             super().keyPressEvent(event)
         self.text_changed()
@@ -328,12 +304,11 @@ class InputTextEdit(QTextEdit):
         super().mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             self.current_hint_index = 0
-            self.hints_labels = []
+            self.hints_bts = []
             self.hints_area.hide()
 
     def text_changed(self):
         self.current_hint_index = 0
-        self.hints_labels = []
         # 检查是否需要提示
         hints = self.get_hints()
         if not hints:
@@ -343,13 +318,19 @@ class InputTextEdit(QTextEdit):
         self.hints_area.show()
         # 清空提示词
         for i in range(self.hints_layout.count()):
-            self.hints_layout.itemAt(i).widget().deleteLater()
+            if self.hints_layout.itemAt(i).widget() is not None:
+                self.hints_layout.itemAt(i).widget().deleteLater()
+        self.hints_bts = []
         # 添加提示词
         for hint in hints:
-            label = QLabel(hint, self)
-            label.setFont(self.hints_font)
-            label.setStyleSheet(f"""
-                QLabel {{
+            bt = QPushButton(hint, self)
+            bt.setFont(self.hints_font)
+            bt.setCheckable(True)
+            # 解绑鼠标事件
+            bt.mousePressEvent = lambda event: None
+            bt.mouseReleaseEvent = lambda event: None
+            bt.setStyleSheet(f"""
+                QPushButton {{
                     background-color: {BG_COLOR0};
                     color: {FG_COLOR0};
                     border: 0px;
@@ -357,26 +338,34 @@ class InputTextEdit(QTextEdit):
                     padding-left: 5px;
                     padding-right: 5px;
                 }}
+                QPushButton:hover {{
+                    background-color: {BG_COLOR3};
+                    color: {FG_COLOR0};
+                    border: 0px;
+                    border-radius: 5px;
+                    padding-left: 5px;
+                    padding-right: 5px;
+                }}
+                QPushButton:checked {{
+                    background-color: {BG_COLOR3};
+                    color: {FG_COLOR0};
+                    border: 0px;
+                    border-radius: 5px;
+                    padding-left: 5px;
+                    padding-right: 5px;
+                }}
             """)
-            self.hints_layout.addWidget(label, alignment=Qt.AlignLeft)
-            self.hints_labels.append(label)
-        self.hints_labels[0].setStyleSheet(f"""
-            QLabel {{
-                background-color: {BG_COLOR3};
-                color: {FG_COLOR0};
-                border: 0px;
-                border-radius: 5px;
-                padding-left: 5px;
-                padding-right: 5px;
-            }}
-        """)
+            bt.setFixedHeight(27)
+            self.hints_layout.addWidget(bt, alignment=Qt.AlignLeft | Qt.AlignTop)
+            self.hints_bts.append(bt)
         self.current_hint_index = 0
+        self.hints_bts[self.current_hint_index].setChecked(True)
         # 设置提示词显示框的位置
         cursor_bottom_left = self.cursorRect().bottomLeft()
         cursor_bottom_left_global = self.mapToGlobal(cursor_bottom_left)
         self.hints_area.move(cursor_bottom_left_global + QPoint(10, 14))
         # 设置滚动区域高度
-        self.hints_widget.setFixedHeight(self.hints_layout.count() * 27 + 10)
+        self.hints_widget.setFixedHeight(len(hints) * 32 + 5)
 
     def get_hints(self):
         """
