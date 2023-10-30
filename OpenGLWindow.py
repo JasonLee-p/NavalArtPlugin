@@ -10,6 +10,7 @@ from OpenGL import GL
 from PyQt5.QtCore import QByteArray
 
 from PyQt5.QtWidgets import QOpenGLWidget
+from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from PyQt5.QtGui import (
     QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer,
     QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat, QOffscreenSurface, QOpenGLContext)
