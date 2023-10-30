@@ -13,9 +13,8 @@ from .basic import Operation
 from GUI import QMessageBox
 from ship_reader import NAPart, AdjustableHull
 from GL_plot import TempAdHull
-from state_history import push_operation
-from util_funcs import CONST, not_implemented, get_part_world_dirs
-from right_operation_editing import OperationEditing, AddLayerEditing
+from util_funcs import CONST, get_part_world_dirs
+from right_widgets.right_operation_editing import AddLayerEditing
 
 
 class SinglePartOperation(Operation):

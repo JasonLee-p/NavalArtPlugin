@@ -6,18 +6,18 @@
 import ctypes
 import json
 import os
-from abc import abstractmethod
-# 第三方库
 from typing import List
+from abc import abstractmethod
+from base64 import b64decode
 
+# 第三方库
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QRect, QPoint
-from PyQt5.QtGui import QIcon, QPixmap, QImage, QColor, QFont, QPainter, QPainterPath, QLinearGradient, QPen, \
-    QPolygon, QIntValidator
+from PyQt5.QtGui import (QIcon, QPixmap, QImage, QColor, QFont, QPainter, QPainterPath, QLinearGradient,
+                         QPolygon, QIntValidator)
 from PyQt5.QtWidgets import QWidget, QFrame, QLabel, QMessageBox, QDialog, QToolBar, QSizePolicy
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from base64 import b64decode
 # 本地库
 from path_utils import find_na_root_path
 
@@ -28,7 +28,7 @@ try:
         data = json.load(f)
     Theme = data['Config']['Theme']
     ProjectFolder = data['ProjectsFolder']
-except:
+except (FileNotFoundError, KeyError, AttributeError):
     Theme = 'Night'
     ProjectFolder = os.path.join(os.path.expanduser("~"), 'Desktop')
 
@@ -110,7 +110,7 @@ def set_buttons(
     :return:
     """
     buttons = list(buttons)
-    if type(border_radius) == int:
+    if isinstance(border_radius, int):
         border_radius = (border_radius, border_radius, border_radius, border_radius)
     if type(sizes[0]) in [int, None]:
         sizes = [sizes] * len(buttons)
@@ -118,11 +118,11 @@ def set_buttons(
         border_text = f"{border}px solid {border_color}"
     else:
         border_text = "none"
-    if type(padding) == int:
+    if isinstance(padding, int):
         padding = (padding, padding, padding, padding)
-    if type(bg) == str:
+    if isinstance(bg, str):
         bg = (bg, bg, bg, bg)
-    if type(fg) == str:
+    if isinstance(fg, str):
         fg = (fg, fg, fg, fg)
     for button in buttons:
         if sizes[buttons.index(button)][0] is None:

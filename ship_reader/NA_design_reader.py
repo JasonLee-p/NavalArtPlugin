@@ -52,11 +52,13 @@ def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
     :param rot_: 第二个旋转角度的列表 [rx_, ry_, rz_]
     :return: 字符串，表示两个旋转之间的关系，如 'l'、'r'、'u'、'd'、'x'、'y'、'z'、'o'、None
     """
+    rot = list(rot)
+    rot_ = list(rot_)
     if rot_ == rot:
-        return None
-    elif rot_ == [(rot[0] + 180) % 360, rot[1], rot[2]]:
+        return 'same'
+    elif rot_ == [(rot[0] + 180) % 360., rot[1], rot[2]]:
         return 'x'
-    elif rot_ == [rot[0], (rot[1] + 180) % 360, rot[2]]:
+    elif rot_ == [rot[0], (rot[1] + 180) % 360., rot[2]]:
         return 'y'
     elif rot_ == [rot[0], rot[1], (rot[2] + 180) % 360]:
         return 'z'
@@ -289,7 +291,8 @@ class NAPart:
     def __init__(self, read_na, Id, pos, rot, scale, color, armor):
         self.glWin = None  # 用于绘制的窗口
         self.read_na_obj = read_na
-        self.allParts_relationMap = read_na.partRelationMap
+        if read_na:
+            self.allParts_relationMap = read_na.partRelationMap
         self.Id = Id
         self.Pos = pos
         self.Rot = rot
@@ -615,30 +618,26 @@ class AdjustableHull(NAPart):
                      upCurve=None, downCurve=None, heightScale=None, heightOffset=None,
                      update=False):
         # ==============================================================================更新零件的各个属性
-        if not position:
-            position = self.Pos
-        if not armor:
-            armor = self.Amr
-        if not length:
-            length = self.Len
-        if not height:
-            height = self.Hei
-        if not frontWidth:
-            frontWidth = self.FWid
-        if not backWidth:
-            backWidth = self.BWid
-        if not frontSpread:
-            frontSpread = self.FSpr
-        if not backSpread:
-            backSpread = self.BSpr
-        if not upCurve:
-            upCurve = self.UCur
-        if not downCurve:
-            downCurve = self.DCur
-        if not heightScale:
-            heightScale = self.HScl
-        if not heightOffset:
-            heightOffset = self.HOff
+        # 定义属性默认值的字典
+        default_values = {
+            'position': self.Pos,
+            'armor': self.Amr,
+            'length': self.Len,
+            'height': self.Hei,
+            'frontWidth': self.FWid,
+            'backWidth': self.BWid,
+            'frontSpread': self.FSpr,
+            'backSpread': self.BSpr,
+            'upCurve': self.UCur,
+            'downCurve': self.DCur,
+            'heightScale': self.HScl,
+            'heightOffset': self.HOff
+        }
+
+        # 遍历参数，如果参数为 None，则使用默认值
+        for attr_name in default_values:
+            if locals()[attr_name] is None:
+                locals()[attr_name] = default_values[attr_name]
         try:
             self.Pos = [round(float(i), 3) for i in position]
             self.Amr = int(armor)
@@ -893,7 +892,7 @@ class AdjustableHull(NAPart):
             rotation_relation = get_rot_relation([0, 0, 0], self.Rot)
 
         # 根据旋转关系计算节点信息在世界坐标系中的位置
-        if rotation_relation is None:
+        if rotation_relation == 'same':
             # 零件没有旋转，直接返回初始节点信息
             part_data = {
                 "FLU": self.FWid + self.FSpr, "FRU": self.FWid + self.FSpr, "FLD": self.FWid, "FRD": self.FWid,
@@ -1783,14 +1782,14 @@ class PartRelationMap:
         :param newPart:
         :return: layer_t, relation_t, dot_t
         """
-        if type(newPart) != AdjustableHull:
+        if not isinstance(newPart, AdjustableHull):
             return 0., 0., 0.
         # 如果旋转角度不是90的倍数，就不添加
         if int(newPart.Rot[0]) % 90 != 0 or int(newPart.Rot[1]) % 90 != 0 or int(newPart.Rot[2]) % 90 != 0:
             return 0., 0., 0.
         # 点集
         st = time.time()
-        if type(newPart) == AdjustableHull:
+        if isinstance(newPart, AdjustableHull):
             newPart.Pos = [round(newPart.Pos[0], 3), round(newPart.Pos[1], 3), round(newPart.Pos[2], 3)]
             for dot in newPart.operation_dot_nodes:
                 # dot是np.ndarray类型

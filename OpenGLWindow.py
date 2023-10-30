@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import (
     QOpenGLVersionProfile, QOpenGLShaderProgram, QOpenGLShader, QOpenGLBuffer,
     QOpenGLVertexArrayObject, QQuaternion, QPen, QPainter, QSurfaceFormat, QOffscreenSurface, QOpenGLContext)
-from PyQt5 import _QOpenGLFunctions_2_0  # 这个库必须导入，否则打包后会报错
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
@@ -25,7 +24,7 @@ from GL_plot import *
 from GUI import *
 from shader_program import shader_program
 from util_funcs import CONST
-from right_operation_editing import OperationEditing
+from right_widgets.right_operation_editing import OperationEditing
 
 VERTEX_SHADER = shader_program.VS
 

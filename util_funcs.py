@@ -309,7 +309,7 @@ def get_mac_address():
     #     # return mac
     #     return True
     # return mac
-    return "abcd"
+    return True
 
 
 def is_admin():

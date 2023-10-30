@@ -30,14 +30,7 @@ try:
     from GL_plot import *
     from path_utils import find_ptb_path, find_na_root_path
     from OpenGLWindow import Camera, OpenGLWin, OpenGLWin2, DesignTabGLWinMenu, reset_matrix
-    from right_element_view import (
-        Mod1AllPartsView, Mod1SinglePartView, Mod1VerticalPartSetView, Mod1HorizontalPartSetView,
-        Mod1VerHorPartSetView)
-    from right_element_editing import (
-        Mod1SinglePartEditing, Mod1AllPartsEditing, Mod1VerticalPartSetEditing, Mod1HorizontalPartSetEditing,
-        Mod1VerHorPartSetEditing)
-    from right_operation_editing import (
-        OperationEditing, AddLayerEditing)
+    from right_widgets import *
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
     from operation import AddLayerOperation
