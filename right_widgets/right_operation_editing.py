@@ -284,7 +284,6 @@ class AddLayerEditing(OperationEditing):
         # 如果处于隐藏状态，直接返回None
         if not self.isVisible():
             return None
-        MyMessageBox().information(self, "提示", "该功能尚未完成，敬请期待！")
         OperationEditing.is_editing = False
         self.operation.added_parts_dict = self.export_adjustable_hull()
         self.hide()

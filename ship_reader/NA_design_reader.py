@@ -68,9 +68,9 @@ def get_rot_relation(rot: list, rot_: list) -> Union[str, None]:
         return 'l'
     elif rot_ == [rot[0], (rot[1] - 90) % 360, rot[2]]:
         return 'r'
-    elif rot_ == [(rot[0] + 90) % 360, rot[1], rot[2]]:
-        return 'u'
     elif rot_ == [(rot[0] - 90) % 360, rot[1], rot[2]]:
+        return 'u'
+    elif rot_ == [(rot[0] + 90) % 360, rot[1], rot[2]]:
         return 'd'
     else:
         return None
@@ -1044,6 +1044,8 @@ class AdjustableHull(NAPart):
                 v1 = np.array(p.Pos) - np.array(self.Pos)
                 # 对后零件进行关于本零件的转置
                 f_data = p.get_data_in_coordinate(self)
+                if not f_data:
+                    continue
                 v2 = front_vector * self.Scl[2] * (self.Len / 2 + f_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.FWid * self.Scl[0] == f_data["BLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接
@@ -1054,6 +1056,8 @@ class AdjustableHull(NAPart):
                 v1 = np.array(self.Pos) - np.array(p.Pos)
                 # 对后零件进行关于本零件的转置
                 b_data = p.get_data_in_coordinate(self)
+                if not b_data:
+                    continue
                 v2 = front_vector * self.Scl[2] * (self.Len / 2 + b_data["L"] / 2)
                 if np.linalg.norm(v1 - v2) < 0.001 and self.BWid * self.Scl[0] == b_data["FLD"] * p.Scl[0]:
                     # 如果前后相接且宽度相接

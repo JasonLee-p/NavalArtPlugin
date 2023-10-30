@@ -295,7 +295,7 @@ class Mod1SinglePartEditing(QWidget):
         ):
             glWin = self.selected_obj.glWin
             _next = list(relation_map[self.selected_obj][direction].keys())[0]
-            if type(_next) == NAPart:
+            if isinstance(_next, NAPart):
                 return
             glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
             self.selected_obj = _next
