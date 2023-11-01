@@ -239,6 +239,25 @@ def rotate_quaternion1(dot_dict, scl, rot):
     return rotated_dot_dict
 
 
+def get_raw_direction(parts):
+    """
+    判断方向（哪一个坐标值相同）
+    :param parts:
+    :return:
+    """
+    xs = set([part.Pos[0] for part in parts])
+    ys = set([part.Pos[1] for part in parts])
+    zs = set([part.Pos[2] for part in parts])
+    direction = None
+    if len(zs) > 1 and len(ys) == 1 and len(xs) == 1:
+        direction = CONST.FRONT_BACK
+    elif len(ys) > 1 and len(zs) == 1 and len(xs) == 1:
+        direction = CONST.UP_DOWN
+    elif len(xs) > 1 and len(zs) == 1 and len(ys) == 1:
+        direction = CONST.LEFT_RIGHT
+    return direction
+
+
 class NAPartNode:
     id_map = {}
     all_dots = []  # 不储存对象，储存所有点的坐标列表
@@ -984,7 +1003,8 @@ class AdjustableHull(NAPart):
             return None, None
         # 添加到关系图
         if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
-            self.allParts_relationMap.replace_2(FP, BP, self, None)
+            self.allParts_relationMap.replace([FP, BP], self)
+            # self.allParts_relationMap.replace_2(FP, BP, self, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
@@ -1006,7 +1026,8 @@ class AdjustableHull(NAPart):
             return None, None
         # 添加到关系图
         if self.Rot[0] % 90 == 0 and self.Rot[1] % 90 == 0 and self.Rot[2] % 90 == 0:
-            self.allParts_relationMap.replace_2(UP, DP, self, None)
+            self.allParts_relationMap.replace([UP, DP], self)
+            # self.allParts_relationMap.replace_2(UP, DP, self, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
@@ -1893,114 +1914,126 @@ class PartRelationMap:
         relation_t = round(time.time() - st, 4)
         return layer_t, relation_t, dot_t
 
-    def replace_2(self, part0, part1, replaced_part, direction):
+    def replace(self, parts: List[AdjustableHull], replaced_part):
         """
-
-        :param part0: 在该方向值大的零件，注意，不是在原零件坐标系的方向，而是在世界坐标系的方向
-        :param part1: 在该方向值小的零件，注意，不是在原零件坐标系的方向，而是在世界坐标系的方向
+        替换零件集合，新的零件集合都有相同的某个坐标值
+        :param parts:
         :param replaced_part:
-        :param direction:
         :return:
         """
-        PartRelationMap.last_map = self
-        # if replaced_part not in self.basicMap.keys():
-        #     return # 如果被替换零件不在basicMap中，就不替换
-        if not direction:
-            # 自行判断方向
-            if part0.Pos[0] == part1.Pos[0] and part0.Pos[1] == part1.Pos[1]:
-                direction = CONST.FRONT_BACK
-                if part0.Pos[2] < part1.Pos[2]:
-                    part0, part1 = part1, part0
-            elif part0.Pos[0] == part1.Pos[0] and part0.Pos[2] == part1.Pos[2]:
-                direction = CONST.UP_DOWN
-                if part0.Pos[1] < part1.Pos[1]:
-                    part0, part1 = part1, part0
-            elif part0.Pos[1] == part1.Pos[1] and part0.Pos[2] == part1.Pos[2]:
-                direction = CONST.LEFT_RIGHT
-                if part0.Pos[0] < part1.Pos[0]:
-                    part0, part1 = part1, part0
-        if not direction:  # 如果仍然没有判断出方向，就不替换
+        if not parts:
             return
-        # 初始化新零件的关系
-        new_map0 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
-        new_map1 = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {}, CONST.RIGHT: {}}
+        if replaced_part not in self.basicMap.keys():
+            return
+        # 判断方向（哪一个坐标值相同）
+        direction = get_raw_direction(parts)
+        if not direction:
+            return  # 如果仍然没有判断出方向，就不替换
         # 定义一个方向映射，以便根据不同的方向进行操作
         direction_map = {
             CONST.FRONT_BACK: (CONST.FRONT, CONST.BACK),
             CONST.UP_DOWN: (CONST.UP, CONST.DOWN),
             CONST.LEFT_RIGHT: (CONST.LEFT, CONST.RIGHT)
         }
-        # 定义一个方向索引映射，以便根据不同的方向进行操作
-        dir_index_map = {
-            CONST.FRONT_BACK: 2,
-            CONST.UP_DOWN: 1,
-            CONST.LEFT_RIGHT: 0
-        }
-        new_map0[direction_map[direction][1]] = {
-            part1: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
-        new_map1[direction_map[direction][0]] = {
-            part0: abs(part1.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])}
+        larger_dir = direction_map[direction][0]
+        smaller_dir = direction_map[direction][1]
+        # 获取方向对应的坐标索引
+        pos_i = CONST.DIR_INDEX_MAP[direction]
+        # 按照方向值从小到大排序
+        parts.sort(key=lambda _part: _part.Pos[pos_i])
         # 获取被替换零件的关系图
-        if replaced_part not in self.basicMap.keys():  # TODO: 这里不明原因，被替换零件不在basicMap中，可能是因为撤回操作DrawMap取深拷贝的问题
-            return
         replaced_relation_map = self.basicMap[replaced_part]
-        # 遍历被替换零件的关系，将其关系添加到新零件的关系图中
-        for part in replaced_relation_map[direction_map[direction][0]].keys():
-            # 给新零件添加关系
-            new_map0[direction_map[direction][0]][part] = abs(
-                part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-            new_map1[direction_map[direction][0]][part] = abs(
-                part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            if part in self.basicMap.keys():
+        # 初始化新零件的关系
+        new_part_relation_maps = {}
+        for i in range(len(parts)):
+            new_part = parts[i]
+            new_part_relation_maps[new_part] = {CONST.FRONT: {}, CONST.BACK: {},
+                                                CONST.UP: {}, CONST.DOWN: {},
+                                                CONST.LEFT: {}, CONST.RIGHT: {},
+                                                CONST.SAME: {}}
+            # 先添加新零件到各自的关系图中
+            for larger_dir_p in parts[i + 1:]:
+                new_part_relation_maps[new_part][larger_dir][larger_dir_p] = abs(
+                    larger_dir_p.Pos[pos_i] - new_part.Pos[pos_i])
+            for smaller_dir_p in parts[:i]:
+                new_part_relation_maps[new_part][smaller_dir][smaller_dir_p] = abs(
+                    smaller_dir_p.Pos[pos_i] - new_part.Pos[pos_i])
+            # 遍历被替换零件的关系，将其关系添加到新零件的关系图中
+            for l_part in replaced_relation_map[larger_dir].keys():
+                new_part_relation_maps[new_part][larger_dir][l_part] = abs(
+                    l_part.Pos[pos_i] - new_part.Pos[pos_i])
+            for s_part in replaced_relation_map[smaller_dir].keys():
+                new_part_relation_maps[new_part][smaller_dir][s_part] = abs(
+                    s_part.Pos[pos_i] - new_part.Pos[pos_i])
+            # 给关系零件添加关系
+            # 先找到被替换零件的位置，然后在该位置插入新键值对
+            for part in replaced_relation_map[smaller_dir].keys():
                 # 给原零件添加关系
-                self.basicMap[part][direction_map[direction][1]][part0] = abs(
-                    part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-                self.basicMap[part][direction_map[direction][1]][part1] = abs(
-                    part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-                # 给原零件删除关系
-                del self.basicMap[part][direction_map[direction][1]][replaced_part]
-                # 给原零件重排序
-                self.basicMap[part][direction_map[direction][1]] = dict(
-                    sorted(self.basicMap[part][direction_map[direction][1]].items(), key=lambda x: x[1]))
-            else:
-                # 找不到原零件，可能是因为原零件被细分，所以在关系图中被删除  # TODO: 需要优化关系图替换和重写绑定的部分
-                pass
-        for part in replaced_relation_map[direction_map[direction][1]].keys():
-            # 给新零件添加关系
-            new_map0[direction_map[direction][1]][part] = abs(
-                part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-            new_map1[direction_map[direction][1]][part] = abs(
-                part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-            # 给原零件添加关系
-            if part in self.basicMap.keys():
-                self.basicMap[part][direction_map[direction][0]][part0] = abs(
-                    part.Pos[dir_index_map[direction]] - part0.Pos[dir_index_map[direction]])
-                self.basicMap[part][direction_map[direction][0]][part1] = abs(
-                    part.Pos[dir_index_map[direction]] - part1.Pos[dir_index_map[direction]])
-                # 给原零件删除关系
-                del self.basicMap[part][direction_map[direction][0]][replaced_part]
-                # 给原零件重排序
-                self.basicMap[part][direction_map[direction][0]] = dict(
-                    sorted(self.basicMap[part][direction_map[direction][0]].items(), key=lambda x: x[1]))
-            else:
-                # 找不到原零件，可能是因为原零件被细分，所以在关系图中被删除  # TODO: 需要优化关系图替换和重写绑定的部分
-                pass
-        self.basicMap[part0] = new_map0
-        self.basicMap[part1] = new_map1
-        # 删除被替换零件
-        del self.basicMap[replaced_part]
+                self.basicMap[part][larger_dir][new_part] = abs(
+                    part.Pos[pos_i] - new_part.Pos[pos_i])
+            for part in replaced_relation_map[larger_dir].keys():
+                # 给原零件添加关系
+                self.basicMap[part][smaller_dir][new_part] = abs(
+                    part.Pos[pos_i] - new_part.Pos[pos_i])
+        # 删除原零件，按value排序原零件关系零件的关系
+        for _dir in [CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT]:
+            for part in replaced_relation_map[_dir].keys():
+                op_dir = CONST.DIR_OPPOSITE_MAP[_dir]
+                del self.basicMap[part][op_dir][replaced_part]
+                if _dir in [larger_dir, smaller_dir]:
+                    self.basicMap[part][op_dir] = dict(sorted(
+                        self.basicMap[part][op_dir].items(),
+                        key=lambda x: x[1]))
+        # 将新零件的关系添加到basicMap中
+        for new_part, new_part_relation_map in new_part_relation_maps.items():
+            self.basicMap[new_part] = new_part_relation_map
+        # 不删除原零件，因为可能还有其他零件与其有关系
 
-    def back_replace_2(self, part0, part1, replaced_part, direction):
+    def undo_replace(self, parts: List[AdjustableHull], replaced_part):
         """
-        逆向操作replace_2
-        :param part0:
-        :param part1:
-        :param replaced_part:
-        :param direction:
+        撤回替换零件集合，新的零件集合都有相同的某个坐标值
+        :param parts:
+        :param replaced_part:  原来已经被替换的零件
         :return:
         """
-        # TODO: 暂时先重置关系图
-        self.remap()
+        if not parts:
+            return
+        if replaced_part not in self.basicMap.keys():
+            self.show_statu_func(f"被替换零件不在basicMap中", "warning")
+        # 判断方向（哪一个坐标值相同）
+        direction = get_raw_direction(parts)
+        if not direction:
+            return  # 如果仍然没有判断出方向，就不替换
+        # 定义一个方向映射，以便根据不同的方向进行操作
+        direction_map = {
+            CONST.FRONT_BACK: (CONST.FRONT, CONST.BACK),
+            CONST.UP_DOWN: (CONST.UP, CONST.DOWN),
+            CONST.LEFT_RIGHT: (CONST.LEFT, CONST.RIGHT)
+        }
+        larger_dir = direction_map[direction][0]
+        smaller_dir = direction_map[direction][1]
+        # 获取方向对应的坐标索引
+        pos_i = CONST.DIR_INDEX_MAP[direction]
+        # 按照方向值从小到大排序
+        parts.sort(key=lambda _part: _part.Pos[pos_i])
+        # 获取被替换零件的关系图
+        replaced_relation_map = self.basicMap[replaced_part]
+        # 删除新零件在其关系零件中的关系
+        for added_p in parts:
+            for part in replaced_relation_map[larger_dir].keys():
+                del self.basicMap[part][smaller_dir][added_p]
+            for part in replaced_relation_map[smaller_dir].keys():
+                del self.basicMap[part][larger_dir][added_p]
+            # 删除新零件
+            del self.basicMap[added_p]
+        # 恢复原零件在其关系零件中的关系
+        for direction, part_dict in self.basicMap[replaced_part].items():
+            for part, value in part_dict.items():
+                self.basicMap[part][CONST.DIR_OPPOSITE_MAP[direction]][replaced_part] = value
+                # 按value排序
+                self.basicMap[part][CONST.DIR_OPPOSITE_MAP[direction]] = dict(sorted(
+                    self.basicMap[part][CONST.DIR_OPPOSITE_MAP[direction]].items(),
+                    key=lambda x: x[1]))
 
     def del_part(self, part):
         """

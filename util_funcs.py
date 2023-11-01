@@ -36,6 +36,9 @@ class CONST:
     BACK_DOWN_LEFT = "back_down_left"
     BACK_DOWN_RIGHT = "back_down_right"
 
+    DIR_INDEX_MAP = {FRONT_BACK: 2, UP_DOWN: 1, LEFT_RIGHT: 0}
+    DIR_OPPOSITE_MAP = {FRONT: BACK, BACK: FRONT, UP: DOWN, DOWN: UP, LEFT: RIGHT, RIGHT: LEFT, SAME: SAME}
+
     # 旋转顺序
     __orders = ["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
     ROTATE_ORDER = __orders[2]

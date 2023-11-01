@@ -165,7 +165,8 @@ class CutSinglePartOperation(Operation):
         # 添加到关系图
         if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
                 self.original_part.Rot[2] % 90 == 0):
-            self.allParts_relationMap.replace_2(P1, P2, self.original_part, None)
+            self.allParts_relationMap.replace([P1, P2], self.original_part)
+            # self.allParts_relationMap.replace_2(P1, P2, self.original_part, None)
         # 重新渲染
         for _mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[_mode][1] = True
@@ -193,7 +194,8 @@ class CutSinglePartOperation(Operation):
         # 恢复关系图
         if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
                 self.original_part.Rot[2] % 90 == 0):
-            self.allParts_relationMap.back_replace_2(P1, P2, self.original_part, None)
+            self.allParts_relationMap.undo_replace([P1, P2], self.original_part)
+            # self.allParts_relationMap.back_replace_2(P1, P2, self.original_part, None)
         # 重新渲染
         for mode in self.glWin.gl_commands.keys():
             self.glWin.gl_commands[mode][1] = True
