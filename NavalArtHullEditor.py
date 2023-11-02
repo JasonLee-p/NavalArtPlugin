@@ -2032,10 +2032,10 @@ class HullDesignTab(QWidget):
         # 更新自身信号，清空NAPart.hull_design_tab_id_map，重新填入DrawMap的内容
         self.all_3d_obj["钢铁"].append(na_hull)
         NAPart.hull_design_tab_id_map.clear()
-        total_num = len(na_hull.DrawMap.values())
+        total_num = sum([len(objs) for objs in na_hull.DrawMap.values()])
         for _color, objs in na_hull.DrawMap.items():
             self.prj_all_parts.extend(objs)
-            show_state(f"正在初始化id表...{round(len(NAPart.hull_design_tab_id_map) / total_num * 100, 2)}%", 'process')
+            show_state(f"正在初始化id表...{len(NAPart.hull_design_tab_id_map)}/{total_num}", 'process')
             for obj in objs:
                 NAPart.hull_design_tab_id_map[id(obj) % 4294967296] = obj
         self.xz_layer_obj = na_hull.xzLayers.copy()
