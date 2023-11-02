@@ -1677,9 +1677,13 @@ class PartRelationMap:
             #        PartRelationMap.RIGHT: {RightPart0: RightValue0, ...}}
             #        PartRelationMap.SAME: {SamePart0: 0, ...}}
         }  # 注意！生成完之后，会在OpenGL_objs.NaHull.getDrawMap()进行添加零件和排序，因为那个时候DrawMap才生成出来
+        self.__temp_data = {  # 在初始化过程中用于优化的数据
+            "": []
+        }
         PartRelationMap.last_map = self
 
-    def _add_basicMap_relation(self, part, other_part, part_relation, other_part_relation, raw_dir):
+    @staticmethod
+    def _add_basicMap_relation(part, other_part, part_relation, other_part_relation, raw_dir):
         """
         添加零件的关系
         :param part: 添加的零件
@@ -1688,7 +1692,6 @@ class PartRelationMap:
         :param other_part_relation: 与之关系的零件的关系映射
         :param raw_dir: 毛方向，前后，上下，左右
         """
-        PartRelationMap.last_map = self
         if raw_dir == CONST.SAME:
             other_part_relation[CONST.SAME][part] = 0
             for _dir in (CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT):
@@ -1715,18 +1718,19 @@ class PartRelationMap:
                 elif other_part_direction.Pos[pos_i] < part.Pos[pos_i]:
                     part_relation[smaller_dir][other_part_direction] = value2
 
-    def add_part(self, newPart):
+    def add_part(self, newPart, all_parts: list = Union[list, None]):
         """
         添加零件
         :param newPart:
-        :return: layer_t, relation_t, dot_t
+        :param all_parts:
+        :return: 耗时（截面对象，零件关系，节点集合）
         """
+        # 000000000000000000000000000000000000000000000000000000000000000000000 筛选
         if not isinstance(newPart, AdjustableHull):
             return 0., 0., 0.
-        # 如果旋转角度不是90的倍数，就不添加
         if int(newPart.Rot[0]) % 90 != 0 or int(newPart.Rot[1]) % 90 != 0 or int(newPart.Rot[2]) % 90 != 0:
             return 0., 0., 0.
-        # 点集
+        # 000000000000000000000000000000000000000000000000000000000000000000000 点集
         st = time.time()
         if isinstance(newPart, AdjustableHull):
             newPart.Pos = [round(newPart.Pos[0], 3), round(newPart.Pos[1], 3), round(newPart.Pos[2], 3)]
@@ -1757,42 +1761,44 @@ class PartRelationMap:
                 else:
                     self.xyDotsLayerMap[_z].append(newPart)
         dot_t = round(time.time() - st, 4)
-        # 零件集
+        # 000000000000000000000000000000000000000000000000000000000000000000000 层集
         st = time.time()
         # 初始化零件的上下左右前后零件
         newPart_relation = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {},
                             CONST.LEFT: {}, CONST.RIGHT: {}, CONST.SAME: {}}
-        x_exist = []  # x相同的零件
-        y_exist = []  # y相同的零件
-        z_exist = []  # z相同的零件
+        x_exist = set()  # 和新零件x相同的零件
+        y_exist = set()  # 和新零件y相同的零件
+        z_exist = set()  # 和新零件z相同的零件
         n_x, n_y, n_z = newPart.Pos
         if n_x not in self.yzPartsLayerMap.keys():
             self.yzPartsLayerMap[n_x] = [newPart]
         else:
-            x_exist = self.yzPartsLayerMap[n_x]
+            x_exist = set(self.yzPartsLayerMap[n_x])
             self.yzPartsLayerMap[n_x].append(newPart)
         if n_y not in self.xzPartsLayerMap.keys():
             self.xzPartsLayerMap[n_y] = [newPart]
         else:
-            y_exist = self.xzPartsLayerMap[n_y]
+            y_exist = set(self.xzPartsLayerMap[n_y])
             self.xzPartsLayerMap[n_y].append(newPart)
         if n_z not in self.xyPartsLayerMap.keys():
             self.xyPartsLayerMap[n_z] = [newPart]
         else:
-            z_exist = self.xyPartsLayerMap[n_z]
+            z_exist = set(self.xyPartsLayerMap[n_z])
             self.xyPartsLayerMap[n_z].append(newPart)
         layer_t = round(time.time() - st, 4)
+        # 000000000000000000000000000000000000000000000000000000000000000000000 零件关系
         st = time.time()
         # 先检查是否有有位置关系的other_part，如果有，就添加到new_part的上下左右前后零件中
         # 然后新零件new_part根据other_part的关系扩充自己的关系
         if len(self.basicMap) == 0:  # 如果basicMap为空，就直接添加
             self.basicMap[newPart] = newPart_relation
             return layer_t, 0, 0
-        # if newPart.Pos[0] not in self.xzPartsLayerMap.keys():  # 如果xzLayerMap中没有该层，就添加
-        xy_exist = set(x_exist) & set(y_exist)
-        xz_exist = set(x_exist) & set(z_exist)
-        yz_exist = set(y_exist) & set(z_exist)
-        for otherPart, others_direction_relation in self.basicMap.items():
+        xy_exist = x_exist & y_exist
+        xz_exist = x_exist & z_exist
+        yz_exist = y_exist & z_exist
+        xyz_exist = xy_exist | yz_exist | xz_exist
+        for otherPart in xyz_exist:
+            others_direction_relation = self.basicMap[otherPart]
             # 遍历点集，往NAPartNode中添加点
             # xy相同，前后关系
             raw_dir = None
@@ -1804,8 +1810,6 @@ class PartRelationMap:
                 raw_dir = CONST.UP_DOWN
             elif otherPart.Pos == newPart.Pos:  # 同一位置
                 raw_dir = CONST.SAME
-            if not raw_dir:
-                continue
             self._add_basicMap_relation(newPart, otherPart, newPart_relation, others_direction_relation, raw_dir)
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
@@ -1962,9 +1966,10 @@ class PartRelationMap:
 
         st = time.time()
         total_parts_num = len(NAPart.hull_design_tab_id_map)
+        all_parts = [part for part in NAPart.hull_design_tab_id_map.values()]
         i = 1
         for part in NAPart.hull_design_tab_id_map.values():
-            layer_t, relation_t, dot_t = self.add_part(part)
+            layer_t, relation_t, dot_t = self.add_part(part, all_parts)
             # 标准化（填补0）
             layer_t = str(layer_t).ljust(6, '0')
             relation_t = str(relation_t).ljust(6, '0')
@@ -1994,10 +1999,11 @@ class PartRelationMap:
         self.na_hull = na_hull
         st = time.time()
         total_parts_num = sum([len(parts) for parts in self.na_hull.DrawMap.values()])
+        all_parts = [part for parts in self.na_hull.DrawMap.values() for part in parts]
         i = 1
         for _color, parts in self.na_hull.DrawMap.items():
             for part in parts:
-                layer_t, relation_t, dot_t = self.add_part(part)
+                layer_t, relation_t, dot_t = self.add_part(part, all_parts)
                 # 标准化（填补0）
                 layer_t = str(layer_t).ljust(6, '0')
                 relation_t = str(relation_t).ljust(6, '0')
