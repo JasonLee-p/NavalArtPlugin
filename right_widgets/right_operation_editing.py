@@ -108,7 +108,7 @@ class AddLayerEditing(OperationEditing):
                 self.context_layout.addWidget(lineEdit, i, j + 1)
                 lineEdit.setText(str(self.content[key_]["value"]))  # 填充值
                 # 限制值的范围
-                if "高度" in key_ or "长度" in key_ or "宽度" in key_:
+                if "高度" in key_ or "长度" in key_ or "宽度" in key_ and "扩散" not in key_ and "收缩" not in key_:
                     lineEdit.setValidator(QDoubleValidator(0.001, 1000, 3))
                 # 解绑鼠标滚轮事件
                 lineEdit.wheelEvent = lambda event: None
@@ -176,7 +176,10 @@ class AddLayerEditing(OperationEditing):
         try:
             float(active_textEdit.text())
         except ValueError:
-            active_textEdit.setText("0")
+            for char in active_textEdit.text():
+                if char not in "0123456789.-":
+                    active_textEdit.setText(active_textEdit.text().replace(char, ""))
+            return
         self.update_temp_obj(key)
 
     def update_temp_obj(self, key):

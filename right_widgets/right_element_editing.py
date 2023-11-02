@@ -7,6 +7,8 @@ Mod表示模式，1表示全视图模式，2表示水平截面模式，3表示�
 import time
 from typing import Union, List
 
+from PyQt5.QtGui import QIntValidator
+
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
 from state_history import push_global_statu, push_operation
@@ -206,22 +208,14 @@ class Mod1SinglePartEditing(QWidget):
                     lineEdit.setStyleSheet(f"background-color: {BG_COLOR1};color: {FG_COLOR0};"
                                            f"border: 1px solid {FG_COLOR2};border-radius: 5px;")
                     self.layout.addWidget(lineEdit, i, j + 1)
-                    # 如果为旋转，则不可编辑
-                    if key_ == "旋转":
-                        lineEdit.setReadOnly(True)
-                        continue
-                    # 只允许输入和显示数字，小数点，负号
-                    # TODO: 未完成
                     # 解绑鼠标滚轮事件
                     lineEdit.wheelEvent = lambda event: None
                     # 绑定值修改信号
                     lineEdit.textChanged.connect(self.lineEditChanged)
-                    # # 添加撤回快捷键
-                    # undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), lineEdit)
-                    # undo_shortcut.activated.connect(lineEdit.undo)
-                    # # 添加重做快捷键
-                    # redo_shortcut = QShortcut(QKeySequence("Ctrl+Y"), lineEdit)
-                    # redo_shortcut.activated.connect(lineEdit.redo)
+                    if key_ == "装甲":
+                        lineEdit.setValidator(QIntValidator(0, 1000))
+                    else:
+                        lineEdit.setValidator(QDoubleValidator())
         # 添加输入框的值限制
         self.content["上弧度"]["QLineEdit"][0].setValidator(QDoubleValidator(0, 1, 3))
         self.content["下弧度"]["QLineEdit"][0].setValidator(QDoubleValidator(0, 1, 3))
@@ -497,25 +491,33 @@ class Mod1SinglePartEditing(QWidget):
         if not self.allow_update_obj_when_editing:
             return False
         self.allow_update_obj_when_editing = False
+        active_textEdit = self.sender()
+        try:
+            float(active_textEdit.text())
+        except ValueError:
+            for char in active_textEdit.text():
+                if char not in "0123456789.-":
+                    active_textEdit.setText(active_textEdit.text().replace(char, ""))
+            return
         self.change_part_attrs()
         self.allow_update_obj_when_editing = True
 
     @push_operation
     def change_part_attrs(self):
         changed = [[
-            self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
-            self.content["坐标"]["QLineEdit"][2].text()],
-            self.content["装甲"]["QLineEdit"][0].text(),
-            self.content["原长度"]["QLineEdit"][0].text(),
-            self.content["原高度"]["QLineEdit"][0].text(),
-            self.content["前宽度"]["QLineEdit"][0].text(),
-            self.content["后宽度"]["QLineEdit"][0].text(),
-            self.content["前扩散"]["QLineEdit"][0].text(),
-            self.content["后扩散"]["QLineEdit"][0].text(),
-            self.content["上弧度"]["QLineEdit"][0].text(),
-            self.content["下弧度"]["QLineEdit"][0].text(),
-            self.content["高缩放"]["QLineEdit"][0].text(),
-            self.content["高偏移"]["QLineEdit"][0].text()]
+            round(float(self.content["坐标"]["QLineEdit"][0].text()), 3), round(float(self.content["坐标"]["QLineEdit"][1].text()), 3),
+            round(float(self.content["坐标"]["QLineEdit"][2].text()), 3)],
+            int(self.content["装甲"]["QLineEdit"][0].text()),
+            round(float(self.content["原长度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["原高度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["前宽度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["后宽度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["前扩散"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["后扩散"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["上弧度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["下弧度"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["高缩放"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["高偏移"]["QLineEdit"][0].text()), 3)]
         # spo = SinglePartOperation(self, event, self.selected_obj, 0, None, bool(self.circle_bt.isChecked()),
         #                           Mod1SinglePartEditing.current, original_data=original_data, change_data=changed)
         spo = SinglePartOperation(self, self.selected_obj, changed)
