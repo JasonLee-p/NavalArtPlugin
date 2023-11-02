@@ -1941,6 +1941,75 @@ class PartRelationMap:
                     self.basicMap[part][CONST.DIR_OPPOSITE_MAP[direction]].items(),
                     key=lambda x: x[1]))
 
+    def add_layer(self, part_map, direction):
+        """
+        添加零件层
+        :param part_map: 原零件：要添加的相应的新零件
+        :param direction: 方向
+        :return:
+        """
+        opposite_dir = CONST.DIR_OPPOSITE_MAP[direction]
+        for org_p, new_p in part_map.items():
+            pos_i = CONST.DIR_INDEX_MAP[CONST.DIR_TO_RAWDIR_MAP[direction]]
+            self.basicMap[new_p] = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {},
+                                    CONST.LEFT: {}, CONST.RIGHT: {}, CONST.SAME: {}}
+            # 往原零件的该方向添加新零件
+            self.basicMap[org_p][direction][new_p] = abs(
+                org_p.Pos[pos_i] - new_p.Pos[pos_i])
+            if len(self.basicMap[org_p][direction]) > 1:  # 如果该方向的零件数量大于1，就按照value排序
+                self.basicMap[org_p][direction] = dict(sorted(
+                    self.basicMap[org_p][direction].items(),
+                    key=lambda x: x[1]))
+            # 往新零件的相反方向添加原零件
+            self.basicMap[new_p][opposite_dir][org_p] = abs(
+                org_p.Pos[pos_i] - new_p.Pos[pos_i])
+            # 将原零件的反方向关系表添加到新零件
+            for other_p, value in self.basicMap[org_p][opposite_dir].items():
+                self.basicMap[new_p][opposite_dir][other_p] = value
+        # 给新零件之间添加垂直方向的关系
+        for new_p in part_map.values():
+            for v_dir in CONST.VERTICAL_DIR_MAP[direction]:
+                raw_dir = CONST.DIR_TO_RAWDIR_MAP[v_dir]
+                pos_i = CONST.DIR_INDEX_MAP[raw_dir]
+                other_pos_i = [i for i in range(3) if i != pos_i]
+                op0 = other_pos_i[0]
+                op1 = other_pos_i[1]
+                if v_dir in [CONST.FRONT, CONST.UP, CONST.LEFT]:
+                    _exist = set([part for part in part_map.values() if (
+                                part.Pos[pos_i] > new_p.Pos[pos_i] and
+                                part.Pos[op0] == new_p.Pos[op0] and
+                                part.Pos[op1] == new_p.Pos[op1]
+                    )])
+                else:
+                    _exist = set([part for part in part_map.values() if (
+                                part.Pos[pos_i] < new_p.Pos[pos_i] and
+                                part.Pos[op0] == new_p.Pos[op0] and
+                                part.Pos[op1] == new_p.Pos[op1]
+                    )])
+                for other_p in _exist:
+                    self.basicMap[new_p][v_dir][other_p] = abs(
+                        other_p.Pos[pos_i] - new_p.Pos[pos_i])
+                # 按value排序
+                self.basicMap[new_p][v_dir] = dict(sorted(
+                    self.basicMap[new_p][v_dir].items(),
+                    key=lambda x: x[1]))
+
+
+    def undo_add_layer(self, part_map, direction):
+        """
+        撤回添加零件层
+        :param part_map: 原零件：需要删除的新零件
+        :param direction: 方向
+        :return:
+        """
+        # 往原零件中删除新零件
+        for org_p, new_p in part_map.items():
+            del self.basicMap[org_p][direction][new_p]
+        # 给新零件间删除所有的关系
+        for new_p in part_map.values():
+            self.basicMap[new_p] = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {},
+                                    CONST.LEFT: {}, CONST.RIGHT: {}, CONST.SAME: {}}  # 清空关系
+
     def del_part(self, part):
         """
         删除零件
