@@ -503,6 +503,10 @@ class MainWin(MainWindow):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         super().keyPressEvent(event)
+        # Ctrl + Shift + Space 打开开发者控制台
+        if event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_Space:
+            open_developer_console(Handler, ProjectHandler)
+        Handler.right_widget.update_tab()
 
 
 class GLWin(OpenGLWin):
@@ -519,6 +523,8 @@ class GLWin(OpenGLWin):
     def __init__(self, parent=None, various_mode=False, show_statu_func=None):
         self.sub_menu_start = None  # 快捷子菜单的起始点
         self.sub_menu_end = None  # 快捷子菜单的终止点
+        self.current_bts = None  # 当前显示的按钮
+        # noSelected
         self.b0 = QPushButton("扩选到xy平面")
         self.b1 = QPushButton("扩选到xz平面")
         self.b2 = QPushButton("元素检视器")
@@ -527,17 +533,45 @@ class GLWin(OpenGLWin):
         self.b5 = QPushButton("横剖面")
         self.b6 = QPushButton("纵剖面")
         self.b7 = QPushButton("左视图")
-        self.button_pos_map = {  # 按钮中心位置映射
+        # Selected
+        self.b8 = QPushButton("y细分")
+        self.b9 = QPushButton("z细分")
+        self.b10 = QPushButton("向前加零件")
+        self.b11 = QPushButton("向前添加层")
+        self.b12 = QPushButton("向后加零件")
+        self.b13 = QPushButton("向后添加层")
+        self.b14 = QPushButton("向上加零件")
+        self.b15 = QPushButton("向上添加层")
+        self.b16 = QPushButton("向下加零件")
+        self.b17 = QPushButton("向下添加层")
+        self.all_bts = [
+            self.b0, self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7, self.b8, self.b9, self.b10,
+            self.b11, self.b12, self.b13, self.b14, self.b15, self.b16, self.b17
+        ]
+        self.button_pos_map_noSelected = {  # 按钮中心位置映射
             self.b0: (200, -40), self.b1: (90, -110),
             self.b2: (-75, 26), self.b3: (75, 26),
             self.b4: (-100, -20), self.b5: (45, -60),
             self.b6: (100, -20), self.b7: (-45, -60)
         }
+        self.button_pos_map_Selected = {
+            self.b0: (-170, -90), self.b1: (170, -90),
+            self.b8: (-185, 90), self.b9: (185, 90),
+            self.b10: (-100, 0), self.b11: (-230, 0),
+            self.b12: (100, 0), self.b13: (230, 0),
+            self.b14: (0, -50), self.b15: (0, -120),
+            self.b16: (0, 50), self.b17: (0, 120)
+        }
         self.button_size_map = {
             self.b0: (110, 28), self.b1: (110, 28),
             self.b2: (90, 28), self.b3: (90, 28),
             self.b4: (60, 28), self.b5: (60, 28),
-            self.b6: (60, 28), self.b7: (60, 28)
+            self.b6: (60, 28), self.b7: (60, 28),
+            self.b8: (60, 28), self.b9: (60, 28),
+            self.b10: (90, 28), self.b11: (90, 28),
+            self.b12: (90, 28), self.b13: (90, 28),
+            self.b14: (90, 28), self.b15: (90, 28),
+            self.b16: (90, 28), self.b17: (90, 28)
         }
         self.button_func_map = {  # 按钮功能映射
             self.b0: self.singlePart_add2xyLayer,
@@ -546,10 +580,15 @@ class GLWin(OpenGLWin):
             self.b4: lambda x: self.set_show_3d_obj_mode(self.ShowAll),
             self.b5: lambda x: self.set_show_3d_obj_mode(self.ShowXZ),
             self.b6: lambda x: self.set_show_3d_obj_mode(self.ShowXY),
-            self.b7: lambda x: self.set_show_3d_obj_mode(self.ShowLeft)
+            self.b7: lambda x: self.set_show_3d_obj_mode(self.ShowLeft),
+            self.b8: self.singlePart_addy, self.b9: self.singlePart_addz,
+            self.b10: self.singlePart_add_frontPart, self.b11: self.singlePart_add_frontLayer,
+            self.b12: self.singlePart_add_backPart, self.b13: self.singlePart_add_backLayer,
+            self.b14: self.singlePart_add_upPart, self.b15: self.singlePart_add_upLayer,
+            self.b16: self.singlePart_add_downPart, self.b17: self.singlePart_add_downLayer
         }
-        sizes = [self.button_size_map[b] for b in self.button_pos_map.keys()]
-        set_buttons(self.button_pos_map.keys(), sizes=sizes, font=FONT_8, border_radius=5, fg=FG_COLOR2)
+        sizes = [self.button_size_map[b] for b in self.all_bts]
+        set_buttons(self.all_bts, sizes=sizes, font=FONT_8, border_radius=5, fg=FG_COLOR2)
         OpenGLWin.__init__(self, parent, various_mode, show_statu_func)
 
     def __deepcopy__(self, memo):
@@ -559,11 +598,22 @@ class GLWin(OpenGLWin):
         for key in self.key_state.keys():
             if key == event.key():
                 self.key_state[key] = True
+        # Ctrl + Shift + Space 打开开发者控制台
+        if event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier and event.key() == Qt.Key_Space:
+            open_developer_console(Handler, ProjectHandler)
         super().keyPressEvent(event)
+        # 当右侧处于操作状态时，屏蔽原有的其他键盘事件
+        if OperationEditing.is_editing:
+            if event.key() == Qt.Key_Return:  # Enter键确定
+                OperationEditing.current.ensure_button_clicked()
+            elif event.key() == Qt.Key_Escape:
+                OperationEditing.current.cancel_button_clicked()
         if event.key() == Qt.Key_Alt:
             show_state("Alt快捷键指南：\t上下左右： 选区移动\t右键拖动： 快捷菜单", "warning")
-        # Enter
-        if event.key() == Qt.Key_Return:
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        super().mouseDoubleClickEvent(event)
+        if event.button() == Qt.LeftButton:
             Handler.right_widget.tab2_operation_addPartLayer.ensure_button_clicked()
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
@@ -573,9 +623,13 @@ class GLWin(OpenGLWin):
         super().keyReleaseEvent(event)
         if event.key() == Qt.Key_Alt:
             show_state("")
+        if not OperationEditing.is_editing:
+            Handler.right_widget.update_tab()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         super().mousePressEvent(event)
+        if OperationEditing.is_editing:
+            return
         if event.button() == Qt.LeftButton:
             ...
         # 右键和Alt，记录快捷子菜单的起始点
@@ -584,11 +638,16 @@ class GLWin(OpenGLWin):
                 # 直接利用button制作便捷环绕式菜单
                 self.sub_menu_start = event.pos()
                 # 绘制按钮
-                for b in self.button_pos_map.keys():
+                if not self.selected_gl_objects[self.show_3d_obj_mode]:
+                    self.current_bts = self.button_pos_map_noSelected
+                else:
+                    self.current_bts = self.button_pos_map_Selected
+                for b in self.current_bts.keys():
                     b.setParent(self)
                     b.move(
-                        self.sub_menu_start + QPoint(*self.button_pos_map[b]) - QPoint(b.width() // 2, b.height() // 2))
+                        self.sub_menu_start + QPoint(*self.current_bts[b]) - QPoint(b.width() // 2, b.height() // 2))
                     b.show()
+        Handler.right_widget.update_tab()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if Qt.RightButton & event.buttons() and event.modifiers() == Qt.AltModifier and self.sub_menu_start is not None:
@@ -599,27 +658,27 @@ class GLWin(OpenGLWin):
             pos = event.pos()
             min_dis = (pos - self.sub_menu_start).manhattanLength()
             min_b = None
-            for b in self.button_pos_map.keys():
+            for b in self.current_bts.keys():
                 dis = (b.geometry().center() - pos).manhattanLength()
                 if dis < min_dis:
                     min_dis = dis
                     min_b = b
             if min_b is not None:
                 # 按钮高亮
-                for b in self.button_pos_map.keys():
+                for b in self.current_bts.keys():
                     if b == min_b:
                         set_buttons([b], sizes=[self.button_size_map[b]], font=FONT_10, border_radius=5, fg=FG_COLOR0)
                     else:
                         set_buttons([b], sizes=[self.button_size_map[b]], font=FONT_9, border_radius=5, fg=FG_COLOR2)
             else:
-                _sizes = [self.button_size_map[b] for b in self.button_pos_map.keys()]
-                set_buttons(self.button_pos_map.keys(), sizes=_sizes, font=FONT_9, border_radius=5, fg=FG_COLOR0)
+                _sizes = [self.button_size_map[b] for b in self.current_bts.keys()]
+                set_buttons(self.current_bts.keys(), sizes=_sizes, font=FONT_9, border_radius=5, fg=FG_COLOR0)
         elif event.modifiers() != Qt.AltModifier and self.sub_menu_start is not None:
             self.lastPos = event.pos()
             self.sub_menu_start = None
             self.sub_menu_end = None
             # 按钮清除
-            for b in self.button_pos_map.keys():
+            for b in self.current_bts.keys():
                 b.setParent(None)
                 b.hide()
             show_state("")
@@ -635,18 +694,20 @@ class GLWin(OpenGLWin):
             # 检查离哪一个按钮最近
             min_dis = (pos - self.sub_menu_start).manhattanLength()
             min_b = None
-            for b in self.button_pos_map.keys():
+            for b in self.current_bts.keys():
                 dis = (b.geometry().center() - pos).manhattanLength()
                 if dis < min_dis:
                     min_dis = dis
                     min_b = b
             if min_b is not None:
-                if min_b in [self.b0, self.b1]:
+                # 无特殊参数的按钮函数
+                if min_b in [self.b0, self.b1, self.b8, self.b9, self.b10, self.b11, self.b12, self.b13,
+                             self.b14, self.b15, self.b16, self.b17]:
                     self.button_func_map[min_b]()
                 elif min_b == self.b2:
-                    self.button_func_map[self.b2](0)
+                    self.button_func_map[self.b2](1)
                 elif min_b == self.b3:
-                    self.button_func_map[self.b3](1)
+                    self.button_func_map[self.b3](0)
                 elif min_b in [self.b4, self.b5, self.b6, self.b7]:
                     self.button_func_map[min_b](0)
             # if self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) \
@@ -660,24 +721,29 @@ class GLWin(OpenGLWin):
             # elif self.b3.geometry().contains(pos):
             #     self.button_func_map[self.b3](1)
             # for i in range(4, 8):
-            #     b = list(self.button_pos_map.keys())[i]
+            #     b = list(self.button_pos_map_noSelected.keys())[i]
             #     if b.geometry().contains(pos):
             #         self.button_func_map[b](0)
             self.sub_menu_start = None
             self.sub_menu_end = None
             # 按钮清除
-            for b in self.button_pos_map.keys():
+            for b in self.current_bts.keys():
                 b.setParent(None)
                 b.hide()
             show_state("")
         elif event.button() == Qt.RightButton and Handler.right_widget.ActiveTab == "船体设计":
             if Handler.hull_design_tab.ThreeDFrame.rotate_start == Handler.hull_design_tab.ThreeDFrame.lastPos:
                 Handler.hull_design_tab.menu.exec_(QCursor.pos())
+        Handler.right_widget.update_tab()
         self.paintGL()
         self.update()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
-        if self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) and len(
+        if OperationEditing.is_editing and event.modifiers() == Qt.AltModifier:
+            # 将鼠标滚轮事件绑定到右侧的值改变上
+            # OperationEditing.current.context.val  # TODO: 未完成
+            pass
+        elif self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) and len(
                 self.selected_gl_objects[self.show_3d_obj_mode]) == 1:
             key_state = self.key_state  # Get a reference to the key_state dictionary
 
@@ -746,6 +812,45 @@ class GLWin(OpenGLWin):
         super(GLWin, self).singlePart_add2xzLayer()
         Handler.right_widget.update_tab()
 
+    @staticmethod
+    def singlePart_addy():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_y()
+
+    @staticmethod
+    def singlePart_addz():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_z()
+
+    @staticmethod
+    def singlePart_add_frontPart():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.FRONT, single=True)
+
+    @staticmethod
+    def singlePart_add_frontLayer():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.FRONT)
+
+    @staticmethod
+    def singlePart_add_backPart():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.BACK, single=True)
+
+    @staticmethod
+    def singlePart_add_backLayer():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.BACK)
+
+    @staticmethod
+    def singlePart_add_upPart():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.UP, single=True)
+
+    @staticmethod
+    def singlePart_add_upLayer():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.UP)
+
+    @staticmethod
+    def singlePart_add_downPart():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.DOWN, single=True)
+
+    @staticmethod
+    def singlePart_add_downLayer():
+        Handler.right_widget.tab2_mod1_widget_singlePart.add_layer_(CONST.DOWN)
 
 class MainHandler:
     def __init__(self, window):

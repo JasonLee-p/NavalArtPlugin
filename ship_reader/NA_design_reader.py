@@ -637,26 +637,19 @@ class AdjustableHull(NAPart):
                      upCurve=None, downCurve=None, heightScale=None, heightOffset=None,
                      update=False):
         # ==============================================================================更新零件的各个属性
-        # 定义属性默认值的字典
-        default_values = {
-            'position': self.Pos,
-            'armor': self.Amr,
-            'length': self.Len,
-            'height': self.Hei,
-            'frontWidth': self.FWid,
-            'backWidth': self.BWid,
-            'frontSpread': self.FSpr,
-            'backSpread': self.BSpr,
-            'upCurve': self.UCur,
-            'downCurve': self.DCur,
-            'heightScale': self.HScl,
-            'heightOffset': self.HOff
-        }
+        position = self.Pos if position is None else position
+        armor = self.Amr if armor is None else armor
+        length = self.Len if length is None else length
+        height = self.Hei if height is None else height
+        frontWidth = self.FWid if frontWidth is None else frontWidth
+        backWidth = self.BWid if backWidth is None else backWidth
+        frontSpread = self.FSpr if frontSpread is None else frontSpread
+        backSpread = self.BSpr if backSpread is None else backSpread
+        upCurve = self.UCur if upCurve is None else upCurve
+        downCurve = self.DCur if downCurve is None else downCurve
+        heightScale = self.HScl if heightScale is None else heightScale
+        heightOffset = self.HOff if heightOffset is None else heightOffset
 
-        # 遍历参数，如果参数为 None，则使用默认值
-        for attr_name in default_values:
-            if locals()[attr_name] is None:
-                locals()[attr_name] = default_values[attr_name]
         try:
             self.Pos = [round(float(i), 3) for i in position]
             self.Amr = int(armor)

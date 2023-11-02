@@ -4,14 +4,24 @@
 Mod表示模式，1表示全视图模式，2表示水平截面模式，3表示竖直截面模式，4表示左视图模式
 
 """
+import time
 from typing import Union, List
 
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
-from ship_reader.NA_design_reader import PartRelationMap
 from state_history import push_global_statu, push_operation
 from util_funcs import not_implemented, CONST
 from operation import *
+
+
+def show_buttons(buttons: List[QPushButton]):
+    for bt in buttons:
+        bt.show()
+
+
+def hide_buttons(buttons: List[QPushButton]):
+    for bt in buttons:
+        bt.hide()
 
 
 class Mod1AllPartsEditing(QWidget):
@@ -104,6 +114,8 @@ class Mod1SinglePartEditing(QWidget):
         self.add_z_label = QLabel()
         self.add_y_label.setPixmap(self.ADD_Y)
         self.add_z_label.setPixmap(self.ADD_Z)
+        self.lb1 = MyLabel("零件高级变换", FONT_10, side=Qt.AlignCenter)
+        self.lb2 = MyLabel("添加零件", FONT_10, side=Qt.AlignCenter)
         # 选择的对象
         self.selected_obj = Union[NAPart, AdjustableHull, None]
         self.allow_update_obj_when_editing = True
@@ -138,16 +150,31 @@ class Mod1SinglePartEditing(QWidget):
         self.keep_spread_label = MyLabel("保持扩散", FONT_9, side=Qt.AlignCenter)
         self.keep_spread_label.setFixedSize(80, 20)
         # 下方其他编辑
-        self.down_layout = QGridLayout()
-        # 按钮（包括前后细分，上下细分，向前添加层，向后添加层，向上添加层，向下添加层）
+        self.transform_layout = QGridLayout()
+        self.add_layout = QGridLayout()
+        # 变换类操作按钮
+        self.rotate_button = QPushButton()
+        self.scl_norm_button = QPushButton()
+        self.forecastle_button = QPushButton()
+        self.poop_button = QPushButton()
+        self.transform_buttons = [self.rotate_button, self.scl_norm_button,
+                                  self.forecastle_button, self.poop_button]
+        # 添加类操作按钮（包括前后细分，上下细分，向前添加层，向后添加层，向上添加层，向下添加层）
         self.add_z_button = QPushButton()
         self.add_y_button = QPushButton()
+        self.add_front_part_button = QPushButton()
         self.add_front_layer_button = QPushButton()
+        self.add_back_part_button = QPushButton()
         self.add_back_layer_button = QPushButton()
+        self.add_up_part_button = QPushButton()
         self.add_up_layer_button = QPushButton()
+        self.add_down_part_button = QPushButton()
         self.add_down_layer_button = QPushButton()
-        self.buttons = [self.add_z_button, self.add_y_button, self.add_front_layer_button, self.add_back_layer_button,
-                        self.add_up_layer_button, self.add_down_layer_button]
+        self.add_buttons = [self.add_z_button, self.add_y_button,
+                            self.add_front_part_button, self.add_front_layer_button,
+                            self.add_back_part_button, self.add_back_layer_button,
+                            self.add_up_part_button, self.add_up_layer_button,
+                            self.add_down_part_button, self.add_down_layer_button]
         # grid
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -211,12 +238,25 @@ class Mod1SinglePartEditing(QWidget):
         line = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
         self.layout.addWidget(line, len(self.content), 0, 1, 4)
         # 下一个标题
-        lb2 = MyLabel("添加零件", FONT_10, side=Qt.AlignCenter)
-        self.layout.addWidget(lb2, len(self.content) + 1, 0, 1, 4)
-        # 添加下方其他编辑
-        self.layout.addLayout(self.down_layout, len(self.content) + 2, 0, 1, 4)
-        self.down_layout.setSpacing(7)
-        self.down_layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.lb1, len(self.content) + 1, 0, 1, 4)
+        # 变换零件
+        self.layout.addLayout(self.transform_layout, len(self.content) + 2, 0, 1, 4)
+        self.transform_layout.setSpacing(7)
+        self.transform_layout.setContentsMargins(0, 0, 0, 0)
+        hide_buttons(self.transform_buttons)
+        # 添加分割线
+        line = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
+        self.layout.addWidget(line, len(self.content) + 3, 0, 1, 4)
+        # 下一个标题
+        self.layout.addWidget(self.lb2, len(self.content) + 4, 0, 1, 4)
+        # 添加零件
+        self.layout.addLayout(self.add_layout, len(self.content) + 5, 0, 1, 4)
+        self.add_layout.setSpacing(7)
+        self.add_layout.setContentsMargins(0, 0, 0, 0)
+        hide_buttons(self.add_buttons)
+        self.init_buttons()
+
+    def init_buttons(self):
         # 设置按钮样式
         style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"
                     f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
@@ -224,29 +264,83 @@ class Mod1SinglePartEditing(QWidget):
                     f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}"
                     f"QPushButton:pressed{{background-color: {BG_COLOR3};color: {FG_COLOR0};"
                     f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}")
-        for i in range(len(self.buttons)):
-            self.buttons[i].setStyleSheet(style)
-            self.buttons[i].setLayout(QHBoxLayout())
-            self.buttons[i].layout().setSpacing(0)
-            self.buttons[i].layout().setContentsMargins(3, 3, 3, 3)
-            self.buttons[i].setFixedSize(90, 50)
-            self.down_layout.addWidget(self.buttons[i], 2 * (i // 2), i % 2)
+        for i in range(len(self.transform_buttons)):
+            self.transform_buttons[i].setStyleSheet(style)
+            self.transform_buttons[i].setLayout(QHBoxLayout())
+            self.transform_buttons[i].layout().setSpacing(0)
+            self.transform_buttons[i].layout().setContentsMargins(3, 3, 3, 3)
+            self.transform_buttons[i].setFixedSize(90, 50)
+            self.transform_layout.addWidget(self.transform_buttons[i], 2 * (i // 2), i % 2)
+        for i in range(len(self.add_buttons)):
+            self.add_buttons[i].setStyleSheet(style)
+            self.add_buttons[i].setLayout(QHBoxLayout())
+            self.add_buttons[i].layout().setSpacing(0)
+            self.add_buttons[i].layout().setContentsMargins(3, 3, 3, 3)
+            self.add_buttons[i].setFixedSize(90, 50)
+            self.add_layout.addWidget(self.add_buttons[i], 2 * (i // 2), i % 2)
         # 按钮内添加控件
+        self.rotate_button.layout().addWidget(MyLabel("不变形旋转", FONT_9, side=Qt.AlignCenter))
+        self.scl_norm_button.layout().addWidget(MyLabel("缩放归一化", FONT_9, side=Qt.AlignCenter))
+        self.forecastle_button.layout().addWidget(MyLabel("舰艏上扬体", FONT_9, side=Qt.AlignCenter))
+        self.poop_button.layout().addWidget(MyLabel("舰艉上扬体", FONT_9, side=Qt.AlignCenter))
         self.add_z_button.layout().addWidget(self.add_z_label)
         self.add_y_button.layout().addWidget(self.add_y_label)
         self.add_z_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
         self.add_y_button.layout().addWidget(MyLabel("细分", FONT_9, side=Qt.AlignCenter))
+        self.add_front_part_button.layout().addWidget(MyLabel("向前加零件", FONT_9, side=Qt.AlignCenter))
+        self.add_back_part_button.layout().addWidget(MyLabel("向后加零件", FONT_9, side=Qt.AlignCenter))
+        self.add_up_part_button.layout().addWidget(MyLabel("向上加零件", FONT_9, side=Qt.AlignCenter))
+        self.add_down_part_button.layout().addWidget(MyLabel("向下加零件", FONT_9, side=Qt.AlignCenter))
         self.add_front_layer_button.layout().addWidget(MyLabel("向前添加层", FONT_9, side=Qt.AlignCenter))
         self.add_back_layer_button.layout().addWidget(MyLabel("向后添加层", FONT_9, side=Qt.AlignCenter))
         self.add_up_layer_button.layout().addWidget(MyLabel("向上添加层", FONT_9, side=Qt.AlignCenter))
         self.add_down_layer_button.layout().addWidget(MyLabel("向下添加层", FONT_9, side=Qt.AlignCenter))
         # 绑定按钮事件
+        self.rotate_button.clicked.connect(self.rotate)
+        self.scl_norm_button.clicked.connect(self.scl_norm)
+        self.forecastle_button.clicked.connect(self.forecastle)
+        self.poop_button.clicked.connect(self.poop)
         self.add_z_button.clicked.connect(self.add_z)
         self.add_y_button.clicked.connect(self.add_y)
-        self.add_front_layer_button.clicked.connect(self.add_front_layer_pressed)
-        self.add_back_layer_button.clicked.connect(self.add_back_layer_pressed)
-        self.add_up_layer_button.clicked.connect(self.add_up_layer_pressed)
-        self.add_down_layer_button.clicked.connect(self.add_down_layer_pressed)
+        self.add_front_part_button.clicked.connect(lambda event: self.add_layer_(CONST.FRONT, single=True))
+        self.add_back_part_button.clicked.connect(lambda event: self.add_layer_(CONST.BACK, single=True))
+        self.add_up_part_button.clicked.connect(lambda event: self.add_layer_(CONST.UP, single=True))
+        self.add_down_part_button.clicked.connect(lambda event: self.add_layer_(CONST.DOWN, single=True))
+        self.add_front_layer_button.clicked.connect(lambda event: self.add_layer_(CONST.FRONT))
+        self.add_back_layer_button.clicked.connect(lambda event: self.add_layer_(CONST.BACK))
+        self.add_up_layer_button.clicked.connect(lambda event: self.add_layer_(CONST.UP))
+        self.add_down_layer_button.clicked.connect(lambda event: self.add_layer_(CONST.DOWN))
+        # 绑定鼠标悬浮在子标题事件（显示buttons隐藏其他buttons）
+        self.lb1.enterEvent = self.change_showed_buttons
+        self.lb2.enterEvent = self.change_showed_buttons
+
+    def change_showed_buttons(self, event=None):
+        if self.lb1.underMouse():
+            self.lb1.setStyleSheet(f"color: {FG_COLOR0};")
+            self.lb2.setStyleSheet(f"color: {GRAY};")
+            show_buttons(self.transform_buttons)
+            hide_buttons(self.add_buttons)
+        elif self.lb2.underMouse():
+            self.lb1.setStyleSheet(f"color: {GRAY};")
+            self.lb2.setStyleSheet(f"color: {FG_COLOR0};")
+            show_buttons(self.add_buttons)
+            hide_buttons(self.transform_buttons)
+
+    @not_implemented
+    def rotate(self, event=None):
+        pass
+
+    @not_implemented
+    def scl_norm(self, event=None):
+        pass
+
+    @not_implemented
+    def forecastle(self, event=None):
+        pass
+
+    @not_implemented
+    def poop(self, event=None):
+        pass
 
     @push_operation
     def add_z(self, event=None):
@@ -274,28 +368,16 @@ class Mod1SinglePartEditing(QWidget):
         self.hide()
         return cso
 
-    def add_front_layer_pressed(self, event=None):
-        self.add_layer_(CONST.FRONT)
-
-    def add_back_layer_pressed(self, event=None):
-        self.add_layer_(CONST.BACK)
-
-    def add_up_layer_pressed(self, event=None):
-        self.add_layer_(CONST.UP)
-
-    def add_down_layer_pressed(self, event=None):
-        self.add_layer_(CONST.DOWN)
-
-    def add_layer_(self, direction):
+    def add_layer_(self, direction, single=False):
         relation_map = self.selected_obj.allParts_relationMap.basicMap
         if (
                 self.selected_obj in relation_map and
                 direction in relation_map[self.selected_obj] and
-                relation_map[self.selected_obj][direction]
+                relation_map[self.selected_obj][direction] != {}
         ):
             glWin = self.selected_obj.glWin
             _next = list(relation_map[self.selected_obj][direction].keys())[0]
-            if isinstance(_next, NAPart):
+            if not isinstance(_next, AdjustableHull):
                 return
             glWin.selected_gl_objects[glWin.show_3d_obj_mode] = [_next]
             self.selected_obj = _next
@@ -304,7 +386,7 @@ class Mod1SinglePartEditing(QWidget):
             glWin.update()
         else:  # 没有零件，添加零件
             self.hide()
-            AddLayerOperation(direction, [self.selected_obj])
+            AddLayerOperation(direction, [self.selected_obj], single=single)
 
     def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
         """
@@ -342,7 +424,8 @@ class Mod1SinglePartEditing(QWidget):
         if active_textEdit.text() == "":
             active_textEdit.setText("0")
             return None
-        spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()), Mod1SinglePartEditing.current)
+        spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()),
+                                  Mod1SinglePartEditing.current)
         # spo.execute()
         return spo
 

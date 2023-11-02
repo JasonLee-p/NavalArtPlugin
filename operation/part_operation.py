@@ -111,6 +111,81 @@ class SinglePartOperation(Operation):
         self.execute()
 
 
+class DeleteSinglePartOperation(Operation):
+    """
+    删除单零件操作
+    """
+
+    def __init__(self, original_part: AdjustableHull):
+        super().__init__()
+        self.name = "删除零件"
+        self.original_part: AdjustableHull = original_part
+        self.allParts_relationMap = original_part.allParts_relationMap
+        self.Col = self.original_part.Col
+        self.read_na_obj = self.original_part.read_na_obj
+        self.glWin = self.original_part.glWin
+        self.glWinMode = copy.copy(self.glWin.show_3d_obj_mode)
+
+    def execute(self):
+        # 在数据中删除原来的零件
+        try:
+            self.read_na_obj.DrawMap[f"#{self.Col}"].remove(self.original_part)
+        except ValueError:  # TODO:
+            pass
+        # 更新显示的被选中的零件
+        if self.glWin:
+            try:
+                self.glWin.selected_gl_objects[self.glWinMode].remove(self.original_part)
+            except ValueError:
+                # 用户选中零件后转换到了其他模式，而右侧的编辑器仍然处在原来的模式
+                replaced = False
+                while not replaced:
+                    for mode in self.glWin.selected_gl_objects.keys():
+                        try:
+                            self.glWin.selected_gl_objects[mode].remove(self.original_part)
+                            self.glWinMode = mode
+                            replaced = True
+                            break
+                        except ValueError:
+                            continue
+        # 从hull_design_tab_id_map（绘制所需）删除原来的零件
+        NAPart.hull_design_tab_id_map.pop(id(self.original_part) % 4294967296)
+        # 从关系图中删除原来的零件
+        if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
+                self.original_part.Rot[2] % 90 == 0):
+            self.allParts_relationMap.del_part(self.original_part)
+        # 重新渲染
+        for _mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[_mode][1] = True
+        self.glWin.paintGL()
+        for _mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[_mode][1] = False
+        self.glWin.update()
+
+    def undo(self):
+        # 在数据中恢复原来的零件
+        self.read_na_obj.DrawMap[f"#{self.Col}"].append(self.original_part)
+        # 更新显示的被选中的零件
+        if self.glWin:
+            self.glWin.selected_gl_objects[self.glWinMode] = [self.original_part]
+        # 向hull_design_tab_id_map（绘制所需）添加原来的零件
+        NAPart.hull_design_tab_id_map[id(self.original_part) % 4294967296] = self.original_part
+        # 恢复关系图
+        if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
+                self.original_part.Rot[2] % 90 == 0):
+            self.allParts_relationMap.undo_del_part(self.original_part)
+        # 重新渲染
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = True
+        self.glWin.paintGL()
+        for mode in self.glWin.gl_commands.keys():
+            self.glWin.gl_commands[mode][1] = False
+        self.glWin.update()
+
+    def redo(self):
+        self.execute()
+
+
 class CutSinglePartOperation(Operation):
     """
     分割零件，用于细分单零件操作
@@ -220,11 +295,13 @@ class AddLayerOperation(Operation):
     }
 
     def __init__(self, direction: Literal["front", "back", "up", "down", "left", "right"],
-                 base_parts: List[AdjustableHull]):
+                 base_parts: List[AdjustableHull],
+                 single: bool = False):
         """
 
         :param direction: 添加方向（全局坐标系）
         :param base_parts: 被选中的零件
+        :param single: 是否是单零件模式
         """
         self.name = "添加层"
         # 初始化右侧编辑器
@@ -236,7 +313,7 @@ class AddLayerOperation(Operation):
         self.base_parts = base_parts
         self.partRelationMap = None
         self.original_parts_data = {}  # 零件在世界坐标系中的数据
-        if len(self.base_parts) == 1:
+        if len(self.base_parts) == 1 and not single:
             _p = self.base_parts[0]
             # 如果原零件不在关系图中，那么就不需要考虑关系图
             if _p not in _p.allParts_relationMap.basicMap.keys():
@@ -247,6 +324,9 @@ class AddLayerOperation(Operation):
                     self.find_original_parts(_p)
                 else:
                     self._original_parts = base_parts
+        elif single:
+            self.partRelationMap = self.base_parts[0].allParts_relationMap
+            self._original_parts = base_parts
         else:
             self.partRelationMap = self.base_parts[0].allParts_relationMap
             self._original_parts = base_parts

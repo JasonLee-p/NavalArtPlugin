@@ -3,7 +3,8 @@
 右侧的操作参数编辑界面
 当触发某些操作的时候，这些控件会从隐藏状态变为显示状态
 """
-from typing import Literal
+from abc import abstractmethod
+from typing import Literal, Union
 
 from GL_plot.na_hull import TempAdjustableHull
 from state_history import push_operation
@@ -22,12 +23,21 @@ Direction2LenWidHei = {CONST.FRONT: "长", CONST.BACK: "长", CONST.LEFT: "宽",
 
 class OperationEditing(QWidget):
     is_editing = False
+    current: Union[None, "OperationEditing"] = None
 
     def __init__(self):
         """
         基类
         """
         super().__init__(parent=None)
+
+    @abstractmethod
+    def ensure_button_clicked(self, event=None):
+        pass
+
+    @abstractmethod
+    def cancel_button_clicked(self, event=None):
+        pass
 
 
 class AddLayerEditing(OperationEditing):
@@ -44,10 +54,13 @@ class AddLayerEditing(OperationEditing):
         self.circle_bt = CircleSelectButton(7, False)
         self.keep_spread_label = MyLabel("保持扩散", FONT_9, side=Qt.AlignCenter)
         self.keep_spread_label.setFixedSize(80, 20)
-        # 确定按钮
+        # 按钮
+        self.cancel_button = QPushButton("取消")
         self.ensure_button = QPushButton("确定")
-        set_buttons([self.ensure_button], sizes=[(110, 30)], font=FONT_8, border=1, border_color=FG_COLOR2)
+        set_buttons([self.cancel_button, self.ensure_button], sizes=(110, 30), font=FONT_8, border=1, border_color=FG_COLOR2)
+        self.cancel_button.clicked.connect(self.cancel_button_clicked)
         self.ensure_button.clicked.connect(self.ensure_button_clicked)
+        # 内容
         self.content = {}
         # 分割线
         line = QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken)
@@ -65,6 +78,7 @@ class AddLayerEditing(OperationEditing):
         self.layout.addWidget(self.title, alignment=Qt.AlignCenter)
         self.layout.addWidget(self.context_widget, alignment=Qt.AlignCenter)
         self.layout.addWidget(line, alignment=Qt.AlignCenter)
+        self.layout.addWidget(self.cancel_button, alignment=Qt.AlignCenter)
         self.layout.addWidget(self.ensure_button, alignment=Qt.AlignCenter)
         # 事件
         self.wheelEvent = self.mouse_wheel
@@ -72,6 +86,7 @@ class AddLayerEditing(OperationEditing):
 
     def reset_ui(self):
         OperationEditing.is_editing = True
+        OperationEditing.current = self
         # 清空原来的内容
         for i in range(self.context_layout.count()):
             self.context_layout.itemAt(i).widget().deleteLater()
@@ -278,6 +293,13 @@ class AddLayerEditing(OperationEditing):
             new_adjustable_hull = temp_hull.export2AdjustableHull()
             result[org_hull] = new_adjustable_hull
         return result
+
+    def cancel_button_clicked(self, event=None):
+        OperationEditing.is_editing = False
+        TempAdjustableHull.all_objs.clear()  # 清空临时船体
+        self.hide()
+        self.receive_result = {}
+        return None
 
     @push_operation
     def ensure_button_clicked(self, event=None):
