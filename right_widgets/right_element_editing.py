@@ -599,12 +599,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.selected_objs = []
         # TODO: 未完成
         # 重新渲染
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = True
-        glWin.paintGL()
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = False
-        glWin.update()
+        glWin.repaintGL()
         self.hide()
 
     @not_implemented
@@ -624,12 +619,7 @@ class Mod1VerticalPartSetEditing(QWidget):
         self.selected_objs = []
         # TODO: 未完成
         # 重新渲染
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = True
-        glWin.paintGL()
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = False
-        glWin.update()
+        glWin.repaintGL()
         self.hide()
 
     def add_front_layer(self, event=None):
@@ -744,12 +734,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.selected_objs = []
         # TODO: 未完成
         # 重新渲染
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = True
-        glWin.paintGL()
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = False
-        glWin.update()
+        glWin.repaintGL()
         self.hide()
 
     @not_implemented
@@ -769,12 +754,7 @@ class Mod1HorizontalPartSetEditing(QWidget):
         self.selected_objs = []
         # TODO: 未完成
         # 重新渲染
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = True
-        glWin.paintGL()
-        for mode in glWin.gl_commands.keys():
-            glWin.gl_commands[mode][1] = False
-        glWin.update()
+        glWin.repaintGL()
         self.hide()
 
     def add_front_layer(self, event=None):

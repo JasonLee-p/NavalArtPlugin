@@ -151,16 +151,10 @@ class DeleteSinglePartOperation(Operation):
         # 从hull_design_tab_id_map（绘制所需）删除原来的零件
         NAPart.hull_design_tab_id_map.pop(id(self.original_part) % 4294967296)
         # 从关系图中删除原来的零件
-        if (self.original_part.Rot[0] % 90 == 0 and self.original_part.Rot[1] % 90 == 0 and
-                self.original_part.Rot[2] % 90 == 0):
+        if self.original_part in self.allParts_relationMap.basicMap.keys():
             self.allParts_relationMap.del_part(self.original_part)
         # 重新渲染
-        for _mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[_mode][1] = True
-        self.glWin.paintGL()
-        for _mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[_mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
 
     def undo(self):
         # 在数据中恢复原来的零件
@@ -175,12 +169,7 @@ class DeleteSinglePartOperation(Operation):
                 self.original_part.Rot[2] % 90 == 0):
             self.allParts_relationMap.undo_del_part(self.original_part)
         # 重新渲染
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = True
-        self.glWin.paintGL()
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
 
     def redo(self):
         self.execute()
@@ -243,12 +232,7 @@ class CutSinglePartOperation(Operation):
             self.allParts_relationMap.replace([P1, P2], self.original_part)
             # self.allParts_relationMap.replace_2(P1, P2, self.original_part, None)
         # 重新渲染
-        for _mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[_mode][1] = True
-        self.glWin.paintGL()
-        for _mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[_mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
 
     def undo(self):
         P1, P2 = self.new_parts[0], self.new_parts[1]
@@ -272,12 +256,7 @@ class CutSinglePartOperation(Operation):
             self.allParts_relationMap.undo_replace([P1, P2], self.original_part)
             # self.allParts_relationMap.back_replace_2(P1, P2, self.original_part, None)
         # 重新渲染
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = True
-        self.glWin.paintGL()
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
 
     def redo(self):
         self.execute()

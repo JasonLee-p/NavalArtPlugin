@@ -385,6 +385,15 @@ class OpenGLWin(QOpenGLWidget):
         if time.time() - st != 0:  # 刷新FPS
             self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
 
+    def repaintGL(self):
+        # 重新渲染
+        for _mode in self.gl_commands.keys():
+            self.gl_commands[_mode][1] = True
+        self.paintGL()
+        for _mode in self.gl_commands.keys():
+            self.gl_commands[_mode][1] = False
+        self.update()
+
     def before_draw(self):
         # 获取窗口大小，如果窗口大小改变，就重新初始化
         width = QOpenGLWidget.width(self)

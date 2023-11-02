@@ -153,11 +153,7 @@ def after_open():
     读取工程文件完成后的操作
     :return:
     """
-    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
-        _l[1] = True
-    Handler.hull_design_tab.ThreeDFrame.paintGL()
-    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
-        _l[1] = False
+    Handler.hull_design_tab.ThreeDFrame.repaintGL()
     if StateHistory.current:
         StateHistory.current.init_stack()
     Handler.LoadingProject = False
@@ -271,11 +267,7 @@ class ReadNAHullThread(MyQThread):
 
 
 def after_new():
-    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
-        _l[1] = True
-    Handler.hull_design_tab.ThreeDFrame.paintGL()
-    for _l in Handler.hull_design_tab.ThreeDFrame.gl_commands.values():
-        _l[1] = False
+    Handler.hull_design_tab.ThreeDFrame.repaintGL()
     StateHistory.current.init_stack()
     Handler.LoadingProject = False
 
@@ -1922,12 +1914,7 @@ class HullDesignTab(QWidget):
             # 清空ThreeDFrame的所有对象
             self.clear_all_plot_obj()
             NAPart.hull_design_tab_id_map = {}
-            for mode in self.ThreeDFrame.gl_commands.keys():
-                self.ThreeDFrame.gl_commands[mode][1] = True
-            self.ThreeDFrame.paintGL()
-            self.ThreeDFrame.update()
-            for mode in self.ThreeDFrame.gl_commands.keys():
-                self.ThreeDFrame.gl_commands[mode][1] = False
+            self.ThreeDFrame.repaintGL()
             ProjectHandler.current = None
             NAHull.current_in_design_tab = None
 
@@ -2054,10 +2041,7 @@ class HullDesignTab(QWidget):
         self.xz_layer_obj.clear()
         self.xy_layer_obj.clear()
         self.left_view_obj.clear()
-        for _l in self.ThreeDFrame.gl_commands.values():
-            _l = [None, False]
-        self.ThreeDFrame.list_id_selected = None
-        self.ThreeDFrame.update_selected_list = False
+        self.ThreeDFrame.repaintGL()
 
 
 class ArmorDesignTab(QWidget):

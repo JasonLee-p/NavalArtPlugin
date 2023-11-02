@@ -20,7 +20,6 @@ class Memento:
         """
         self.attributes_to_copy = [
             ("partRelationMap_basicMap", PRM.last_map.basicMap, True),
-            ("partRelationMap_relationMap", PRM.last_map.relationMap, True),
             ("partRelationMap_DotsLayerMap", PRM.last_map.get_DotsLayerMap(), True),
             ("partRelationMap_PartsLayerMap", PRM.last_map.get_PartsLayerMap(), True),
             ("DrawMap", NAHull.current_in_design_tab.DrawMap, True),
@@ -159,7 +158,6 @@ class StateHistory:
         if not isinstance(memento_, Memento):
             return
         PRM.last_map.basicMap = memento_.partRelationMap_basicMap
-        PRM.last_map.relationMap = memento_.partRelationMap_relationMap
         PRM.last_map.xyDotsLayerMap, PRM.last_map.xzDotsLayerMap, PRM.last_map.yzDotsLayerMap = \
             memento_.partRelationMap_DotsLayerMap
         PRM.last_map.xyPartsLayerMap, PRM.last_map.xzPartsLayerMap, PRM.last_map.yzPartsLayerMap = \

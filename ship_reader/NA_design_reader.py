@@ -693,55 +693,8 @@ class AdjustableHull(NAPart):
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
         if update:
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = True
-            self.glWin.update_selected_list = True
-            self.glWin.list_id_selected = None
-            # 修改零件本身的genList状态
-            self.updateList = True
-            self.genList = None
-            self.update_selectedList = True
-            self.selected_genList = None
-            # 重绘
-            self.glWin.paintGL()
-            self.glWin.update()
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = False
-            self.glWin.update_selected_list = False
-            # 修改零件本身的genList状态
-            self.updateList = False
-            self.update_selectedList = False
+            self.redrawGL()
         return True
-
-    def redraw(self, func):
-
-        def wrapper(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = True
-            self.glWin.update_selected_list = True
-            self.glWin.list_id_selected = None
-            # 修改零件本身的genList状态
-            self.updateList = True
-            self.genList = None
-            self.update_selectedList = True
-            self.selected_genList = None
-            # 重绘
-            self.glWin.paintGL()
-            self.glWin.update()
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = False
-            self.glWin.update_selected_list = False
-            # 修改零件本身的genList状态
-            self.updateList = False
-            self.update_selectedList = False
-            return ret
-
-        return wrapper
 
     def change_attrs_with_relative_parts(self, position, armor,
                                          length, height, frontWidth, backWidth, frontSpread, backSpread,
@@ -999,12 +952,7 @@ class AdjustableHull(NAPart):
             self.allParts_relationMap.replace([FP, BP], self)
             # self.allParts_relationMap.replace_2(FP, BP, self, None)
         # 重新渲染
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = True
-        self.glWin.paintGL()
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
         return FP, BP
 
     def only_self_add_y(self, smooth=False):
@@ -1022,12 +970,7 @@ class AdjustableHull(NAPart):
             self.allParts_relationMap.replace([UP, DP], self)
             # self.allParts_relationMap.replace_2(UP, DP, self, None)
         # 重新渲染
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = True
-        self.glWin.paintGL()
-        for mode in self.glWin.gl_commands.keys():
-            self.glWin.gl_commands[mode][1] = False
-        self.glWin.update()
+        self.glWin.repaintGL()
 
     def add_z_without_relation(self, smooth=False):
         """
@@ -1320,23 +1263,7 @@ class AdjustableHull(NAPart):
         self.plot_lines = self.get_plot_lines()
         self.plot_faces = self.get_plot_faces()
         if update:
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = True
-            self.glWin.update_selected_list = True
-            self.glWin.list_id_selected = None
-            # 修改零件本身的genList状态
-            self.updateList = True
-            self.update_selectedList = True
-            self.glWin.paintGL()
-            self.glWin.update()
-            # 修改glWin的genList状态
-            for mode in self.glWin.gl_commands.keys():
-                self.glWin.gl_commands[mode][1] = False
-            self.glWin.update_selected_list = False
-            # 修改零件本身的genList状态
-            self.updateList = False
-            self.update_selectedList = False
+            self.redrawGL()
         return True
 
     def __str__(self):
@@ -1447,6 +1374,16 @@ class AdjustableHull(NAPart):
                     gl.glVertex3f(dot[0], dot[1], dot[2])
                 gl.glEnd()
         gl.glEndList()
+
+    def redrawGL(self):
+        # 修改零件本身的genList状态
+        self.updateList = True
+        self.update_selectedList = True
+        # 重新渲染
+        self.glWin.repaintGL()
+        # 修改零件本身的genList状态
+        self.updateList = False
+        self.update_selectedList = False
 
     def draw_selected(self, gl, theme_color):
         # 材料设置
@@ -1740,59 +1677,43 @@ class PartRelationMap:
             #        PartRelationMap.RIGHT: {RightPart0: RightValue0, ...}}
             #        PartRelationMap.SAME: {SamePart0: 0, ...}}
         }  # 注意！生成完之后，会在OpenGL_objs.NaHull.getDrawMap()进行添加零件和排序，因为那个时候DrawMap才生成出来
-        self.relationMap = {  # 以关系为基础的关系图，不包含距离关系，只包含映射关系
-            # 方向0：{零件A：零件B, 零件C：零件D, ...}
-            CONST.FRONT: {},
-            CONST.UP: {},
-            CONST.LEFT: {},
-            CONST.SAME: {}
-        }
         PartRelationMap.last_map = self
 
-    def _add_relation(self, part, other_part, part_relation, other_part_relation, raw_direction):
+    def _add_basicMap_relation(self, part, other_part, part_relation, other_part_relation, raw_dir):
         """
         添加零件的关系
         :param part: 添加的零件
         :param other_part: 与之关系的零件
         :param part_relation: 新增零件的关系映射
         :param other_part_relation: 与之关系的零件的关系映射
-        :param raw_direction: 毛方向，前后，上下，左右
+        :param raw_dir: 毛方向，前后，上下，左右
         """
         PartRelationMap.last_map = self
-        if raw_direction == CONST.SAME:
+        if raw_dir == CONST.SAME:
             other_part_relation[CONST.SAME][part] = 0
-            for relation in (CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT):
-                part_relation[relation][other_part] = other_part_relation[relation][other_part]
+            for _dir in (CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT):
+                part_relation[_dir][other_part] = other_part_relation[_dir][other_part]
             part_relation[CONST.SAME][other_part] = 0
             return
-        elif raw_direction == CONST.FRONT_BACK:
-            pos_index = 2
-            other_add2_new_directions = (CONST.FRONT, CONST.BACK)
-        elif raw_direction == CONST.UP_DOWN:
-            pos_index = 1
-            other_add2_new_directions = (CONST.UP, CONST.DOWN)
-        elif raw_direction == CONST.LEFT_RIGHT:
-            pos_index = 0
-            other_add2_new_directions = (CONST.LEFT, CONST.RIGHT)
-        else:
-            raise ValueError(f"非法的方向：{raw_direction}")
-        value = abs(other_part.Pos[pos_index] - part.Pos[pos_index])
-        if other_part.Pos[pos_index] > part.Pos[pos_index]:  # other在part的前面
-            part_relation[other_add2_new_directions[0]][other_part] = value
-            other_part_relation[other_add2_new_directions[1]][part] = value
-            self.relationMap[other_add2_new_directions[0]][part] = other_part
-        elif other_part.Pos[pos_index] < part.Pos[pos_index]:  # other在part的后面
-            part_relation[other_add2_new_directions[1]][other_part] = value
-            other_part_relation[other_add2_new_directions[0]][part] = value
-            self.relationMap[other_add2_new_directions[0]][other_part] = part
+        pos_i = CONST.DIR_INDEX_MAP[raw_dir]
+        sub_dirs = CONST.SUBDIR_MAP[raw_dir]
+        larger_dir = sub_dirs[0]
+        smaller_dir = sub_dirs[1]
+        value = abs(other_part.Pos[pos_i] - part.Pos[pos_i])
+        if other_part.Pos[pos_i] > part.Pos[pos_i]:  # other在part的前面
+            part_relation[larger_dir][other_part] = value
+            other_part_relation[smaller_dir][part] = value
+        elif other_part.Pos[pos_i] < part.Pos[pos_i]:  # other在part的后面
+            part_relation[smaller_dir][other_part] = value
+            other_part_relation[larger_dir][part] = value
         # 将other_part的相应的方向的零件也添加到new_part的该方向零件中
-        for raw_direction in other_add2_new_directions:
-            for other_part_direction, _other_part_direction_value in other_part_relation[raw_direction].items():
-                value2 = abs(other_part_direction.Pos[pos_index] - part.Pos[pos_index])
-                if other_part_direction.Pos[pos_index] > part.Pos[pos_index]:
-                    part_relation[other_add2_new_directions[0]][other_part_direction] = value2
-                elif other_part_direction.Pos[pos_index] < part.Pos[pos_index]:
-                    part_relation[other_add2_new_directions[1]][other_part_direction] = value2
+        for sub_dir in sub_dirs:
+            for other_part_direction, _other_part_direction_value in other_part_relation[sub_dir].items():
+                value2 = abs(other_part_direction.Pos[pos_i] - part.Pos[pos_i])
+                if other_part_direction.Pos[pos_i] > part.Pos[pos_i]:
+                    part_relation[larger_dir][other_part_direction] = value2
+                elif other_part_direction.Pos[pos_i] < part.Pos[pos_i]:
+                    part_relation[smaller_dir][other_part_direction] = value2
 
     def add_part(self, newPart):
         """
@@ -1817,28 +1738,11 @@ class PartRelationMap:
                 if [_x, _y, _z] not in NAPartNode.all_dots:
                     node = NAPartNode([_x, _y, _z])
                     # 判断零件在节点的哪一个卦限
-                    if newPart.Pos[0] > _x:
-                        if newPart.Pos[1] > _y:
-                            if newPart.Pos[2] > _z:
-                                node.near_parts[CONST.BACK_DOWN_LEFT].append(newPart)
-                            else:  # newPart.Pos[2] < _z
-                                node.near_parts[CONST.BACK_UP_LEFT].append(newPart)
-                        else:  # newPart.Pos[1] < _y
-                            if newPart.Pos[2] > _z:
-                                node.near_parts[CONST.FRONT_DOWN_LEFT].append(newPart)
-                            else:  # newPart.Pos[2] < _z
-                                node.near_parts[CONST.FRONT_UP_LEFT].append(newPart)
-                    else:  # newPart.Pos[0] < _x
-                        if newPart.Pos[1] > _y:
-                            if newPart.Pos[2] > _z:
-                                node.near_parts[CONST.BACK_DOWN_RIGHT].append(newPart)
-                            else:
-                                node.near_parts[CONST.BACK_UP_RIGHT].append(newPart)
-                        else:  # newPart.Pos[1] < _y
-                            if newPart.Pos[2] > _z:
-                                node.near_parts[CONST.FRONT_DOWN_RIGHT].append(newPart)
-                            else:  # newPart.Pos[2] < _z
-                                node.near_parts[CONST.FRONT_UP_RIGHT].append(newPart)
+                    x, y, z = newPart.Pos
+                    x_str = CONST.BACK if x > _x else CONST.FRONT
+                    y_str = CONST.DOWN if y > _y else CONST.UP
+                    z_str = CONST.LEFT if z > _z else CONST.RIGHT
+                    node.near_parts[f"{x_str}_{y_str}_{z_str}"].append(newPart)
                 # DotsLayerMap
                 if _x not in self.yzDotsLayerMap.keys():
                     self.yzDotsLayerMap[_x] = [newPart]
@@ -1856,28 +1760,27 @@ class PartRelationMap:
         # 零件集
         st = time.time()
         # 初始化零件的上下左右前后零件
-        newPart_relation = {CONST.FRONT: {}, CONST.BACK: {},
-                            CONST.UP: {}, CONST.DOWN: {},
-                            CONST.LEFT: {}, CONST.RIGHT: {},
-                            CONST.SAME: {}}
+        newPart_relation = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {},
+                            CONST.LEFT: {}, CONST.RIGHT: {}, CONST.SAME: {}}
         x_exist = []  # x相同的零件
         y_exist = []  # y相同的零件
         z_exist = []  # z相同的零件
-        if newPart.Pos[0] not in self.yzPartsLayerMap.keys():
-            self.yzPartsLayerMap[newPart.Pos[0]] = [newPart]
+        n_x, n_y, n_z = newPart.Pos
+        if n_x not in self.yzPartsLayerMap.keys():
+            self.yzPartsLayerMap[n_x] = [newPart]
         else:
-            x_exist = self.yzPartsLayerMap[newPart.Pos[0]]
-            self.yzPartsLayerMap[newPart.Pos[0]].append(newPart)
-        if newPart.Pos[1] not in self.xzPartsLayerMap.keys():
-            self.xzPartsLayerMap[newPart.Pos[1]] = [newPart]
+            x_exist = self.yzPartsLayerMap[n_x]
+            self.yzPartsLayerMap[n_x].append(newPart)
+        if n_y not in self.xzPartsLayerMap.keys():
+            self.xzPartsLayerMap[n_y] = [newPart]
         else:
-            y_exist = self.xzPartsLayerMap[newPart.Pos[1]]
-            self.xzPartsLayerMap[newPart.Pos[1]].append(newPart)
-        if newPart.Pos[2] not in self.xyPartsLayerMap.keys():
-            self.xyPartsLayerMap[newPart.Pos[2]] = [newPart]
+            y_exist = self.xzPartsLayerMap[n_y]
+            self.xzPartsLayerMap[n_y].append(newPart)
+        if n_z not in self.xyPartsLayerMap.keys():
+            self.xyPartsLayerMap[n_z] = [newPart]
         else:
-            z_exist = self.xyPartsLayerMap[newPart.Pos[2]]
-            self.xyPartsLayerMap[newPart.Pos[2]].append(newPart)
+            z_exist = self.xyPartsLayerMap[n_z]
+            self.xyPartsLayerMap[n_z].append(newPart)
         layer_t = round(time.time() - st, 4)
         st = time.time()
         # 先检查是否有有位置关系的other_part，如果有，就添加到new_part的上下左右前后零件中
@@ -1892,16 +1795,18 @@ class PartRelationMap:
         for otherPart, others_direction_relation in self.basicMap.items():
             # 遍历点集，往NAPartNode中添加点
             # xy相同，前后关系
+            raw_dir = None
             if otherPart in xy_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.FRONT_BACK)
-            # yz相同，左右关系
-            elif otherPart in yz_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.LEFT_RIGHT)
-            # xz相同，上下关系
-            elif otherPart in xz_exist:
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.UP_DOWN)
+                raw_dir = CONST.FRONT_BACK
+            elif otherPart in yz_exist:  # yz相同，左右关系
+                raw_dir = CONST.LEFT_RIGHT
+            elif otherPart in xz_exist:  # xz相同，上下关系
+                raw_dir = CONST.UP_DOWN
             elif otherPart.Pos == newPart.Pos:  # 同一位置
-                self._add_relation(newPart, otherPart, newPart_relation, others_direction_relation, CONST.SAME)
+                raw_dir = CONST.SAME
+            if not raw_dir:
+                continue
+            self._add_basicMap_relation(newPart, otherPart, newPart_relation, others_direction_relation, raw_dir)
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
         relation_t = round(time.time() - st, 4)
@@ -2054,12 +1959,6 @@ class PartRelationMap:
         self.xzPartsLayerMap.clear()
         self.xyPartsLayerMap.clear()
         self.yzPartsLayerMap.clear()
-        self.relationMap = {
-            CONST.FRONT: {},
-            CONST.UP: {},
-            CONST.LEFT: {},
-            CONST.SAME: {}
-        }
 
         st = time.time()
         total_parts_num = len(NAPart.hull_design_tab_id_map)
