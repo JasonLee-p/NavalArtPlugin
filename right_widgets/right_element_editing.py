@@ -256,6 +256,7 @@ class Mod1SinglePartEditing(QWidget):
         hide_buttons(self.add_buttons)
         self.init_buttons()
 
+    # noinspection PyUnresolvedReferences
     def init_buttons(self):
         # 设置按钮样式
         style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"
@@ -519,7 +520,6 @@ class Mod1SinglePartEditing(QWidget):
         #                           Mod1SinglePartEditing.current, original_data=original_data, change_data=changed)
         spo = SinglePartOperation(self, self.selected_obj, changed)
         return spo
-
 
 
 class Mod1VerticalPartSetEditing(QWidget):

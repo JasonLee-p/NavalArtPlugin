@@ -2020,7 +2020,7 @@ class PartRelationMap:
         # 遍历自身的相关零件，将自身从其关系中删除
         for direction, other_parts in self.basicMap[part].items():
             for other_part in other_parts.keys():
-                del self.basicMap[other_part][CONST.opposite_direction(direction)][part]
+                del self.basicMap[other_part][CONST.DIR_OPPOSITE_MAP(direction)][part]
         # 删除自身
         self.basicMap[part] = {}
 

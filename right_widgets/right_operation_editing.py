@@ -82,6 +82,7 @@ class AddLayerEditing(OperationEditing):
         self.layout.addWidget(self.ensure_button, alignment=Qt.AlignCenter)
         # 事件
         self.wheelEvent = self.mouse_wheel
+        self.mouseWheeling = False
         self.hide()
 
     def reset_ui(self):
@@ -111,8 +112,8 @@ class AddLayerEditing(OperationEditing):
                     lineEdit.setValidator(QDoubleValidator(0.001, 1000, 3))
                 # 解绑鼠标滚轮事件
                 lineEdit.wheelEvent = lambda event: None
-                # # 绑定值修改信号
-                # lineEdit.textChanged.connect(self.update_obj_when_editing)
+                # 绑定值修改信号
+                lineEdit.textChanged.connect(self.text_changed)
 
     def update_direction(self, operation, direction: Literal["front", "back", "left", "right", "top", "bottom"],
                          result: dict, content: dict):
@@ -131,6 +132,9 @@ class AddLayerEditing(OperationEditing):
         :param event:
         :return:
         """
+        if self.mouseWheeling:
+            return None
+        self.mouseWheeling = True
         # 通过鼠标位置检测当前输入框
         active_textEdit = None
         key = None
@@ -144,6 +148,7 @@ class AddLayerEditing(OperationEditing):
             if active_textEdit:
                 break
         if active_textEdit is None:
+            self.mouseWheeling = False
             return None
         step = 0.1
         # 获取输入框的值
@@ -152,6 +157,27 @@ class AddLayerEditing(OperationEditing):
         if step != 0:
             self.update_(step, key, active_textEdit)
             self.update_temp_obj(key)
+        self.mouseWheeling = False
+
+    def text_changed(self, event=None):
+        if self.mouseWheeling:
+            return None
+        active_textEdit = self.sender()
+        key = None
+        for key_ in self.content:
+            for lineEdit in self.content[key_]["QLineEdit"]:
+                if lineEdit == active_textEdit:
+                    key = key_
+                    break
+            if key:
+                break
+        if key is None:
+            return None
+        try:
+            float(active_textEdit.text())
+        except ValueError:
+            active_textEdit.setText("0")
+        self.update_temp_obj(key)
 
     def update_temp_obj(self, key):
         # 00000000000000000000000000000000000000000000000000000000000000000000000000000 单零件
@@ -285,7 +311,7 @@ class AddLayerEditing(OperationEditing):
 
     def export_adjustable_hull(self):
         """
-        导出可调整的船体
+        导出船体
         :return:
         """
         result = {}
