@@ -1695,7 +1695,7 @@ class PartRelationMap:
         if raw_dir == CONST.SAME:
             other_part_relation[CONST.SAME][part] = 0
             for _dir in (CONST.FRONT, CONST.BACK, CONST.UP, CONST.DOWN, CONST.LEFT, CONST.RIGHT):
-                part_relation[_dir][other_part] = other_part_relation[_dir][other_part]
+                part_relation[_dir] = other_part_relation[_dir].copy()
             part_relation[CONST.SAME][other_part] = 0
             return
         pos_i = CONST.DIR_INDEX_MAP[raw_dir]
@@ -1793,24 +1793,28 @@ class PartRelationMap:
         if len(self.basicMap) == 0:  # 如果basicMap为空，就直接添加
             self.basicMap[newPart] = newPart_relation
             return layer_t, 0, 0
-        xy_exist = x_exist & y_exist
-        xz_exist = x_exist & z_exist
-        yz_exist = y_exist & z_exist
-        xyz_exist = xy_exist | yz_exist | xz_exist
-        for otherPart in xyz_exist:
+        xy_exist = x_exist & y_exist  # z轴向
+        xz_exist = x_exist & z_exist  # y轴向
+        yz_exist = y_exist & z_exist  # x轴向
+        # xyz_exist = xy_exist | yz_exist | xz_exist
+        for otherPart in xy_exist:
             others_direction_relation = self.basicMap[otherPart]
-            # 遍历点集，往NAPartNode中添加点
-            # xy相同，前后关系
-            raw_dir = None
-            if otherPart in xy_exist:
-                raw_dir = CONST.FRONT_BACK
-            elif otherPart in yz_exist:  # yz相同，左右关系
-                raw_dir = CONST.LEFT_RIGHT
-            elif otherPart in xz_exist:  # xz相同，上下关系
-                raw_dir = CONST.UP_DOWN
-            elif otherPart.Pos == newPart.Pos:  # 同一位置
-                raw_dir = CONST.SAME
-            self._add_basicMap_relation(newPart, otherPart, newPart_relation, others_direction_relation, raw_dir)
+            if otherPart.Pos != newPart.Pos:
+                self._add_basicMap_relation(
+                    newPart, otherPart, newPart_relation, others_direction_relation, CONST.FRONT_BACK)
+        for otherPart in yz_exist:
+            others_direction_relation = self.basicMap[otherPart]
+            if otherPart.Pos != newPart.Pos:
+                self._add_basicMap_relation(
+                    newPart, otherPart, newPart_relation, others_direction_relation, CONST.LEFT_RIGHT)
+        for otherPart in xz_exist:
+            others_direction_relation = self.basicMap[otherPart]
+            if otherPart.Pos != newPart.Pos:  # 同一位置
+                self._add_basicMap_relation(
+                    newPart, otherPart, newPart_relation, others_direction_relation, CONST.UP_DOWN)
+            else:
+                self._add_basicMap_relation(
+                    newPart, otherPart, newPart_relation, others_direction_relation, CONST.SAME)
         # 将new_part的关系添加到basicMap中
         self.basicMap[newPart] = newPart_relation
         relation_t = round(time.time() - st, 4)

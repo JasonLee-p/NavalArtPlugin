@@ -18,94 +18,28 @@ from right_widgets.right_operation_editing import AddLayerEditing
 
 
 class SinglePartOperation(Operation):
-    def __init__(self, event, step, active_textEdit, circle_bt_isChecked: bool, singlePart_e, original_data=None,
-                 change_data=None):
+    def __init__(self, right_widget, part, change_data):
         super().__init__()
         self.name = "单零件编辑"
-        self.active_textEdit = active_textEdit
-        self.singlePart_e = singlePart_e
-        self.original_data = original_data
-        self.data = change_data
-        if not self.data:
-            self.event = event
-            self.step = step
-            self.step_type = type(self.step)
-            self.origin_value = self.step_type(self.active_textEdit.text())
-            self.new_value = self.origin_value + self.step
-            self.circle_bt_isChecked: bool = circle_bt_isChecked
+        self.right_widget = right_widget
+        self.part = part
+        self.org_data = [list(self.part.Pos), self.part.Amr, self.part.Len,
+                         self.part.Hei, self.part.FWid, self.part.BWid, self.part.FSpr,
+                         self.part.BSpr, self.part.UCur, self.part.DCur, self.part.HScl,
+                         self.part.HOff]
+        self.change_data = change_data
 
     def execute(self):
-        singlePart_e = self.singlePart_e
-        if self.data:
-            singlePart_e.selected_obj.change_attrs(*self.data, update=True)
-            singlePart_e.selected_obj.update_selectedList = True
-            singlePart_e.selected_obj.glWin.paintGL()
-            singlePart_e.selected_obj.update_selectedList = False
-            return
-        # 修改输入框的值
-        if self.step_type == int:
-            self.active_textEdit.setText(str(self.new_value))
-        elif self.step_type == float:
-            if (self.active_textEdit in [
-                singlePart_e.content["坐标"]["QLineEdit"][0],
-                singlePart_e.content["坐标"]["QLineEdit"][1],
-                singlePart_e.content["坐标"]["QLineEdit"][2]]
-                    and singlePart_e.selected_obj in singlePart_e.selected_obj.allParts_relationMap.basicMap
-                    and singlePart_e.selected_obj.allParts_relationMap.basicMap[singlePart_e.selected_obj] != {}
-            ):
-                # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
-                # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
-                reply = QMessageBox.warning(
-                    None, "警告",
-                    f"""更改单个零件的位置，会解除与其他所有零件的方位关系！\n我们非常不建议您这么做！\n是否继续？""",
-                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Help
-                )
-                if reply == QMessageBox.No:
-                    return
-                elif reply == QMessageBox.Help:
-                    # TODO: 弹出帮助窗口
-                    return
-                elif reply == QMessageBox.Yes:
-                    # 解除关系
-                    relation_map = singlePart_e.selected_obj.allParts_relationMap
-                    relation_map.del_part(singlePart_e.selected_obj)
-            elif self.active_textEdit in [singlePart_e.content["上弧度"]["QLineEdit"][0],
-                                          singlePart_e.content["下弧度"]["QLineEdit"][0]] \
-                    and (self.new_value < 0 or self.new_value > 1):
-                # 弧度值不在0-1之间，直接不修改
-                return
-            self.active_textEdit.setText(str(round(self.new_value, 3)))
-            if not self.circle_bt_isChecked:  # 扩散随着宽度变换
-                if self.active_textEdit == singlePart_e.content["前宽度"]["QLineEdit"][0]:
-                    txt = singlePart_e.content["前扩散"]["QLineEdit"][0].text()
-                    singlePart_e.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - self.step, 3)))
-                elif self.active_textEdit == singlePart_e.content["后宽度"]["QLineEdit"][0]:
-                    txt = singlePart_e.content["后扩散"]["QLineEdit"][0].text()
-                    singlePart_e.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - self.step, 3)))
-        update_success = singlePart_e.update_obj_when_editing()
+        self.part.change_attrs(*self.change_data, update=True)
+        self.right_widget.update_context(self.part)
+        self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
+        self.part.glWin.repaintGL()
 
     def undo(self):
-        singlePart_e = self.singlePart_e
-        if self.data:
-            singlePart_e.selected_obj.change_attrs(*self.original_data, update=True)
-            singlePart_e.selected_obj.update_selectedList = True
-            singlePart_e.selected_obj.glWin.paintGL()
-            singlePart_e.selected_obj.update_selectedList = False
-            return
-        step_type = type(self.step)
-        # 修改输入框的值
-        if step_type == int:
-            self.active_textEdit.setText(str(self.origin_value))
-        elif step_type == float:
-            self.active_textEdit.setText(str(round(self.origin_value, 3)))
-            if not self.circle_bt_isChecked:  # 扩散随着宽度变换
-                if self.active_textEdit == singlePart_e.content["前宽度"]["QLineEdit"][0]:
-                    txt = singlePart_e.content["前扩散"]["QLineEdit"][0].text()
-                    singlePart_e.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) + self.step, 3)))
-                elif self.active_textEdit == singlePart_e.content["后宽度"]["QLineEdit"][0]:
-                    txt = singlePart_e.content["后扩散"]["QLineEdit"][0].text()
-                    singlePart_e.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) + self.step, 3)))
-        update_success = singlePart_e.update_obj_when_editing()
+        self.part.change_attrs(*self.org_data, update=True)
+        self.right_widget.update_context(self.part)
+        self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
+        self.part.glWin.repaintGL()
 
     def redo(self):
         self.execute()

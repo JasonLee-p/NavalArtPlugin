@@ -97,7 +97,7 @@ class Mod1AllPartsEditing(QWidget):
 
 
 class Mod1SinglePartEditing(QWidget):
-    current = None
+    current = None  # 当前正在编辑的对象
 
     def __init__(self):
         """
@@ -215,7 +215,7 @@ class Mod1SinglePartEditing(QWidget):
                     # 解绑鼠标滚轮事件
                     lineEdit.wheelEvent = lambda event: None
                     # 绑定值修改信号
-                    lineEdit.textChanged.connect(self.update_obj_when_editing)
+                    lineEdit.textChanged.connect(self.lineEditChanged)
                     # # 添加撤回快捷键
                     # undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), lineEdit)
                     # undo_shortcut.activated.connect(lineEdit.undo)
@@ -388,101 +388,17 @@ class Mod1SinglePartEditing(QWidget):
             self.hide()
             AddLayerOperation(direction, [self.selected_obj], single=single)
 
-    def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
+    def update_context(self, selected_obj):
         """
-        鼠标滚轮事件
-        :param event:
+        只根据对象修改值，不产生新的操作
+        :param selected_obj:
         :return:
         """
-        if type(event) == list:  # [QTextEdit, QWheelEvent]
-            # 是自己的程序在其他地方的调用，第一项就是需要修改的输入框
-            active_textEdit = event[0]
-            event = event[1]
-        else:
-            # 通过鼠标位置检测当前输入框
-            active_textEdit = None
-            pos = self.mapFromGlobal(QCursor.pos())
-            for key in self.content:
-                if key not in ["类型", "旋转"]:
-                    for textEdit in self.content[key]["QLineEdit"]:
-                        if textEdit.geometry().contains(pos):
-                            active_textEdit = textEdit
-                            break
-                    if active_textEdit:
-                        break
-        if active_textEdit is None:
-            return None
-        step = self.wheel_change_value_map[active_textEdit]
-        # 获取输入框的值
-        if event.angleDelta().y() < 0:
-            step = - step
-        if step != 0:
-            self.update_(event, step, active_textEdit)
-
-    @push_operation
-    def update_(self, event, step, active_textEdit):
-        if active_textEdit.text() == "":
-            active_textEdit.setText("0")
-            return None
-        spo = SinglePartOperation(event, step, active_textEdit, bool(self.circle_bt.isChecked()),
-                                  Mod1SinglePartEditing.current)
-        # spo.execute()
-        return spo
-
-    def update_obj_when_editing(self, event=None):
-        if not self.allow_update_obj_when_editing:
-            return False
-        if event is None:  # 被鼠标滚轮后的调用，不存进undo_stack
-            # 当值被修改，更新被绘制对象的值
-            changed = self.selected_obj.change_attrs(
-                [self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
-                 self.content["坐标"]["QLineEdit"][2].text()],
-                self.content["装甲"]["QLineEdit"][0].text(),
-                self.content["原长度"]["QLineEdit"][0].text(),
-                self.content["原高度"]["QLineEdit"][0].text(),
-                self.content["前宽度"]["QLineEdit"][0].text(),
-                self.content["后宽度"]["QLineEdit"][0].text(),
-                self.content["前扩散"]["QLineEdit"][0].text(),
-                self.content["后扩散"]["QLineEdit"][0].text(),
-                self.content["上弧度"]["QLineEdit"][0].text(),
-                self.content["下弧度"]["QLineEdit"][0].text(),
-                self.content["高缩放"]["QLineEdit"][0].text(),
-                self.content["高偏移"]["QLineEdit"][0].text(),
-                update=True
-            )
-            return changed  # bool
-        else:  # 被连接的直接修改信号的调用，存进undo_stack
-            self.change_part_attrs(event)
-
-    @push_operation
-    def change_part_attrs(self, event):
-        original_data = [self.selected_obj.Pos.copy(), self.selected_obj.Amr, self.selected_obj.Len,
-                         self.selected_obj.Hei, self.selected_obj.FWid, self.selected_obj.BWid, self.selected_obj.FSpr,
-                         self.selected_obj.BSpr, self.selected_obj.UCur, self.selected_obj.DCur, self.selected_obj.HScl,
-                         self.selected_obj.HOff]
-        changed = [[self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
-                    self.content["坐标"]["QLineEdit"][2].text()],
-                   self.content["装甲"]["QLineEdit"][0].text(),
-                   self.content["原长度"]["QLineEdit"][0].text(),
-                   self.content["原高度"]["QLineEdit"][0].text(),
-                   self.content["前宽度"]["QLineEdit"][0].text(),
-                   self.content["后宽度"]["QLineEdit"][0].text(),
-                   self.content["前扩散"]["QLineEdit"][0].text(),
-                   self.content["后扩散"]["QLineEdit"][0].text(),
-                   self.content["上弧度"]["QLineEdit"][0].text(),
-                   self.content["下弧度"]["QLineEdit"][0].text(),
-                   self.content["高缩放"]["QLineEdit"][0].text(),
-                   self.content["高偏移"]["QLineEdit"][0].text()]
-        spo = SinglePartOperation(event, 0, None, bool(self.circle_bt.isChecked()),
-                                  Mod1SinglePartEditing.current, original_data=original_data, change_data=changed)
-        return spo
-
-    def update_context(self, selected_obj):
         self.selected_obj = selected_obj
         if selected_obj is None:
             self.hide()
             return
-        self.allow_update_obj_when_editing = False
+        self.allow_update_obj_when_editing = False  # 防止修改输入框的时候修改对象
         # 更新内容
         obj_type_text = "可调节船体" if selected_obj.Id == "0" else "其他零件"
         self.content["类型"].setText(obj_type_text)
@@ -502,6 +418,108 @@ class Mod1SinglePartEditing(QWidget):
             self.content["高缩放"]["QLineEdit"][0].setText(str(round(selected_obj.HScl, 3)))
             self.content["高偏移"]["QLineEdit"][0].setText(str(round(selected_obj.HOff, 3)))
         self.allow_update_obj_when_editing = True
+
+    def mouse_wheel(self, event) -> Union[SinglePartOperation, None]:
+        """
+        鼠标滚轮事件，修改当前输入框的值
+        :param event:
+        :return:
+        """
+        # 通过鼠标位置检测当前输入框
+        active_textEdit = None
+        pos = self.mapFromGlobal(QCursor.pos())
+        for key in self.content:
+            if key not in ["类型", "旋转"]:
+                for textEdit in self.content[key]["QLineEdit"]:
+                    if textEdit.geometry().contains(pos):
+                        active_textEdit = textEdit
+                        break
+                if active_textEdit:
+                    break
+        if active_textEdit is None:
+            return None
+        step = self.wheel_change_value_map[active_textEdit]
+        # 获取输入框的值
+        if event.angleDelta().y() < 0:
+            step = - step
+        if step == 0:
+            return None
+        # 修改值
+        else:
+            step_type = type(step)
+            new_value = step + step_type(active_textEdit.text())
+            # 修改输入框的值
+            if step_type == int:
+                active_textEdit.setText(str(new_value))
+            elif step_type == float:
+                if (active_textEdit in [
+                    self.content["坐标"]["QLineEdit"][0],
+                    self.content["坐标"]["QLineEdit"][1],
+                    self.content["坐标"]["QLineEdit"][2]]
+                        and self.selected_obj in self.selected_obj.allParts_relationMap.basicMap
+                        and self.selected_obj.allParts_relationMap.basicMap[self.selected_obj] != {}):
+                    # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
+                    # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
+                    reply = QMessageBox.warning(
+                        None, "警告",
+                        f"""更改单个零件的位置，会解除与其他所有零件的方位关系！\n我们非常不建议您这么做！\n是否继续？""",
+                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Help
+                    )
+                    if reply == QMessageBox.No:
+                        return
+                    elif reply == QMessageBox.Help:
+                        # TODO: 弹出帮助窗口
+                        return
+                    elif reply == QMessageBox.Yes:
+                        # 解除关系
+                        relation_map = self.selected_obj.allParts_relationMap
+                        relation_map.del_part(self.selected_obj)
+                elif active_textEdit in [self.content["上弧度"]["QLineEdit"][0],
+                                         self.content["下弧度"]["QLineEdit"][0]] \
+                        and (new_value < 0 or new_value > 1):
+                    # 弧度值不在0-1之间，直接不修改
+                    return
+                active_textEdit.setText(str(round(new_value, 3)))
+                if not self.circle_bt.isChecked():  # 扩散随着宽度变换
+                    if active_textEdit == self.content["前宽度"]["QLineEdit"][0]:
+                        txt = self.content["前扩散"]["QLineEdit"][0].text()
+                        self.content["前扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
+                    elif active_textEdit == self.content["后宽度"]["QLineEdit"][0]:
+                        txt = self.content["后扩散"]["QLineEdit"][0].text()
+                        self.content["后扩散"]["QLineEdit"][0].setText(str(round(float(txt) - step, 3)))
+
+    def lineEditChanged(self, event=None):
+        """
+        输入框值改变时，修改对象的值，并且将操作压入操作栈
+        :return:
+        """
+        if not self.allow_update_obj_when_editing:
+            return False
+        self.allow_update_obj_when_editing = False
+        self.change_part_attrs()
+        self.allow_update_obj_when_editing = True
+
+    @push_operation
+    def change_part_attrs(self):
+        changed = [[
+            self.content["坐标"]["QLineEdit"][0].text(), self.content["坐标"]["QLineEdit"][1].text(),
+            self.content["坐标"]["QLineEdit"][2].text()],
+            self.content["装甲"]["QLineEdit"][0].text(),
+            self.content["原长度"]["QLineEdit"][0].text(),
+            self.content["原高度"]["QLineEdit"][0].text(),
+            self.content["前宽度"]["QLineEdit"][0].text(),
+            self.content["后宽度"]["QLineEdit"][0].text(),
+            self.content["前扩散"]["QLineEdit"][0].text(),
+            self.content["后扩散"]["QLineEdit"][0].text(),
+            self.content["上弧度"]["QLineEdit"][0].text(),
+            self.content["下弧度"]["QLineEdit"][0].text(),
+            self.content["高缩放"]["QLineEdit"][0].text(),
+            self.content["高偏移"]["QLineEdit"][0].text()]
+        # spo = SinglePartOperation(self, event, self.selected_obj, 0, None, bool(self.circle_bt.isChecked()),
+        #                           Mod1SinglePartEditing.current, original_data=original_data, change_data=changed)
+        spo = SinglePartOperation(self, self.selected_obj, changed)
+        return spo
+
 
 
 class Mod1VerticalPartSetEditing(QWidget):

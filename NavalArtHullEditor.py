@@ -735,39 +735,8 @@ class GLWin(OpenGLWin):
             # 将鼠标滚轮事件绑定到右侧的值改变上
             # OperationEditing.current.context.val  # TODO: 未完成
             pass
-        elif self.show_3d_obj_mode == (self.ShowAll, self.ShowObj) and len(
-                self.selected_gl_objects[self.show_3d_obj_mode]) == 1:
-            key_state = self.key_state  # Get a reference to the key_state dictionary
-
-            if key_state[Qt.Key_L]:  # 长度
-                self.editParameter("原长度", event)
-            elif key_state[Qt.Key_H]:  # 高度
-                self.editParameter("原高度", event)
-            elif key_state[Qt.Key_F] and key_state[Qt.Key_W]:  # 前宽
-                self.editParameter("前宽度", event)
-            elif key_state[Qt.Key_B] and key_state[Qt.Key_W]:  # 后宽
-                self.editParameter("后宽度", event)
-            elif key_state[Qt.Key_F] and key_state[Qt.Key_S]:  # 前扩散
-                self.editParameter("前扩散", event)
-            elif key_state[Qt.Key_B] and key_state[Qt.Key_S]:  # 后扩散
-                self.editParameter("后扩散", event)
-            elif key_state[Qt.Key_U] and key_state[Qt.Key_C]:  # 上弧度
-                self.editParameter("上弧度", event)
-            elif key_state[Qt.Key_D] and key_state[Qt.Key_C]:  # 下弧度
-                self.editParameter("下弧度", event)
-            elif key_state[Qt.Key_H] and key_state[Qt.Key_S]:  # 高缩放
-                self.editParameter("高缩放", event)
-            elif key_state[Qt.Key_H] and key_state[Qt.Key_O]:  # 高偏移
-                self.editParameter("高偏移", event)
-            else:
-                super().wheelEvent(event)
         else:
             super().wheelEvent(event)
-
-    @staticmethod
-    def editParameter(parameter_name, event):
-        active_textEdit = Handler.right_widget.tab2_mod1_widget_singlePart.content[parameter_name]["QLineEdit"][0]
-        Handler.right_widget.tab2_mod1_widget_singlePart.mouse_wheel([active_textEdit, event])
 
     @reset_matrix
     def draw_2D_objs(self):
