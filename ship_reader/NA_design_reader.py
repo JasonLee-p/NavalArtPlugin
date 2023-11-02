@@ -1614,7 +1614,7 @@ class ReadNA:
                     average_layer_time = str(average_layer_time).ljust(6, '0')
                     average_relation_time = str(average_relation_time).ljust(6, '0')
                     average_dot_time = str(average_dot_time).ljust(6, '0')
-                    if i % 3 == 0:
+                    if i % 13 == 0:
                         process = round(i / total_parts_num * 100, 2)
                         self.show_statu_func(
                             f"正在实例化第 {i} / {total_parts_num} 个零件： {process} %"
@@ -1650,7 +1650,7 @@ class ReadNA:
             self.ColorPartsMap = {}
             part_num = len(self._xml_all_parts)
             for i, part in enumerate(self._xml_all_parts):
-                if i % 3 == 0:
+                if i % 13 == 0:
                     process = round(i / part_num * 100, 2)
                     self.show_statu_func(f"正在读取第{i}个零件，进度：{process} %", "process")
                 _id = str(part.attrib['id'])

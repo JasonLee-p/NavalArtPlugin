@@ -4,7 +4,7 @@
 该文件引用了https://github.com/ZhangBohan233/PtbStats
 """
 import hashlib
-import json
+import ujson
 import xml.etree.ElementTree as ET
 from typing import Tuple, List
 import os
@@ -1368,7 +1368,7 @@ class DesignAnalyser:
                         "耗弹关系": self.right_frame0_data1
                     }
                     # 保存文件
-                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    ujson.dump(data, f, ensure_ascii=False, indent=2)
                 else:
                     print("文件类型错误！")
         except PermissionError:
@@ -1379,7 +1379,7 @@ class DesignAnalyser:
         # 打开json文件，写入数据
         try:
             with open(os.path.join(_LOCAL_ADDRESS, "reader_cache.json"), 'r', encoding='utf-8') as f:
-                json_data = json.load(f)
+                json_data = ujson.load(f)
         except FileNotFoundError:
             json_data = {}
         # 检查是否有重复的数据
@@ -1389,7 +1389,7 @@ class DesignAnalyser:
             else:
                 json_data[k] = v
         with open(os.path.join(_LOCAL_ADDRESS, "reader_cache.json"), 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
+            ujson.dump(json_data, f, ensure_ascii=False, indent=2)
 
 
 def str2float(string):

@@ -72,12 +72,11 @@ class NAHull(ReadNA, SolidObject):
         i = 0
         for y, parts in self.partRelationMap.xzDotsLayerMap.items():
             i += 1
-            if i % 123 == 0:
+            if i % 53 == 0:
                 self.show_statu_func(f"正在生成xz截面第{i}/{total_y_num}层", "process")
             if len(parts) < 4:
                 continue
             self.xzLayers.append(NaHullXZLayer(self, y, parts))
-        self.show_statu_func("xz截面生成完毕", "process")
         return self.xzLayers
 
     def get_xy_layers(self):
@@ -86,18 +85,16 @@ class NAHull(ReadNA, SolidObject):
         i = 0
         for z, parts in self.partRelationMap.xyDotsLayerMap.items():
             i += 1
-            if i % 123 == 0:
+            if i % 53 == 0:
                 self.show_statu_func(f"正在生成xy截面第{i}/{total_z_num}层", "process")
             if len(parts) < 3:
                 continue
             self.xyLayers.append(NaHullXYLayer(self, z, parts))
-        self.show_statu_func("xy截面生成完毕", "process")
         return self.xyLayers
 
     def get_left_views(self):
         self.leftViews.clear()
         # TODO: 生成左视图
-        self.show_statu_func("左视图生成完毕", "process")
         return self.leftViews
 
     @staticmethod

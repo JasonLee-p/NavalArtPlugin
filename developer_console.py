@@ -500,7 +500,10 @@ class InputTextEdit(QTextEdit):
 
 class Command:
     mode = "command"
-    hints = ["del", "delete", "rot", "rotate", "remap", "reload", "save"]
+    hints = [
+        "del", "rot", "remap", "reload", "save",
+        "delete", "rotate"
+    ]
     import numpy as np
     import matplotlib.pyplot as plt
 

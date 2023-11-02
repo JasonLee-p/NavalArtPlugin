@@ -2,7 +2,7 @@
 """
 定义工程文件对象和配置文件对象
 """
-import json
+import ujson
 import os
 import time
 from typing import Union, Literal
@@ -23,7 +23,7 @@ class ConfigFile:
             # 寻找naval_art目录的上级目录
             _path = os.path.join(find_na_root_path(), 'plugin_config.json')
             with open(_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = ujson.load(f)
             self.Config = data['Config']
             self.UsingTheme = self.Config['Theme']
             self.Sensitivity = self.Config['Sensitivity']
@@ -56,7 +56,7 @@ class ConfigFile:
         # 寻找上级目录
         _path = os.path.join(find_na_root_path(), 'plugin_config.json')
         with open(_path, 'w', encoding='utf-8') as f:
-            json.dump({
+            ujson.dump({
                 'Config': self.Config,
                 'Projects': self.Projects,
                 'ProjectsFolder': self.ProjectsFolder,
@@ -148,7 +148,7 @@ class ProjectFile:
             return None
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = ujson.load(f)
         except FileNotFoundError:
             # QMessageBox(QMessageBox.Warning, '警告', '工程文件不存在！').exec_()
             return None
@@ -213,7 +213,7 @@ class ProjectFile:
             _path = os.path.join(folder_path, self.Name + '.naprj')
         with open(_path, 'w', encoding='utf-8') as f:
             # json.dump(self._json_data, f, ensure_ascii=False, indent=2)
-            json.dump(self._json_data, f, ensure_ascii=False)
+            ujson.dump(self._json_data, f, ensure_ascii=False)
 
     def save_as_na(self, original_na_path, output_file_path):  # 导出为NA船体
         # 以xml形式，na文件格式保存
