@@ -572,4 +572,8 @@ class AddLayerOperation(Operation):
         glWin.update()
 
     def redo(self):
+        # 恢复零件
+        for add_p in self.added_parts_dict.values():
+            self.base_parts[0].read_na_obj.DrawMap[f"#{add_p.Col}"].append(add_p)
+            NAPart.hull_design_tab_id_map[id(add_p) % 4294967296] = add_p
         self.execute()
