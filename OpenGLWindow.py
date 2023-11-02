@@ -472,7 +472,7 @@ class OpenGLWin(QOpenGLWidget):
                 obj.draw_selected(self.gl2_0, theme_color=self.theme_color)
         elif self.show_3d_obj_mode == (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode):
             for node in self.selected_gl_objects[self.show_3d_obj_mode]:
-                if not isinstance(NAPartNode, AdjustableHull):
+                if not isinstance(node, NAPartNode):
                     continue
                 if node.selected_genList and not node.update_selectedList:
                     self.gl2_0.glCallList(node.selected_genList)
