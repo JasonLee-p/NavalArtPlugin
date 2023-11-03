@@ -990,7 +990,7 @@ class AdjustableHull(NAPart):
                 "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
                 "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
                 "BH": self.Hei, "FH": self.Hei, "H": self.Hei,
-                "L": self.Len
+                "L": max(self.FWid, self.FWid + self.FSpr, self.BWid, self.BWid + self.BSpr)
             }
         elif rotation_relation == 'r':
             # 零件右转90度（y+为右）
@@ -998,7 +998,7 @@ class AdjustableHull(NAPart):
                 "FLU": self.Len, "FRU": self.Len, "FLD": self.Len, "FRD": self.Len,
                 "BLU": self.Len, "BRU": self.Len, "BLD": self.Len, "BRD": self.Len,
                 "BH": self.Hei, "FH": self.Hei, "H": self.Hei,
-                "L": self.Len
+                "L": max(self.FWid, self.FWid + self.FSpr, self.BWid, self.BWid + self.BSpr)
             }
         else:
             # 其他情况，暂时不处理
