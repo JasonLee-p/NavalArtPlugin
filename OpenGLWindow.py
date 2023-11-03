@@ -275,7 +275,7 @@ class OpenGLWin(QOpenGLWidget):
         self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
             if isinstance(gl_plot_obj, NAHull):
-                for _color, parts in gl_plot_obj.PartsColorMap.items():
+                for _color, parts in gl_plot_obj.ColorPartsMap.items():
                     for part in parts:
                         self.prj_all_parts.append(part)
                 self.xz_layer_obj.extend(gl_plot_obj.xzLayers)
@@ -1262,7 +1262,7 @@ class OpenGLWin2(QOpenGLWidget):
         self.prj_all_parts = []  # 船体所有零件，用于选中时遍历
         for gl_plot_obj in self.all_3d_obj["钢铁"]:
             if isinstance(gl_plot_obj, NAHull):
-                for _color, parts in gl_plot_obj.PartsColorMap.items():
+                for _color, parts in gl_plot_obj.ColorPartsMap.items():
                     for part in parts:
                         self.prj_all_parts.append(part)
                 self.xz_layer_obj.extend(gl_plot_obj.xzLayers)
