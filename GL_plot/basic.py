@@ -4,7 +4,7 @@
 
 import math
 
-from PyQt5.QtGui import QVector3D
+from PySide2.QtGui import QVector3D
 
 
 def get_normal(dot1, dot2, dot3, center=None):

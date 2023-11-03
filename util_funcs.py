@@ -260,8 +260,8 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
 
 def open_url(url):
     def func(event):
-        from PyQt5.QtCore import QUrl
-        from PyQt5.QtGui import QDesktopServices
+        from PySide2.QtCore import QUrl
+        from PySide2.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl(url))
 
     return func
