@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from typing import Union, List, Dict, Callable
 
 import numpy as np
+from OpenGL.raw.GL.VERSION.GL_1_0 import *
 from quaternion import quaternion
 from util_funcs import CONST, VECTOR_RELATION_MAP, rotate_quaternion, get_normal, fit_bezier
 
@@ -1316,12 +1317,12 @@ class AdjustableHull(NAPart):
         # 16进制颜色转换为RGBA
         _rate = 255
         color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        gl.glColor4f(*color_)
+        glColor4f(*color_)
         if self.pre_genList:
-            gl.glCallList(self.pre_genList)
+            glCallList(self.pre_genList)
             return
-        self.pre_genList = gl.glGenLists(1)
-        gl.glNewList(self.pre_genList, gl.GL_COMPILE_AND_EXECUTE)
+        self.pre_genList = glGenLists(1)
+        glNewList(self.pre_genList, GL_COMPILE_AND_EXECUTE)
         try:
             self.plot_faces = self.plot_faces
         except AttributeError:
@@ -1329,18 +1330,18 @@ class AdjustableHull(NAPart):
         for draw_method, faces_dots in self.plot_faces.items():
             # draw_method是字符串，需要转换为OpenGL的常量
             for face in faces_dots:
-                gl.glBegin(eval(f"gl.{draw_method}"))
+                glBegin(eval(f"gl.{draw_method}"))
                 if len(face) == 3 or len(face) == 4:
                     normal = get_normal(face[0], face[1], face[2])
                 elif len(face) > 12:
                     normal = get_normal(face[0], face[6], face[12])
                 else:
                     continue
-                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                glNormal3f(normal.x(), normal.y(), normal.z())
                 for dot in face:
-                    gl.glVertex3f(dot[0], dot[1], dot[2])
-                gl.glEnd()
-        gl.glEndList()
+                    glVertex3f(dot[0], dot[1], dot[2])
+                glEnd()
+        glEndList()
 
     def draw(self, gl, transparent=False):
         alpha = 1 if transparent is False else 0.3
@@ -1348,13 +1349,13 @@ class AdjustableHull(NAPart):
         # 16进制颜色转换为RGBA
         _rate = 255
         color_ = int(color[1:3], 16) / _rate, int(color[3:5], 16) / _rate, int(color[5:7], 16) / _rate, alpha
-        gl.glColor4f(*color_)
+        glColor4f(*color_)
         if self.genList and self.updateList is False:
-            gl.glCallList(self.genList)
+            glCallList(self.genList)
             return
-        self.genList = gl.glGenLists(1)
-        gl.glNewList(self.genList, gl.GL_COMPILE_AND_EXECUTE)
-        gl.glLoadName(id(self) % 4294967296)
+        self.genList = glGenLists(1)
+        glNewList(self.genList, GL_COMPILE_AND_EXECUTE)
+        glLoadName(id(self) % 4294967296)
         try:
             self.plot_faces = self.plot_faces
         except AttributeError:
@@ -1362,18 +1363,18 @@ class AdjustableHull(NAPart):
         for draw_method, faces_dots in self.plot_faces.items():
             # draw_method是字符串，需要转换为OpenGL的常量
             for face in faces_dots:
-                gl.glBegin(eval(f"gl.{draw_method}"))
+                glBegin(eval(f"gl.{draw_method}"))
                 if len(face) == 3 or len(face) == 4:
                     normal = get_normal(face[0], face[1], face[2])
                 elif len(face) > 12:
                     normal = get_normal(face[0], face[6], face[12])
                 else:
                     continue
-                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                glNormal3f(normal.x(), normal.y(), normal.z())
                 for dot in face:
-                    gl.glVertex3f(dot[0], dot[1], dot[2])
-                gl.glEnd()
-        gl.glEndList()
+                    glVertex3f(dot[0], dot[1], dot[2])
+                glEnd()
+        glEndList()
 
     def redrawGL(self):
         # 修改零件本身的genList状态
@@ -1387,35 +1388,35 @@ class AdjustableHull(NAPart):
 
     def draw_selected(self, gl, theme_color):
         # 材料设置
-        gl.glColor4f(*theme_color["被选中"][0])
+        glColor4f(*theme_color["被选中"][0])
         if self.selected_genList and self.update_selectedList is False:
-            gl.glCallList(self.selected_genList)
+            glCallList(self.selected_genList)
             return
-        self.selected_genList = gl.glGenLists(1)
-        gl.glNewList(self.selected_genList, gl.GL_COMPILE_AND_EXECUTE)
+        self.selected_genList = glGenLists(1)
+        glNewList(self.selected_genList, GL_COMPILE_AND_EXECUTE)
         for draw_method, faces_dots in self.plot_faces.items():
             # draw_method是字符串，需要转换为OpenGL的常量
             for face in faces_dots:
-                gl.glBegin(eval(f"gl.{draw_method}"))
+                glBegin(eval(f"gl.{draw_method}"))
                 if len(face) == 3 or len(face) == 4:
                     normal = get_normal(face[0], face[1], face[2])
                 elif len(face) > 12:
                     normal = get_normal(face[0], face[6], face[12])
                 else:
                     continue
-                gl.glNormal3f(normal.x(), normal.y(), normal.z())
+                glNormal3f(normal.x(), normal.y(), normal.z())
                 for dot in face:
-                    gl.glVertex3f(dot[0], dot[1], dot[2])
-                gl.glEnd()
-        gl.glColor4f(*theme_color["橙色"][0])
-        gl.glLineWidth(3)
+                    glVertex3f(dot[0], dot[1], dot[2])
+                glEnd()
+        glColor4f(*theme_color["橙色"][0])
+        glLineWidth(3)
         for _line_name, line in self.plot_lines.items():
             # 首尾不相连
-            gl.glBegin(gl.GL_LINE_STRIP)
+            glBegin(GL_LINE_STRIP)
             for dot in line:
-                gl.glVertex3f(dot[0], dot[1], dot[2])
-            gl.glEnd()
-        gl.glEndList()
+                glVertex3f(dot[0], dot[1], dot[2])
+            glEnd()
+        glEndList()
 
 
 class MainWeapon(NAPart):

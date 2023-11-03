@@ -6,7 +6,7 @@
 import copy
 from typing import List, Literal, Union
 
-from PyQt5.QtWidgets import QLineEdit
+from PySide2.QtWidgets import QLineEdit
 # 包内文件
 from .basic import Operation
 # 其他本地库

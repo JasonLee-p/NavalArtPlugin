@@ -18,7 +18,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.raw.GL.VERSION.GL_2_0 import GL_VERTEX_SHADER, GL_FRAGMENT_SHADER
-from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
+# from OpenGL.raw.GL.VERSION.GL_1_0 import GL_PROJECTION, GL_MODELVIEW, GL_LINE_STIPPLE
 
 from ship_reader.NA_design_reader import NAPart, AdjustableHull, NAPartNode
 from GL_plot import *
@@ -330,21 +330,6 @@ class OpenGLWin(QOpenGLWidget):
 
     def initializeGL(self) -> None:
         self.init_gl()  # 初始化OpenGL相关参数
-        # 创建着色器程序
-        self.shaderProgram = self.gl2_0.glCreateProgram()
-        # 创建顶点着色器
-        vertexShader = self.gl2_0.glCreateShader(GL_VERTEX_SHADER)
-        glShaderSource(vertexShader, VERTEX_SHADER)
-        self.gl2_0.glCompileShader(vertexShader)
-        # 创建片段着色器
-        fragmentShader = self.gl2_0.glCreateShader(GL_FRAGMENT_SHADER)
-        glShaderSource(fragmentShader, FRAGMENT_SHADER)
-        self.gl2_0.glCompileShader(fragmentShader)
-        # 将着色器附加到程序上
-        glAttachShader(self.shaderProgram, vertexShader)
-        glAttachShader(self.shaderProgram, fragmentShader)
-        # self.gl.glLinkProgram(self.shaderProgram)  # 链接着色器程序
-        # self.gl.glUseProgram(self.shaderProgram)  # 使用着色器程序
         # ===============================================================================绘制
         # 设置背景颜色
         glClearColor(*self.theme_color["背景"])
@@ -354,10 +339,6 @@ class OpenGLWin(QOpenGLWidget):
         self.environment_obj["光源"].append(LightSphere(
             self.gl2_0, central=self.light_pos, radius=20))
         # ===============================================================================绘制
-        self.vbo = self.gl2_0.glGenBuffers(1)  # 创建VBO
-        self.vao = glGenVertexArrays(1)  # 创建VAO
-        glBindVertexArray(self.vao)  # 绑定VAO
-        glBindBuffer(self.gl2_0.GL_ARRAY_BUFFER, self.vbo)  # 绑定VBO
         self.initialized = True
 
     def paintGL(self) -> None:
@@ -376,12 +357,12 @@ class OpenGLWin(QOpenGLWidget):
         else:  # 绘制船体
             self.draw_main_objs()
             # 开启辅助光
-            self.gl2_0.glEnable(GL_LIGHT1)
+            glEnable(GL_LIGHT1)
             self.draw_selected_objs()
             self.draw_temp_objs()
             self.draw_2D_objs()
             # 关闭辅助光
-            self.gl2_0.glDisable(GL_LIGHT1)
+            glDisable(GL_LIGHT1)
         if time.time() - st != 0:  # 刷新FPS
             self.fps_label.setText(f"FPS: {round(1 / (time.time() - st), 1)}")
 
@@ -416,10 +397,10 @@ class OpenGLWin(QOpenGLWidget):
                     index = self.subMod_buttons.index(button)
                     button.setGeometry(sub_right + 10 + index * (self.ModBtWid + 35), 50, self.ModBtWid + 25, 23)
         # 清除颜色缓冲区和深度缓冲区
-        self.gl2_0.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         # 设置相机
-        self.gl2_0.glLoadIdentity()  # 重置矩阵
-        self.gl2_0.glDisable(GL_LINE_STIPPLE)  # 禁用虚线模式
+        glLoadIdentity()  # 重置矩阵
+        glDisable(GL_LINE_STIPPLE)  # 禁用虚线模式
         self.set_camera() if self.camera_movable else None
 
     def draw_loading_objs(self):
@@ -522,15 +503,15 @@ class OpenGLWin(QOpenGLWidget):
         转变为二维视角，画出选择框
         """
         # 画虚线框
-        self.gl2_0.glColor4f(*self.theme_color["选择框"][0])
-        self.gl2_0.glEnable(GL_LINE_STIPPLE)  # 启用虚线模式
-        self.gl2_0.glLineStipple(0, 0x00FF)  # 设置虚线的样式
-        self.gl2_0.glBegin(self.gl2_0.GL_LINE_LOOP)
-        self.gl2_0.glVertex2f(self.select_start.x(), self.select_start.y())
-        self.gl2_0.glVertex2f(self.select_start.x(), self.select_end.y())
-        self.gl2_0.glVertex2f(self.select_end.x(), self.select_end.y())
-        self.gl2_0.glVertex2f(self.select_end.x(), self.select_start.y())
-        self.gl2_0.glEnd()
+        glColor4f(*self.theme_color["选择框"][0])
+        glEnable(GL_LINE_STIPPLE)  # 启用虚线模式
+        glLineStipple(0, 0x00FF)  # 设置虚线的样式
+        glBegin(GL_LINE_LOOP)
+        glVertex2f(self.select_start.x(), self.select_start.y())
+        glVertex2f(self.select_start.x(), self.select_end.y())
+        glVertex2f(self.select_end.x(), self.select_end.y())
+        glVertex2f(self.select_end.x(), self.select_start.y())
+        glEnd()
 
     def draw_temp_objs(self):
         for obj in TempObj.all_objs.copy():
@@ -1052,30 +1033,30 @@ class OpenGLWin(QOpenGLWidget):
 
     def init_light(self):
         # 添加光源
-        self.gl2_0.glEnable(self.gl2_0.GL_LIGHTING)
-        self.gl2_0.glEnable(self.gl2_0.GL_LIGHT0)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
         # 主光源
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_POSITION, (
+        glLightfv(GL_LIGHT0, GL_POSITION, (
             self.light_pos.x(), self.light_pos.y(), self.light_pos.z(),  # 光源位置
             100.0))
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_AMBIENT, self.theme_color["主光源"][0])  # 设置环境光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_DIFFUSE, self.theme_color["主光源"][1])  # 设置漫反射光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPECULAR, self.theme_color["主光源"][2])  # 设置镜面光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT0, self.gl2_0.GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
+        glLightfv(GL_LIGHT0, GL_AMBIENT, self.theme_color["主光源"][0])  # 设置环境光
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.theme_color["主光源"][1])  # 设置漫反射光
+        glLightfv(GL_LIGHT0, GL_SPECULAR, self.theme_color["主光源"][2])  # 设置镜面光
+        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
+        glLightfv(GL_LIGHT0, GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
+        glLightfv(GL_LIGHT0, GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
+        glLightfv(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
         # 辅助光源
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_POSITION, (
+        glLightfv(GL_LIGHT1, GL_POSITION, (
             self.light_pos.x(), self.light_pos.y(), self.light_pos.z(),  # 光源位置
             100.0))
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_AMBIENT, self.theme_color["辅助光"][0])  # 设置环境光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_DIFFUSE, self.theme_color["辅助光"][1])  # 设置漫反射光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPECULAR, self.theme_color["辅助光"][1])  # 设置镜面光
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
-        self.gl2_0.glLightfv(self.gl2_0.GL_LIGHT1, self.gl2_0.GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
+        glLightfv(GL_LIGHT1, GL_AMBIENT, self.theme_color["辅助光"][0])  # 设置环境光
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, self.theme_color["辅助光"][1])  # 设置漫反射光
+        glLightfv(GL_LIGHT1, GL_SPECULAR, self.theme_color["辅助光"][1])  # 设置镜面光
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (0.0, 0.0, 0.0))  # 设置聚光方向
+        glLightfv(GL_LIGHT1, GL_SPOT_EXPONENT, (0.0,))  # 设置聚光指数
+        glLightfv(GL_LIGHT1, GL_SPOT_CUTOFF, (180.0,))  # 设置聚光角度
+        glLightfv(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (0.0,))  # 设置二次衰减
 
     def init_view(self):
         # 适应窗口大小

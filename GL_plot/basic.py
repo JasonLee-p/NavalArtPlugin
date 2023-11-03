@@ -4,6 +4,7 @@
 
 import math
 
+from OpenGL.raw.GL.VERSION.GL_1_0 import *
 from PySide2.QtGui import QVector3D
 
 
@@ -57,15 +58,15 @@ class LineGroupObject(GLObject):
         pass
 
     def draw(self, gl, theme_color, material):
-        gl.glLoadName(id(self) % 4294967296)
+        glLoadName(id(self) % 4294967296)
         for num, line in self.lines.items():
-            gl.glLineWidth(line[1])
-            gl.glColor4f(*line[0])
-            gl.glBegin(gl.GL_LINE_STRIP)
+            glLineWidth(line[1])
+            glColor4f(*line[0])
+            glBegin(GL_LINE_STRIP)
             for dot in line[2]:
-                gl.glNormal3f(0, 1, 0)
-                gl.glVertex3f(*dot)
-            gl.glEnd()
+                glNormal3f(0, 1, 0)
+                glVertex3f(*dot)
+            glEnd()
 
 
 class SolidObject(GLObject):
@@ -81,16 +82,16 @@ class SolidObject(GLObject):
         self.center = QVector3D(0, 0, 0)
 
     def draw(self, gl, material, theme_color):
-        gl.glLoadName(id(self) % 4294967296)
-        gl.glColor4f(*self.faces["color"])
+        glLoadName(id(self) % 4294967296)
+        glColor4f(*self.faces["color"])
         for normal, face in zip(self.faces["normal"], self.faces["faces"]):
-            gl.glBegin(gl.GL_POLYGON)
-            gl.glNormal3f(normal.x(), normal.y(), normal.z()) if isinstance(normal, QVector3D) \
-                else gl.glNormal3f(normal[0], normal[1], normal[2])
+            glBegin(GL_POLYGON)
+            glNormal3f(normal.x(), normal.y(), normal.z()) if isinstance(normal, QVector3D) \
+                else glNormal3f(normal[0], normal[1], normal[2])
             for dot in face:
-                gl.glVertex3f(dot.x(), dot.y(), dot.z()) if isinstance(dot, QVector3D) \
-                    else gl.glVertex3f(dot[0], dot[1], dot[2])
-            gl.glEnd()
+                glVertex3f(dot.x(), dot.y(), dot.z()) if isinstance(dot, QVector3D) \
+                    else glVertex3f(dot[0], dot[1], dot[2])
+            glEnd()
 
     def get_center(self):
         # 计算中心点
@@ -217,7 +218,10 @@ class Surface(SolidObject):
 class LightSphere(SolidObject):
     def __init__(self, gl, radius=1000, central=(0, 0, 0), color=(0.7, 0.7, 0.7, 1)):
         self.radius = radius
-        self.central = central
+        if isinstance(central, tuple) or isinstance(central, list):
+            self.central = central
+        else:
+            self.central = (central.x(), central.y(), central.z())
         self.color = color
         self._faces = []
         n = 10
@@ -259,7 +263,7 @@ class LightSphere(SolidObject):
         }
 
     def draw(self, gl, material, theme_color):
-        gl.glLoadName(id(self) % 4294967296)
+        glLoadName(id(self) % 4294967296)
         super(LightSphere, self).draw(gl, material, theme_color)
 
 

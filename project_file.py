@@ -7,7 +7,7 @@ import os
 import time
 from typing import Union, Literal
 
-from PyQt5.QtWidgets import QMessageBox
+from PySide2.QtWidgets import QMessageBox
 from path_utils import find_na_root_path
 
 

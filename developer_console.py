@@ -8,7 +8,7 @@ import traceback
 from base64 import b64decode
 from io import StringIO
 
-from PyQt5.QtGui import QFontMetrics, QFont
+from PySide2.QtGui import QFontMetrics, QFont
 
 from GUI.basic import close
 from GUI import *

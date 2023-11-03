@@ -7,7 +7,7 @@ Mod表示模式，1表示全视图模式，2表示水平截面模式，3表示�
 import time
 from typing import Union, List
 
-from PyQt5.QtGui import QIntValidator
+from PySide2.QtGui import QIntValidator
 
 from GUI import *
 from ship_reader import NAPart, AdjustableHull
