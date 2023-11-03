@@ -71,7 +71,9 @@ class AddLayerEditing(OperationEditing):
         self.ensure_button = QPushButton("确定")
         set_buttons([self.cancel_button, self.ensure_button], sizes=(110, 30), font=FONT_8, border=1,
                     border_color=FG_COLOR2)
+        # noinspection PyUnresolvedReferences
         self.cancel_button.clicked.connect(self.cancel_button_clicked)
+        # noinspection PyUnresolvedReferences
         self.ensure_button.clicked.connect(self.ensure_button_clicked)
         # 内容
         self.content = {}
@@ -169,7 +171,7 @@ class AddLayerEditing(OperationEditing):
     def text_changed(self, event=None):
         if self.mouseWheeling:
             return None
-        active_textEdit = self.sender()
+        active_textEdit: QLineEdit = self.sender()
         key = None
         for key_ in self.content:
             for lineEdit in self.content[key_]["QLineEdit"]:
@@ -363,6 +365,7 @@ class RotateEditing(OperationEditing):
         self.cancel_button = QPushButton("取消")
         set_buttons([self.cancel_button], sizes=(110, 30), font=FONT_8, border=1,
                     border_color=FG_COLOR2)
+        # noinspection PyUnresolvedReferences
         self.cancel_button.clicked.connect(self.cancel_button_clicked)
         # 其他按钮
         self.rotX180_bt = QPushButton()
@@ -390,6 +393,7 @@ class RotateEditing(OperationEditing):
         tips = MyLabel("该功能不稳定，不建议使用抬头低头左右旋转", FONT_8, side=Qt.AlignCenter, color=GRAY)
         self.layout.addWidget(tips, 6, 0, 1, 3, alignment=Qt.AlignCenter)
 
+    # noinspection PyUnresolvedReferences
     def init_mid_buttons(self):
         # 设置按钮样式（不包括取消和确定）
         style = str(f"QPushButton{{background-color: {BG_COLOR1};color: {FG_COLOR0};"

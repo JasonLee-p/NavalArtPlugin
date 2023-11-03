@@ -328,6 +328,7 @@ def after_open():
     Handler.hull_design_tab.ThreeDFrame.repaintGL()
     if StateHistory.current:
         StateHistory.current.init_stack()
+    ReadNA.is_reading = False
     ProjectHandler.LoadingProject = False
 
 

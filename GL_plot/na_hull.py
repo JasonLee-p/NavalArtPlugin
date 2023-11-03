@@ -24,6 +24,7 @@ class NAHull(ReadNA, SolidObject):
         :param path:
         :param data:
         """
+        ReadNA.is_reading = True
         # 判断show_statu_func是函数还是qsignal，
         try:
             self.show_statu_func = show_statu_func.emit

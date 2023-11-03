@@ -4,7 +4,6 @@
 Mod表示模式，1表示全视图模式，2表示水平截面模式，3表示竖直截面模式，4表示左视图模式
 
 """
-import time
 from typing import Union, List
 
 from PyQt5.QtGui import QIntValidator
@@ -82,7 +81,7 @@ class Mod1AllPartsEditing(QWidget):
     def remap_all_parts(event=None):
         _p = list(NAPart.hull_design_tab_id_map.values())[0]
         i = 0
-        while type(_p) != AdjustableHull and i < len(NAPart.hull_design_tab_id_map):
+        while not isinstance(_p, AdjustableHull) and i < len(NAPart.hull_design_tab_id_map):
             i += 1
             _p = list(NAPart.hull_design_tab_id_map.values())[i]
         part_relation_map = _p.allParts_relationMap
@@ -496,7 +495,7 @@ class Mod1SinglePartEditing(QWidget):
         if not self.allow_update_obj_when_editing:
             return False
         self.allow_update_obj_when_editing = False
-        active_textEdit = self.sender()
+        active_textEdit: QLineEdit = self.sender()
         try:
             float(active_textEdit.text())
         except ValueError:
@@ -612,41 +611,41 @@ class Mod1VerticalPartSetEditing(QWidget):
     @push_global_statu
     def add_z(self, event=None):
         return
-        front_parts = []
-        back_parts = []
-        glWin = self.selected_objs[0].glWin
-        for part in self.selected_objs:
-            FP, BP = part.add_z_without_relation(smooth=True)
-            if FP or BP:
-                front_parts.append(FP)
-                back_parts.append(BP)
-        # 处理零件关系图
-        relation_map = self.selected_objs[0].allParts_relationMap
-        self.selected_objs = []
-        # TODO: 未完成
-        # 重新渲染
-        glWin.repaintGL()
-        self.hide()
+        # front_parts = []
+        # back_parts = []
+        # glWin = self.selected_objs[0].glWin
+        # for part in self.selected_objs:
+        #     FP, BP = part.add_z_without_relation(smooth=True)
+        #     if FP or BP:
+        #         front_parts.append(FP)
+        #         back_parts.append(BP)
+        # # 处理零件关系图
+        # relation_map = self.selected_objs[0].allParts_relationMap
+        # self.selected_objs = []
+        # # TODO: 未完成
+        # # 重新渲染
+        # glWin.repaintGL()
+        # self.hide()
 
     @not_implemented
     @push_global_statu
     def add_y(self, event=None):
         return
-        up_parts = []
-        down_parts = []
-        glWin = self.selected_objs[0].glWin
-        for part in self.selected_objs:
-            UP, DP = part.add_y_without_relation(smooth=True)
-            if UP or DP:
-                up_parts.append(UP)
-                down_parts.append(DP)
-        # 处理零件关系图
-        relation_map = self.selected_objs[0].allParts_relationMap
-        self.selected_objs = []
-        # TODO: 未完成
-        # 重新渲染
-        glWin.repaintGL()
-        self.hide()
+        # up_parts = []
+        # down_parts = []
+        # glWin = self.selected_objs[0].glWin
+        # for part in self.selected_objs:
+        #     UP, DP = part.add_y_without_relation(smooth=True)
+        #     if UP or DP:
+        #         up_parts.append(UP)
+        #         down_parts.append(DP)
+        # # 处理零件关系图
+        # relation_map = self.selected_objs[0].allParts_relationMap
+        # self.selected_objs = []
+        # # TODO: 未完成
+        # # 重新渲染
+        # glWin.repaintGL()
+        # self.hide()
 
     def add_front_layer(self, event=None):
         self.add_layer_(CONST.FRONT)
@@ -747,41 +746,41 @@ class Mod1HorizontalPartSetEditing(QWidget):
     @push_global_statu
     def add_z(self, event=None):
         return
-        front_parts = []
-        back_parts = []
-        glWin = self.selected_objs[0].glWin
-        for part in self.selected_objs:
-            FP, BP = part.add_z_without_relation(smooth=True)
-            if FP or BP:
-                front_parts.append(FP)
-                back_parts.append(BP)
-        # 处理零件关系图
-        relation_map = self.selected_objs[0].allParts_relationMap
-        self.selected_objs = []
-        # TODO: 未完成
-        # 重新渲染
-        glWin.repaintGL()
-        self.hide()
+        # front_parts = []
+        # back_parts = []
+        # glWin = self.selected_objs[0].glWin
+        # for part in self.selected_objs:
+        #     FP, BP = part.add_z_without_relation(smooth=True)
+        #     if FP or BP:
+        #         front_parts.append(FP)
+        #         back_parts.append(BP)
+        # # 处理零件关系图
+        # relation_map = self.selected_objs[0].allParts_relationMap
+        # self.selected_objs = []
+        # # TODO: 未完成
+        # # 重新渲染
+        # glWin.repaintGL()
+        # self.hide()
 
     @not_implemented
     @push_global_statu
     def add_y(self, event=None):
         return
-        up_parts = []
-        down_parts = []
-        glWin = self.selected_objs[0].glWin
-        for part in self.selected_objs:
-            UP, DP = part.add_y_without_relation(smooth=True)
-            if UP or DP:
-                up_parts.append(UP)
-                down_parts.append(DP)
-        # 处理零件关系图
-        relation_map = self.selected_objs[0].allParts_relationMap
-        self.selected_objs = []
-        # TODO: 未完成
-        # 重新渲染
-        glWin.repaintGL()
-        self.hide()
+        # up_parts = []
+        # down_parts = []
+        # glWin = self.selected_objs[0].glWin
+        # for part in self.selected_objs:
+        #     UP, DP = part.add_y_without_relation(smooth=True)
+        #     if UP or DP:
+        #         up_parts.append(UP)
+        #         down_parts.append(DP)
+        # # 处理零件关系图
+        # relation_map = self.selected_objs[0].allParts_relationMap
+        # self.selected_objs = []
+        # # TODO: 未完成
+        # # 重新渲染
+        # glWin.repaintGL()
+        # self.hide()
 
     def add_front_layer(self, event=None):
         self.add_layer_(CONST.FRONT)

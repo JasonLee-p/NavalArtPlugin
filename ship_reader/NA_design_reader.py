@@ -1517,6 +1517,7 @@ class MainWeapon(NAPart):
 
 
 class ReadNA:
+    is_reading = False
     NaPathMode = "folder_path"
     NaDataMode = "data"
 
@@ -1529,7 +1530,6 @@ class ReadNA:
         :param show_statu_func:
         """
         self.glWin = glWin  # 用于绘制的窗口
-
         self.filename: str  # 文件名
         self.filepath: str  # 文件路径
         self.ShipName: str  # 船名

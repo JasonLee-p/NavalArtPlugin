@@ -10,7 +10,8 @@ from GL_plot.na_hull import (
     NAPart, NAPartNode, NAXYLayerNode, NAXZLayerNode, NALeftViewNode
 )
 
-from ship_reader.NA_design_reader import PartRelationMap as PRM
+from ship_reader import PRM, ReadNA
+
 
 
 class Memento:
@@ -182,6 +183,8 @@ def push_global_statu(func):
     """
 
     def wrapper(*args, **kwargs):
+        if ReadNA.is_reading:
+            return False
         execute = func(*args, **kwargs)
         if execute is not False:
             StateHistory.current.execute()
