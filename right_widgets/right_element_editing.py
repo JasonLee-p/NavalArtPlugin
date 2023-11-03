@@ -260,19 +260,21 @@ class Mod1SinglePartEditing(QWidget):
                     f"QPushButton:pressed{{background-color: {BG_COLOR3};color: {FG_COLOR0};"
                     f"border: 1px solid {FG_COLOR2};border-radius: 5px;}}")
         for i in range(len(self.transform_buttons)):
-            self.transform_buttons[i].setStyleSheet(style)
-            self.transform_buttons[i].setLayout(QHBoxLayout())
-            self.transform_buttons[i].layout().setSpacing(0)
-            self.transform_buttons[i].layout().setContentsMargins(3, 3, 3, 3)
-            self.transform_buttons[i].setFixedSize(90, 50)
-            self.transform_layout.addWidget(self.transform_buttons[i], 2 * (i // 2), i % 2)
+            _bt = self.transform_buttons[i]
+            _bt.setStyleSheet(style)
+            _bt.setLayout(QHBoxLayout())
+            _bt.layout().setSpacing(0)
+            _bt.layout().setContentsMargins(3, 3, 3, 3)
+            _bt.setFixedSize(90, 50)
+            self.transform_layout.addWidget(_bt, 2 * (i // 2), i % 2)
         for i in range(len(self.add_buttons)):
-            self.add_buttons[i].setStyleSheet(style)
-            self.add_buttons[i].setLayout(QHBoxLayout())
-            self.add_buttons[i].layout().setSpacing(0)
-            self.add_buttons[i].layout().setContentsMargins(3, 3, 3, 3)
-            self.add_buttons[i].setFixedSize(90, 50)
-            self.add_layout.addWidget(self.add_buttons[i], 2 * (i // 2), i % 2)
+            _bt = self.add_buttons[i]
+            _bt.setStyleSheet(style)
+            _bt.setLayout(QHBoxLayout())
+            _bt.layout().setSpacing(0)
+            _bt.layout().setContentsMargins(3, 3, 3, 3)
+            _bt.setFixedSize(90, 50)
+            self.add_layout.addWidget(_bt, 2 * (i // 2), i % 2)
         # 按钮内添加控件
         self.rotate_button.layout().addWidget(MyLabel("不变形旋转", FONT_9, side=Qt.AlignCenter))
         self.scl_norm_button.layout().addWidget(MyLabel("缩放归一化", FONT_9, side=Qt.AlignCenter))
@@ -291,7 +293,7 @@ class Mod1SinglePartEditing(QWidget):
         self.add_up_layer_button.layout().addWidget(MyLabel("向上添加层", FONT_9, side=Qt.AlignCenter))
         self.add_down_layer_button.layout().addWidget(MyLabel("向下添加层", FONT_9, side=Qt.AlignCenter))
         # 绑定按钮事件
-        self.rotate_button.clicked.connect(self.rotate)
+        self.rotate_button.clicked.connect(self.rotate_opr)
         self.scl_norm_button.clicked.connect(self.scl_norm)
         self.forecastle_button.clicked.connect(self.forecastle)
         self.poop_button.clicked.connect(self.poop)
@@ -321,9 +323,9 @@ class Mod1SinglePartEditing(QWidget):
             show_buttons(self.add_buttons)
             hide_buttons(self.transform_buttons)
 
-    @not_implemented
-    def rotate(self, event=None):
-        pass
+    def rotate_opr(self, event=None):
+        self.hide()
+        RotateSinglePartOperation(self.selected_obj)
 
     @not_implemented
     def scl_norm(self, event=None):

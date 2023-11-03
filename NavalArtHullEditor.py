@@ -33,7 +33,7 @@ try:
     from right_widgets import *
     from project_file import ConfigFile
     from project_file import ProjectFile as PF
-    from operation import AddLayerOperation
+    from operation import *
 
 except (ImportError, ModuleNotFoundError):
     traceback.print_exc()
@@ -1248,7 +1248,9 @@ class RightTabWidget(QTabWidget):
         self.tab2_mod2_grid_multiLayer = QGridLayout()
         # 00000000000000000000000000000000000000000000000000000000000000000000000000 操作绑定
         self.tab2_operation_addPartLayer = AddLayerEditing()
+        self.tab2_operation_rotateSinglePart = RotateEditing()
         AddLayerOperation.right_frame = self.tab2_operation_addPartLayer
+        RotateSinglePartOperation.right_frame = self.tab2_operation_rotateSinglePart
         # 当前显示的widget
         self.tab1_current_widget = self.tab1_mod1_widget_allParts
         self.tab2_current_widget = self.tab2_mod1_widget_allParts
@@ -1621,6 +1623,7 @@ class RightTabWidget(QTabWidget):
         self.tab2_main_layout.addWidget(self.tab2_mod2_widget_multiLayer)
         # 00000000000000000000000000000000000000000000000000000000000000000000000 操作
         self.tab2_main_layout.addWidget(self.tab2_operation_addPartLayer)
+        self.tab2_main_layout.addWidget(self.tab2_operation_rotateSinglePart)
         # 隐藏
         self.tab2_mod1_widget_singlePart.hide()  # mod1
         self.tab2_mod1_widget_verticalPartSet.hide()

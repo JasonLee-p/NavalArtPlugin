@@ -4,17 +4,17 @@
 """
 # 系统库
 import copy
-from typing import List, Literal, Union
+from typing import List
 
-from PyQt5.QtWidgets import QLineEdit
+import numpy as np
+
 # 包内文件
 from .basic import Operation
 # 其他本地库
-from GUI import QMessageBox
 from ship_reader import NAPart, AdjustableHull
 from GL_plot import TempAdHull
-from util_funcs import CONST, get_part_world_dirs
-from right_widgets.right_operation_editing import AddLayerEditing
+from util_funcs import get_part_world_dirs
+from right_widgets.right_operation_editing import *
 
 
 class SinglePartOperation(Operation):
@@ -33,13 +33,11 @@ class SinglePartOperation(Operation):
         self.part.change_attrs(*self.change_data, update=True)
         self.right_widget.update_context(self.part)
         self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
-        self.part.glWin.repaintGL()
 
     def undo(self):
         self.part.change_attrs(*self.org_data, update=True)
         self.right_widget.update_context(self.part)
         self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
-        self.part.glWin.repaintGL()
 
     def redo(self):
         self.execute()
@@ -104,6 +102,75 @@ class DeleteSinglePartOperation(Operation):
             self.allParts_relationMap.undo_del_part(self.original_part)
         # 重新渲染
         self.glWin.repaintGL()
+
+    def redo(self):
+        self.execute()
+
+
+class RotateSinglePartOperation(Operation):
+    """
+    不变外观地旋转零件
+    """
+    right_frame: Union[RotateEditing, None] = None
+
+    __MAP = {
+        "x90": [90., 0., 0.],
+        "x270": [270., 0., 0.],
+        "y90": [0., 90., 0.],
+        "y270": [0., 270., 0.],
+        "z90": [0., 0., 90.],
+        "z270": [0., 0., 270.],
+        "x180": [180., 0., 0.],
+        "y180": [0., 180., 0.],
+        "z180": [0., 0., 180.],
+    }
+
+    def __init__(self, part):
+        super().__init__()
+        self.name = "旋转零件"
+        self.part = part
+        self.org_data = [list(self.part.Pos), self.part.Rot, self.part.Amr, self.part.Len, self.part.Hei,
+                         self.part.FWid, self.part.BWid, self.part.FSpr, self.part.BSpr,
+                         self.part.UCur, self.part.DCur, self.part.HScl, self.part.HOff]
+        self.rot_method = None
+        self.roted_p_data = None
+        self.newRot = None
+        self.rotated_part = None
+        # 初始化右侧编辑界面
+        self.right_frame.update_rotation(self)
+
+    def get_rot_method(self, rot_method: Literal["x90", "x270", "y90", "y270", "z90", "z270", "x180", "y180", "z180"]):
+        self.rot_method = rot_method
+        self.roted_p_data = self.part.get_data_in_coordinate(self.__MAP[rot_method])
+        if not self.roted_p_data:
+            QMessageBox(QMessageBox.Warning, "提示", "暂不支持该旋转方式", QMessageBox.Yes).exec_()
+            return False
+        rot_matrix = np.array(self.__MAP[rot_method])
+        self.newRot = rot_matrix + np.array(self.part.Rot)
+        # 取余
+        self.newRot = [self.newRot[0] % 360, self.newRot[1] % 360, self.newRot[2] % 360]
+        UCur = 0
+        DCur = 0
+        if self.rot_method in ["x180", "z180"]:
+            UCur = self.part.DCur
+            DCur = self.part.UCur
+        elif "y" in self.rot_method:
+            UCur = self.part.UCur
+            DCur = self.part.DCur
+        self.rotated_part = [list(self.part.Pos), self.newRot, self.part.Amr, self.roted_p_data["L"], self.roted_p_data["H"],
+                             self.roted_p_data["FLD"], self.roted_p_data["BLD"],
+                             self.roted_p_data["FLU"] - self.roted_p_data["FLD"],
+                             self.roted_p_data["BLU"] - self.roted_p_data["BLD"],
+                             UCur, DCur, self.roted_p_data["FH"] / self.roted_p_data["H"], 0]
+        return True
+
+    def execute(self):
+        self.part.change_attrs_with_rot(*self.rotated_part, update=True)
+        self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
+
+    def undo(self):
+        self.part.change_attrs_with_rot(*self.org_data, update=True)
+        self.part.glWin.selected_gl_objects[self.part.glWin.show_3d_obj_mode] = [self.part]
 
     def redo(self):
         self.execute()
