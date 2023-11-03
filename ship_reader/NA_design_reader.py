@@ -1447,6 +1447,8 @@ class AdjustableHull(NAPart):
         # 修改零件本身的genList状态
         self.updateList = True
         self.update_selectedList = True
+        self.genList = None
+        self.selected_genList = None
         # 重新渲染
         self.glWin.repaintGL()
         # 修改零件本身的genList状态
