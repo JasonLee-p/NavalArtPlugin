@@ -8,9 +8,9 @@ from PySide2.QtWidgets import QSplitter, QMenu, QAction, QTabWidget
 from .basic import *
 
 if Theme == "Day":
-    from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z
+    from UI_design.ImgPng_day import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip
 elif Theme == "Night":
-    from UI_design.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z
+    from UI_design.ImgPng_night import ICO, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip
 
 # 图标
 ICO_ = b64decode(ICO)
@@ -18,6 +18,7 @@ ADD_ = b64decode(add)
 CHOOSE_ = b64decode(choose)
 ADD_Y = b64decode(add_y)
 ADD_Z = b64decode(add_z)
+TIP_ = b64decode(tip)
 
 
 class MainWindow(QWidget):
@@ -117,7 +118,10 @@ class MainWindow(QWidget):
                 }}
             """)
             menu_button.setFont(FONT_11)
-            menu_button.setMenu(self.init_sub_menu(menu_name, menu_map))
+            su_menu = self.init_sub_menu(menu_name, menu_map)
+            menu_button.setMenu(su_menu)
+            # 悬停显示菜单
+            menu_button.setMouseTracking(True)
             self.menu_layout.addWidget(menu_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         # 最小化按钮
         self.set_button_style(self.minimize_button, self.minimize_bg, self.three_button_size, 'white', 'gray')
@@ -134,6 +138,12 @@ class MainWindow(QWidget):
         self.three_button_layout.addWidget(self.minimize_button)
         self.three_button_layout.addWidget(self.maximize_button)
         self.three_button_layout.addWidget(self.close_button)
+
+    def button_underMouse(self):
+        # 获取鼠标下方的按钮
+        for button in self.menu_layout.children():
+            if button.underMouse():
+                return button
 
     def add_drag_bar(self):
         # 添加拖动条，控制窗口大小
@@ -156,6 +166,10 @@ class MainWindow(QWidget):
             f"QMenu::item:selected{{background-color:{BG_COLOR3};color:{FG_COLOR0};}}"
             f"QMenu::separator{{height:1px;background-color:{FG_COLOR2};margin-left:14px;margin-right:7px;}}"
         )
+        # 设置当鼠标悬停的时候就显示菜单
+        menu.setToolTipsVisible(True)
+
+        # 添加菜单
         for sub_menu_name in menu_map[menu_name]:
             if isinstance(menu_map[menu_name][sub_menu_name], dict):
                 # 添加子菜单

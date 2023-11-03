@@ -16,7 +16,7 @@ def get_normal(dot1, dot2, dot3, center=None):
     :param center: QVector3D，三角形的中心点
     :return: QVector3D
     """
-    if type(center) == tuple:
+    if isinstance(center, tuple):
         center = QVector3D(*center)
     v1 = QVector3D(*dot2) - QVector3D(*dot1)
     v2 = QVector3D(*dot3) - QVector3D(*dot1)
@@ -58,10 +58,6 @@ class LineGroupObject(GLObject):
 
     def draw(self, gl, theme_color, material):
         gl.glLoadName(id(self) % 4294967296)
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_AMBIENT, theme_color[material][0])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_DIFFUSE, theme_color[material][1])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, theme_color[material][2])
-        # gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, theme_color[material][3])
         for num, line in self.lines.items():
             gl.glLineWidth(line[1])
             gl.glColor4f(*line[0])
@@ -89,10 +85,10 @@ class SolidObject(GLObject):
         gl.glColor4f(*self.faces["color"])
         for normal, face in zip(self.faces["normal"], self.faces["faces"]):
             gl.glBegin(gl.GL_POLYGON)
-            gl.glNormal3f(normal.x(), normal.y(), normal.z()) if type(normal) == QVector3D \
+            gl.glNormal3f(normal.x(), normal.y(), normal.z()) if isinstance(normal, QVector3D) \
                 else gl.glNormal3f(normal[0], normal[1], normal[2])
             for dot in face:
-                gl.glVertex3f(dot.x(), dot.y(), dot.z()) if type(dot) == QVector3D \
+                gl.glVertex3f(dot.x(), dot.y(), dot.z()) if isinstance(dot, QVector3D) \
                     else gl.glVertex3f(dot[0], dot[1], dot[2])
             gl.glEnd()
 
@@ -273,30 +269,37 @@ class Cube(SolidObject):
         self.central = central
         self.color = color
         self.dot_set = {
-            '上面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                     (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
-            '下面': [(radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
-            '左面': [(-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
-            '右面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                     (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])],
-            '前面': [(radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
-                     (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
-                     (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])],
-            '后面': [(radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
-                     (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
-                     (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2])]
+            '上面': [
+                (radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
+                (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])
+            ], '下面': [
+                (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
+                (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])
+            ], '左面': [
+                (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
+                (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])
+            ], '右面': [
+                (radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
+                (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2])
+            ], '前面': [
+                (radius[0] + central[0], radius[1] + central[1], radius[2] + central[2]),
+                (radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], radius[2] + central[2]),
+                (-radius[0] + central[0], radius[1] + central[1], radius[2] + central[2])
+            ], '后面': [
+                (radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2]),
+                (radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], -radius[1] + central[1], -radius[2] + central[2]),
+                (-radius[0] + central[0], radius[1] + central[1], -radius[2] + central[2])
+            ]
         }
         super(Cube, self).__init__(gl)
         self.faces = {

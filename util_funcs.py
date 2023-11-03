@@ -37,31 +37,22 @@ class CONST:
     BACK_DOWN_LEFT = "back_down_left"
     BACK_DOWN_RIGHT = "back_down_right"
 
+    DIR_INDEX_MAP = {FRONT_BACK: 2, UP_DOWN: 1, LEFT_RIGHT: 0}
+    SUBDIR_MAP = {FRONT_BACK: (FRONT, BACK), UP_DOWN: (UP, DOWN), LEFT_RIGHT: (LEFT, RIGHT)}
+    DIR_OPPOSITE_MAP = {FRONT: BACK, BACK: FRONT, UP: DOWN, DOWN: UP, LEFT: RIGHT, RIGHT: LEFT, SAME: SAME}
+    VERTICAL_DIR_MAP = {
+        FRONT: (UP, DOWN, LEFT, RIGHT), BACK: (UP, DOWN, LEFT, RIGHT), FRONT_BACK: (UP, DOWN, LEFT, RIGHT),
+        UP: (FRONT, BACK, LEFT, RIGHT), DOWN: (FRONT, BACK, LEFT, RIGHT), UP_DOWN: (FRONT, BACK, LEFT, RIGHT),
+        LEFT: (FRONT, BACK, UP, DOWN), RIGHT: (FRONT, BACK, UP, DOWN), LEFT_RIGHT: (FRONT, BACK, UP, DOWN)}
+    VERTICAL_RAWDIR_MAP = {
+        FRONT: (UP_DOWN, LEFT_RIGHT), BACK: (UP_DOWN, LEFT_RIGHT), FRONT_BACK: (UP_DOWN, LEFT_RIGHT),
+        UP: (FRONT_BACK, LEFT_RIGHT), DOWN: (FRONT_BACK, LEFT_RIGHT), UP_DOWN: (FRONT_BACK, LEFT_RIGHT),
+        LEFT: (FRONT_BACK, UP_DOWN), RIGHT: (FRONT_BACK, UP_DOWN), LEFT_RIGHT: (FRONT_BACK, UP_DOWN)}
+    DIR_TO_RAWDIR_MAP = {
+        FRONT: FRONT_BACK, BACK: FRONT_BACK, UP: UP_DOWN, DOWN: UP_DOWN, LEFT: LEFT_RIGHT, RIGHT: LEFT_RIGHT}
     # 旋转顺序
     __orders = ["XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX"]
     ROTATE_ORDER = __orders[2]
-
-    @classmethod
-    def opposite_direction(cls, direction):
-        """
-        获取相反的方向
-        :param direction:
-        :return:
-        """
-        if direction == cls.FRONT:
-            return cls.BACK
-        elif direction == cls.BACK:
-            return cls.FRONT
-        elif direction == cls.UP:
-            return cls.DOWN
-        elif direction == cls.DOWN:
-            return cls.UP
-        elif direction == cls.LEFT:
-            return cls.RIGHT
-        elif direction == cls.RIGHT:
-            return cls.LEFT
-        elif direction == cls.SAME:
-            return cls.SAME
 
 
 VECTOR_RELATION_MAP = {
@@ -161,7 +152,7 @@ def get_normal(dot1, dot2, dot3, center=None):
     :param center: QVector3D，三角形的中心点
     :return: QVector3D
     """
-    if type(center) == tuple:
+    if isinstance(center, tuple):
         center = QVector3D(*center)
     v1 = QVector3D(*dot2) - QVector3D(*dot1)
     v2 = QVector3D(*dot3) - QVector3D(*dot1)
@@ -272,6 +263,7 @@ def open_url(url):
         from PyQt5.QtCore import QUrl
         from PyQt5.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl(url))
+
     return func
 
 
@@ -309,7 +301,7 @@ def get_mac_address():
     #     # return mac
     #     return True
     # return mac
-    return "abcd"
+    return True
 
 
 def is_admin():
@@ -318,3 +310,14 @@ def is_admin():
     except Exception as _e:
         print(_e)
         return False
+
+
+def color_print(text, color: Literal["red", "green", "yellow", "blue", "magenta", "cyan", "white"] = "green"):
+    """
+    输出带颜色的文字
+    :param text: 文字
+    :param color: 颜色
+    :return:
+    """
+    color_dict = {"red": 31, "green": 32, "yellow": 33, "blue": 34, "magenta": 35, "cyan": 36, "white": 37}
+    print(f"\033[{color_dict[color]}m{text}\033[0m")
