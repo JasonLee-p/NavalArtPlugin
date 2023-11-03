@@ -905,7 +905,7 @@ class AdjustableHull(NAPart):
             #                 front_part.UCur, front_part.DCur, front_part.HScl, front_part.HOff)
             self.glWin.update()
 
-    def get_data_in_coordinate(self, other_part: Union[NAPart, None] = None):
+    def get_data_in_coordinate(self, other_part: Union[NAPart, None] = None, ignore_selfRot=False):
         """
         将零件的前后左右上下节点信息转化到世界坐标或其他零件的坐标系中
         例如一个零件在绕y轴旋转180度后，其左前下节点变为右后下节点
@@ -916,13 +916,17 @@ class AdjustableHull(NAPart):
         "H": self.Hei
         }
         """
+        if ignore_selfRot:
+            compared_rot = [0, 0, 0]
+        else:
+            compared_rot = self.Rot
         # 获取零件的旋转关系
         if other_part and isinstance(other_part, NAPart):
-            rotation_relation = get_rot_relation(other_part.Rot, self.Rot)
+            rotation_relation = get_rot_relation(other_part.Rot, compared_rot)
         elif other_part and isinstance(other_part, list):
-            rotation_relation = get_rot_relation(other_part, self.Rot)
+            rotation_relation = get_rot_relation(other_part, compared_rot)
         else:
-            rotation_relation = get_rot_relation([0, 0, 0], self.Rot)
+            rotation_relation = get_rot_relation([0, 0, 0], compared_rot)
 
         # 根据旋转关系计算节点信息在世界坐标系中的位置
         if rotation_relation == 'same':

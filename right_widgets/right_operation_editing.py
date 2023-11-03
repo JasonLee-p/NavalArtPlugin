@@ -88,7 +88,8 @@ class AddLayerEditing(OperationEditing):
         self.context_widget.setLayout(self.context_layout)
         self.layout.addWidget(self.title, alignment=Qt.AlignCenter)
         self.layout.addWidget(self.context_widget, alignment=Qt.AlignCenter)
-        self.layout.addWidget(QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), alignment=Qt.AlignCenter)
+        self.layout.addWidget(QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken),
+                              alignment=Qt.AlignCenter)
         self.layout.addWidget(self.cancel_button, alignment=Qt.AlignCenter)
         self.layout.addWidget(self.ensure_button, alignment=Qt.AlignCenter)
         # 事件
@@ -110,7 +111,8 @@ class AddLayerEditing(OperationEditing):
             self.context_layout.addWidget(label, i, 0)
             # 添加输入框，并设置样式
             for j, lineEdit in enumerate(self.content[key_]["QLineEdit"]):
-                set_lineEdit(lineEdit, text_font, BG_COLOR1, FG_COLOR0, FG_COLOR2, 1, 5, 25, 60, text=str(self.content[key_]["value"]))
+                set_lineEdit(lineEdit, text_font, BG_COLOR1, FG_COLOR0, FG_COLOR2, 1, 5, 25, 60,
+                             text=str(self.content[key_]["value"]))
                 self.context_layout.addWidget(lineEdit, i, j + 1)
                 # 限制值的范围
                 if "高度" in key_ or "长度" in key_ or "宽度" in key_ and "扩散" not in key_ and "收缩" not in key_:
@@ -372,8 +374,9 @@ class RotateEditing(OperationEditing):
         self.rotX270_bt = QPushButton()
         self.rotY270_bt = QPushButton()
         self.rotZ270_bt = QPushButton()
-        self.mid_bts = [self.rotX180_bt, self.rotY180_bt, self.rotZ180_bt, self.rotX90_bt, self.rotX270_bt,
-                        self.rotY90_bt, self.rotY270_bt, self.rotZ90_bt, self.rotZ270_bt]
+        self.mid_bts = [self.rotX180_bt, self.rotX90_bt, self.rotX270_bt,
+                        self.rotY180_bt, self.rotY90_bt, self.rotY270_bt,
+                        self.rotZ180_bt, self.rotZ90_bt, self.rotZ270_bt]
         self.init_layout()
 
     def init_layout(self):
@@ -383,7 +386,9 @@ class RotateEditing(OperationEditing):
         self.layout.addWidget(QFrame(self, frameShape=QFrame.HLine, frameShadow=QFrame.Sunken), 1, 0, 1, 3,
                               alignment=Qt.AlignCenter)
         self.init_mid_buttons()
-        self.layout.addWidget(self.cancel_button, 5, 0, 1, 1, alignment=Qt.AlignCenter)
+        self.layout.addWidget(self.cancel_button, 5, 0, 1, 3, alignment=Qt.AlignCenter)
+        tips = MyLabel("该功能不稳定，不建议使用抬头低头左右旋转", FONT_8, side=Qt.AlignCenter, color=GRAY)
+        self.layout.addWidget(tips, 6, 0, 1, 3, alignment=Qt.AlignCenter)
 
     def init_mid_buttons(self):
         # 设置按钮样式（不包括取消和确定）
@@ -402,7 +407,7 @@ class RotateEditing(OperationEditing):
             _bt.setFixedSize(90, 50)
             self.layout.addWidget(_bt, i // 3 + 1, i % 3, alignment=Qt.AlignCenter)
         # 设置按钮内部布局
-        self.rotX180_bt.layout().addWidget(MyLabel("抬头180°", FONT_9, side=Qt.AlignCenter))
+        self.rotX180_bt.layout().addWidget(MyLabel("后仰180°", FONT_9, side=Qt.AlignCenter))
         self.rotY180_bt.layout().addWidget(MyLabel("掉头180°", FONT_9, side=Qt.AlignCenter))
         self.rotZ180_bt.layout().addWidget(MyLabel("侧翻180°", FONT_9, side=Qt.AlignCenter))
         self.rotX90_bt.layout().addWidget(MyLabel("抬头90°", FONT_9, side=Qt.AlignCenter))

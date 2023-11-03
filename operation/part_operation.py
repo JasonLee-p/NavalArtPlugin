@@ -141,7 +141,7 @@ class RotateSinglePartOperation(Operation):
 
     def get_rot_method(self, rot_method: Literal["x90", "x270", "y90", "y270", "z90", "z270", "x180", "y180", "z180"]):
         self.rot_method = rot_method
-        self.roted_p_data = self.part.get_data_in_coordinate(self.__MAP[rot_method])
+        self.roted_p_data = self.part.get_data_in_coordinate(self.__MAP[rot_method], ignore_selfRot=True)
         if not self.roted_p_data:
             QMessageBox(QMessageBox.Warning, "提示", "暂不支持该旋转方式", QMessageBox.Yes).exec_()
             return False
