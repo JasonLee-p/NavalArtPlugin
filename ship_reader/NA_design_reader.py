@@ -696,6 +696,72 @@ class AdjustableHull(NAPart):
             self.redrawGL()
         return True
 
+    def change_attrs_with_rot(self, position=None, rotation=None, armor=None, length=None, height=None,
+                              frontWidth=None, backWidth=None, frontSpread=None, backSpread=None,
+                              upCurve=None, downCurve=None, heightScale=None, heightOffset=None,
+                              update=False):
+        # ==============================================================================更新零件的各个属性
+        position = self.Pos if position is None else position
+        rotation = self.Rot if rotation is None else rotation
+        armor = self.Amr if armor is None else armor
+        length = self.Len if length is None else length
+        height = self.Hei if height is None else height
+        frontWidth = self.FWid if frontWidth is None else frontWidth
+        backWidth = self.BWid if backWidth is None else backWidth
+        frontSpread = self.FSpr if frontSpread is None else frontSpread
+        backSpread = self.BSpr if backSpread is None else backSpread
+        upCurve = self.UCur if upCurve is None else upCurve
+        downCurve = self.DCur if downCurve is None else downCurve
+        heightScale = self.HScl if heightScale is None else heightScale
+        heightOffset = self.HOff if heightOffset is None else heightOffset
+
+        try:
+            self.Pos = [round(float(i), 3) for i in position]
+            self.Rot = [round(float(i), 3) for i in rotation]
+            self.Amr = int(armor)
+            self.Len = float(length)
+            self.Hei = float(height)
+            self.FWid = float(frontWidth)
+            self.BWid = float(backWidth)
+            self.FSpr = float(frontSpread)
+            self.BSpr = float(backSpread)
+            self.UCur = float(upCurve)
+            self.DCur = float(downCurve)
+            self.HScl = float(heightScale)  # 高度缩放
+            self.HOff = float(heightOffset)  # 高度偏移
+            self._y_limit = [-self.Hei / 2, self.Hei / 2]
+        except ValueError:
+            return False
+        # ==============================================================================初始化零件的各个坐标
+        self.front_z = self.Len / 2  # 零件前端的z坐标
+        self.back_z = -self.Len / 2  # 零件后端的z坐标
+        self.half_height_scale = self.Hei * self.HScl / 2  # 高度缩放的一半
+        self.center_height_offset = self.HOff * self.Hei  # 高度偏移
+        self.front_down_y = self.center_height_offset - self.half_height_scale  # 零件前端下端的y坐标
+        self.front_up_y = self.center_height_offset + self.half_height_scale  # 零件前端上端的y坐标
+        if self.front_down_y < self._y_limit[0]:
+            self.front_down_y = self._y_limit[0]
+        elif self.front_down_y > self._y_limit[1]:
+            self.front_down_y = self._y_limit[1]
+        if self.front_up_y > self._y_limit[1]:
+            self.front_up_y = self._y_limit[1]
+        elif self.front_up_y < self._y_limit[0]:
+            self.front_up_y = self._y_limit[0]
+        self.back_down_y = - self.Hei / 2
+        self.back_up_y = self.Hei / 2
+        self.front_down_x = self.FWid / 2
+        self.back_down_x = self.BWid / 2
+        self.front_up_x = self.front_down_x + self.FSpr / 2  # 扩散也要除以二分之一
+        self.back_up_x = self.back_down_x + self.BSpr / 2  # 扩散也要除以二分之一
+        # ==============================================================================计算绘图所需的数据
+        self.plot_all_dots = []  # 曲面变换前，位置变换后的所有点
+        self.vertex_coordinates = self.get_initial_vertex_coordinates()
+        self.plot_lines = self.get_plot_lines()
+        self.plot_faces = self.get_plot_faces()
+        if update:
+            self.redrawGL()
+        return True
+
     def change_attrs_with_relative_parts(self, position, armor,
                                          length, height, frontWidth, backWidth, frontSpread, backSpread,
                                          upCurve, downCurve, heightScale, heightOffset,
