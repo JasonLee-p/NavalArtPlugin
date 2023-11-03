@@ -917,7 +917,7 @@ class AdjustableHull(NAPart):
         }
         """
         # 获取零件的旋转关系
-        if other_part:
+        if other_part and isinstance(other_part, NAPart):
             rotation_relation = get_rot_relation(other_part.Rot, self.Rot)
         elif other_part and isinstance(other_part, list):
             rotation_relation = get_rot_relation(other_part, self.Rot)
