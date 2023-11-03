@@ -4,6 +4,7 @@
 
 import math
 
+import numpy as np
 from PyQt5.QtGui import QVector3D
 
 
@@ -56,6 +57,7 @@ class LineGroupObject(GLObject):
     def get_set(self):
         pass
 
+    # noinspection PyUnusedLocal
     def draw(self, gl, theme_color, material):
         gl.glLoadName(id(self) % 4294967296)
         for num, line in self.lines.items():
@@ -312,6 +314,179 @@ class Cube(SolidObject):
         }
 
 
+class Cylinder(SolidObject):
+    id_map = {}
+
+    def __init__(self, radius, height, pos: list, rot: list, color: list, accuracy=10):
+        """
+        圆柱体
+        :param radius: 半径
+        :param height: 高度
+        :param pos: List[float, float, float] 圆柱体底面中心点坐标
+        :param rot: List[float, float, float] 旋转角度
+        :param color: List[float, float, float, float] 颜色
+        """
+        super(Cylinder, self).__init__(None)
+        self.radius = radius
+        self.height = height
+        self.Pos = pos
+        self.Rot = rot
+        self.Col = color
+        self.accuracy = accuracy
+        self.plot_triangles = self.get_cylinder_plot_triangles(self.radius, self.height, self.Pos, self.Rot, self.accuracy)
+        Cylinder.id_map[id(self) % 4294967296] = self
+
+    @staticmethod
+    def get_cylinder_plot_triangles(r, h, pos, rot, accuracy=10):
+        result = []
+        bottom_org_dots = []  # 旋转前的底面圆上的点
+        top_org_dots = []
+        for i in range(accuracy):
+            bottom_org_dots.append((
+                pos[0] + r * math.cos(i * math.pi / accuracy),
+                pos[1],
+                pos[2] + r * math.sin(i * math.pi / accuracy)
+            ))
+            top_org_dots.append((
+                pos[0] + r * math.cos(i * math.pi / accuracy),
+                pos[1] + h,
+                pos[2] + r * math.sin(i * math.pi / accuracy)
+            ))
+        # 旋转
+        rot_matrix = np.array([
+            [math.cos(rot[0]), math.sin(rot[0]), 0],
+            [-math.sin(rot[0]), math.cos(rot[0]), 0],
+            [0, 0, 1]
+        ]) @ np.array([
+            [1, 0, 0],
+            [0, math.cos(rot[1]), math.sin(rot[1])],
+            [0, -math.sin(rot[1]), math.cos(rot[1])]
+        ]) @ np.array([
+            [math.cos(rot[2]), 0, -math.sin(rot[2])],
+            [0, 1, 0],
+            [math.sin(rot[2]), 0, math.cos(rot[2])]
+        ])
+        bottom_dots = []
+        top_dots = []
+        for dot in bottom_org_dots:
+            bottom_dots.append(rot_matrix @ np.array(dot))
+        for dot in top_org_dots:
+            top_dots.append(rot_matrix @ np.array(dot))
+        # 底面
+        for i in range(accuracy):
+            result.append((
+                bottom_dots[i],
+                bottom_dots[(i + 1) % accuracy],
+                bottom_dots[(i + 2) % accuracy]
+            ))
+        # 侧面
+        for i in range(accuracy):
+            result.append((
+                bottom_dots[i],
+                bottom_dots[(i + 1) % accuracy],
+                top_dots[i]
+            ))
+            result.append((
+                bottom_dots[(i + 1) % accuracy],
+                top_dots[(i + 1) % accuracy],
+                top_dots[i]
+            ))
+        # 顶面
+        for i in range(accuracy):
+            result.append((
+                top_dots[i],
+                top_dots[(i + 1) % accuracy],
+                top_dots[(i + 2) % accuracy]
+            ))
+        return result
+
+    def draw(self, gl, material, theme_color):
+        gl.glLoadName(id(self) % 4294967296)
+        gl.glColor4f(*self.Col)
+        for triangle in self.plot_triangles:
+            gl.glBegin(gl.GL_POLYGON)
+            gl.glNormal3f(*get_normal(*triangle))
+            for dot in triangle:
+                gl.glVertex3f(*dot)
+            gl.glEnd()
+
+
+class Cone(SolidObject):
+    id_map = {}
+
+    def __init__(self, radius, height, pos: list, rot: list, color: list, accuracy=10):
+        """
+        圆锥体
+        :param radius: 半径
+        :param height: 高度
+        :param pos: List[float, float, float] 圆柱体底面中心点坐标
+        :param rot: List[float, float, float] 旋转角度
+        :param color: List[float, float, float, float] 颜色
+        """
+        super(Cone, self).__init__(None)
+        self.radius = radius
+        self.height = height
+        self.Pos = pos
+        self.Rot = rot
+        self.Col = color
+        self.accuracy = accuracy
+        self.plot_triangles = self.get_cone_plot_triangles(self.radius, self.height, self.Pos, self.Rot, self.accuracy)
+        Cone.id_map[id(self) % 4294967296] = self
+
+    @staticmethod
+    def get_cone_plot_triangles(r, h, pos, rot, accuracy=10):
+        result = []
+        bottom_org_dots = []  # 旋转前的底面圆上的点
+        for i in range(accuracy):
+            bottom_org_dots.append((
+                pos[0] + r * math.cos(i * math.pi / accuracy),
+                pos[1],
+                pos[2] + r * math.sin(i * math.pi / accuracy)
+            ))
+        # 旋转
+        rot_matrix = np.array([
+            [math.cos(rot[0]), math.sin(rot[0]), 0],
+            [-math.sin(rot[0]), math.cos(rot[0]), 0],
+            [0, 0, 1]
+        ]) @ np.array([
+            [1, 0, 0],
+            [0, math.cos(rot[1]), math.sin(rot[1])],
+            [0, -math.sin(rot[1]), math.cos(rot[1])]
+        ]) @ np.array([
+            [math.cos(rot[2]), 0, -math.sin(rot[2])],
+            [0, 1, 0],
+            [math.sin(rot[2]), 0, math.cos(rot[2])]
+        ])
+        bottom_dots = []
+        for dot in bottom_org_dots:
+            bottom_dots.append(rot_matrix @ np.array(dot))
+        # 底面
+        for i in range(accuracy):
+            result.append((
+                bottom_dots[i],
+                bottom_dots[(i + 1) % accuracy],
+                bottom_dots[(i + 2) % accuracy]
+            ))
+        # 侧面
+        for i in range(accuracy):
+            result.append((
+                bottom_dots[i],
+                bottom_dots[(i + 1) % accuracy],
+                (pos[0], pos[1] + h, pos[2])
+            ))
+        return result
+
+    def draw(self, gl, material, theme_color):
+        gl.glLoadName(id(self) % 4294967296)
+        gl.glColor4f(*self.Col)
+        for triangle in self.plot_triangles:
+            gl.glBegin(gl.GL_POLYGON)
+            gl.glNormal3f(*get_normal(*triangle))
+            for dot in triangle:
+                gl.glVertex3f(*dot)
+            gl.glEnd()
+
+
 class TempObj(SolidObject):
     all_objs = []
 
@@ -321,3 +496,39 @@ class TempObj(SolidObject):
 
     def draw(self, gl, material="被选中", theme_color=None):
         pass
+
+
+class TempArrow(TempObj):
+    def __init__(self, camera_distance, pos, rot, theme_color):
+        """
+        临时立体箭头
+        """
+        self.camera_distance = camera_distance
+        self.cylinder_h = 0.5 * camera_distance
+        self.cone_h = 0.5 * camera_distance
+        self.Pos = pos
+        self.Rot = rot
+        self.arrow_vector = np.array([0., 0., 1.])
+        # 旋转
+        rot_matrix = np.array([
+            [math.cos(rot[0]), math.sin(rot[0]), 0],
+            [-math.sin(rot[0]), math.cos(rot[0]), 0],
+            [0, 0, 1]
+        ]) @ np.array([
+            [1, 0, 0],
+            [0, math.cos(rot[1]), math.sin(rot[1])],
+            [0, -math.sin(rot[1]), math.cos(rot[1])]
+        ]) @ np.array([
+            [math.cos(rot[2]), 0, -math.sin(rot[2])],
+            [0, 1, 0],
+            [math.sin(rot[2]), 0, math.cos(rot[2])]
+        ])
+        self.arrow_vector = rot_matrix @ self.arrow_vector
+        cone_pos = self.Pos + self.arrow_vector * self.cylinder_h
+        self.cylinder = Cylinder(0.1 * self.camera_distance, self.cylinder_h, self.Pos, self.Rot, theme_color)
+        self.cone = Cone(0.2 * self.camera_distance, self.cone_h, cone_pos, self.Rot, theme_color)
+        super(TempArrow, self).__init__()
+
+    def draw(self, gl, material="被选中", theme_color=None):
+        self.cylinder.draw(gl, material, theme_color)
+        self.cone.draw(gl, material, theme_color)
