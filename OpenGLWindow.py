@@ -239,8 +239,8 @@ class OpenGLWin(QOpenGLWidget):
         super(OpenGLWin, self).__init__()
         # ===================================================================================设置基本参数
         self.setMouseTracking(True)
-        # 设置十字光标（颜色为反色）
-        self.cs = Qt.CrossCursor
+        # 设置鼠标样式
+        self.cs = Qt.ArrowCursor
         self.setCursor(self.cs)
         self.setFocusPolicy(Qt.StrongFocus)  # 设置焦点策略
         self.setContextMenuPolicy(Qt.CustomContextMenu)  # 设置右键菜单策略
@@ -251,8 +251,6 @@ class OpenGLWin(QOpenGLWidget):
         self.fovy = 45
         # ==================================================================================OpenGL初始化
         self.gl2_0 = None
-        self.texture = None
-        self.shaderProgram = None
         self.gl_commands = {
             (OpenGLWin.ShowAll, OpenGLWin.ShowObj): [None, False],
             (OpenGLWin.ShowAll, OpenGLWin.ShowDotNode): [None, False],
@@ -263,8 +261,6 @@ class OpenGLWin(QOpenGLWidget):
             (OpenGLWin.ShowLeft, OpenGLWin.ShowObj): [None, False],
             (OpenGLWin.ShowLeft, OpenGLWin.ShowDotNode): [None, False]
         }
-        self.vbo = None
-        self.vao = None
         # ========================================================================================3D物体
         self.environment_obj = {"钢铁": [], "海面": [], "海底": [], "甲板": [], "光源": [], "船底": []}
         # 四种不同模式下显示的物体
@@ -330,21 +326,6 @@ class OpenGLWin(QOpenGLWidget):
 
     def initializeGL(self) -> None:
         self.init_gl()  # 初始化OpenGL相关参数
-        # 创建着色器程序
-        self.shaderProgram = self.gl2_0.glCreateProgram()
-        # 创建顶点着色器
-        vertexShader = self.gl2_0.glCreateShader(GL_VERTEX_SHADER)
-        glShaderSource(vertexShader, VERTEX_SHADER)
-        self.gl2_0.glCompileShader(vertexShader)
-        # 创建片段着色器
-        fragmentShader = self.gl2_0.glCreateShader(GL_FRAGMENT_SHADER)
-        glShaderSource(fragmentShader, FRAGMENT_SHADER)
-        self.gl2_0.glCompileShader(fragmentShader)
-        # 将着色器附加到程序上
-        glAttachShader(self.shaderProgram, vertexShader)
-        glAttachShader(self.shaderProgram, fragmentShader)
-        # self.gl.glLinkProgram(self.shaderProgram)  # 链接着色器程序
-        # self.gl.glUseProgram(self.shaderProgram)  # 使用着色器程序
         # ===============================================================================绘制
         # 设置背景颜色
         glClearColor(*self.theme_color["背景"])
@@ -354,10 +335,6 @@ class OpenGLWin(QOpenGLWidget):
         self.environment_obj["光源"].append(LightSphere(
             self.gl2_0, central=self.light_pos, radius=20))
         # ===============================================================================绘制
-        self.vbo = self.gl2_0.glGenBuffers(1)  # 创建VBO
-        self.vao = glGenVertexArrays(1)  # 创建VAO
-        glBindVertexArray(self.vao)  # 绑定VAO
-        glBindBuffer(self.gl2_0.GL_ARRAY_BUFFER, self.vbo)  # 绑定VBO
         self.initialized = True
 
     def paintGL(self) -> None:
@@ -1225,10 +1202,6 @@ class OpenGLWin2(QOpenGLWidget):
 
         super().__init__()
 
-        # # 设置定时器，用于持续刷新OpenGL窗口
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self.update)
-        # self.timer.start(10)  # 10毫秒刷新一次
         # ===================================================================================设置基本参数
         self.setMouseTracking(True)
         self.setCursor(Qt.CrossCursor)  # 设置十字光标
@@ -1564,7 +1537,7 @@ class OpenGLWin2(QOpenGLWidget):
 
     def projectionMatrix(self):
         pj = QMatrix4x4()
-        pj.perspective(self.camera.fovy, self.width / self.height, 0.1, 10000.0)
+        pj.perspective(self.camera.fovy, self.width / self.height, 0.1, 2000.0)
         return pj
 
     def init_render(self):

@@ -1576,6 +1576,8 @@ class RightTabWidget(QTabWidget):
             f"border-right:0px solid {FG_COLOR2};"
             f"border-left:1px solid {FG_COLOR1};}}"
         )
+        # 设置默认宽度为280
+        self.setMinimumWidth(280)
         # 添加标签页
         self.addTab(self.init_tab2(), "属性编辑器")
         self.addTab(self.init_tab1(), "元素检视器")

@@ -45,28 +45,48 @@ WHITE = 'white'
 GOLD = 'gold'
 GRAY = '#808080'
 YAHEI = '微软雅黑'
-FONT_7 = QFont(YAHEI, 7)  # 设置字体
-FONT_8 = QFont(YAHEI, 8)  # 设置字体
-FONT_9 = QFont(YAHEI, 9)  # 设置字体
-FONT_10 = QFont(YAHEI, 10)  # 设置字体
-FONT_11 = QFont(YAHEI, 11)  # 设置字体
-FONT_12 = QFont(YAHEI, 12)  # 设置字体
-FONT_13 = QFont(YAHEI, 13)  # 设置字体
-FONT_14 = QFont(YAHEI, 14)  # 设置字体
-FONT_15 = QFont(YAHEI, 15)  # 设置字体
-FONT_16 = QFont(YAHEI, 16)  # 设置字体
-FONT_17 = QFont(YAHEI, 17)  # 设置字体
-FONT_18 = QFont(YAHEI, 18)  # 设置字体
-FONT_19 = QFont(YAHEI, 19)  # 设置字体
-FONT_20 = QFont(YAHEI, 20)  # 设置字体
-FONT_21 = QFont(YAHEI, 21)  # 设置字体
-FONT_22 = QFont(YAHEI, 22)  # 设置字体
 LOCAL_ADDRESS = os.path.dirname(os.path.abspath(__file__))
 ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 设置高分辨率
+ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 125  # 获取缩放比例
 user32 = ctypes.windll.user32
 WinWid = user32.GetSystemMetrics(0)  # 获取分辨率
 WinHei = user32.GetSystemMetrics(1)  # 获取分辨率
 RATE = WinWid / 1920
+_FONT_SCL = True
+if _FONT_SCL:
+    FONT_7 = QFont(YAHEI, 7 / ScaleFactor)  # 设置字体
+    FONT_8 = QFont(YAHEI, 8 / ScaleFactor)  # 设置字体
+    FONT_9 = QFont(YAHEI, 9 / ScaleFactor)  # 设置字体
+    FONT_10 = QFont(YAHEI, 10 / ScaleFactor)  # 设置字体
+    FONT_11 = QFont(YAHEI, 11 / ScaleFactor)  # 设置字体
+    FONT_12 = QFont(YAHEI, 12 / ScaleFactor)  # 设置字体
+    FONT_13 = QFont(YAHEI, 13 / ScaleFactor)  # 设置字体
+    FONT_14 = QFont(YAHEI, 14 / ScaleFactor)  # 设置字体
+    FONT_15 = QFont(YAHEI, 15 / ScaleFactor)  # 设置字体
+    FONT_16 = QFont(YAHEI, 16 / ScaleFactor)  # 设置字体
+    FONT_17 = QFont(YAHEI, 17 / ScaleFactor)  # 设置字体
+    FONT_18 = QFont(YAHEI, 18 / ScaleFactor)  # 设置字体
+    FONT_19 = QFont(YAHEI, 19 / ScaleFactor)  # 设置字体
+    FONT_20 = QFont(YAHEI, 20 / ScaleFactor)  # 设置字体
+    FONT_21 = QFont(YAHEI, 21 / ScaleFactor)  # 设置字体
+    FONT_22 = QFont(YAHEI, 22 / ScaleFactor)  # 设置字体
+else:
+    FONT_7 = QFont(YAHEI, 7)
+    FONT_8 = QFont(YAHEI, 8)
+    FONT_9 = QFont(YAHEI, 9)
+    FONT_10 = QFont(YAHEI, 10)
+    FONT_11 = QFont(YAHEI, 11)
+    FONT_12 = QFont(YAHEI, 12)
+    FONT_13 = QFont(YAHEI, 13)
+    FONT_14 = QFont(YAHEI, 14)
+    FONT_15 = QFont(YAHEI, 15)
+    FONT_16 = QFont(YAHEI, 16)
+    FONT_17 = QFont(YAHEI, 17)
+    FONT_18 = QFont(YAHEI, 18)
+    FONT_19 = QFont(YAHEI, 19)
+    FONT_20 = QFont(YAHEI, 20)
+    FONT_21 = QFont(YAHEI, 21)
+    FONT_22 = QFont(YAHEI, 22)
 
 
 def getFG_fromBG(bg: QColor):
@@ -304,7 +324,7 @@ class MyMessageBox(QMessageBox):
 
 
 class MyLabel(QLabel):
-    def __init__(self, text, font=QFont("微软雅黑", 9), color=FG_COLOR0, side=Qt.AlignLeft | Qt.AlignVCenter):
+    def __init__(self, text, font=FONT_9, color=FG_COLOR0, side=Qt.AlignLeft | Qt.AlignVCenter):
         super().__init__(text)
         self.setFont(font)
         self.setStyleSheet(f"color:{color};")
@@ -556,8 +576,8 @@ class BasicDialog(QDialog):
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setFixedSize(size)
         self.topH = 35
-        self.TitleFont = QFont("微软雅黑", 10)
-        self.ContentFont = QFont("微软雅黑", 15)
+        self.TitleFont = FONT_10
+        self.ContentFont = FONT_15
         # 设置边框阴影
         self.shadow = QGraphicsDropShadowEffect(self)
         self.shadow.setOffset(0, 0)
@@ -782,7 +802,7 @@ class BasicDialog(QDialog):
 
 class ShortCutWidget(QWidget):
     def __init__(self):
-        _font = QFont('微软雅黑', 8)
+        _font = FONT_8
         _color = GRAY
         self.shortcut_labels = [
             MyLabel("全视图模式 1", _font, color=_color, side=Qt.AlignTop | Qt.AlignLeft),
@@ -801,7 +821,7 @@ class ShortCutWidget(QWidget):
         self.setLayout(self.layout)
         total_row = len(self.shortcut_labels) // 4
         self.layout.addWidget(  # 居中显示
-            MyLabel("快捷键：", QFont('微软雅黑', 9), color=GRAY, side=Qt.AlignTop | Qt.AlignHCenter), 0, 0, 1, total_row
+            MyLabel("快捷键：", FONT_9, color=GRAY, side=Qt.AlignTop | Qt.AlignHCenter), 0, 0, 1, total_row
         )
         for i in range(len(self.shortcut_labels)):
             _l = i % 4 + 1
