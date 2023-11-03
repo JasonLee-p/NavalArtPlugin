@@ -1976,15 +1976,15 @@ class PartRelationMap:
                 op1 = other_pos_i[1]
                 if v_dir in [CONST.FRONT, CONST.UP, CONST.LEFT]:
                     _exist = set([part for part in part_map.values() if (
-                                part.Pos[pos_i] > new_p.Pos[pos_i] and
-                                part.Pos[op0] == new_p.Pos[op0] and
-                                part.Pos[op1] == new_p.Pos[op1]
+                            part.Pos[pos_i] > new_p.Pos[pos_i] and
+                            part.Pos[op0] == new_p.Pos[op0] and
+                            part.Pos[op1] == new_p.Pos[op1]
                     )])
                 else:
                     _exist = set([part for part in part_map.values() if (
-                                part.Pos[pos_i] < new_p.Pos[pos_i] and
-                                part.Pos[op0] == new_p.Pos[op0] and
-                                part.Pos[op1] == new_p.Pos[op1]
+                            part.Pos[pos_i] < new_p.Pos[pos_i] and
+                            part.Pos[op0] == new_p.Pos[op0] and
+                            part.Pos[op1] == new_p.Pos[op1]
                     )])
                 for other_p in _exist:
                     self.basicMap[new_p][v_dir][other_p] = abs(
@@ -1993,7 +1993,6 @@ class PartRelationMap:
                 self.basicMap[new_p][v_dir] = dict(sorted(
                     self.basicMap[new_p][v_dir].items(),
                     key=lambda x: x[1]))
-
 
     def undo_add_layer(self, part_map, direction):
         """
@@ -2020,9 +2019,10 @@ class PartRelationMap:
         # 遍历自身的相关零件，将自身从其关系中删除
         for direction, other_parts in self.basicMap[part].items():
             for other_part in other_parts.keys():
-                del self.basicMap[other_part][CONST.DIR_OPPOSITE_MAP(direction)][part]
+                del self.basicMap[other_part][CONST.DIR_OPPOSITE_MAP[direction]][part]
         # 删除自身
-        self.basicMap[part] = {}
+        self.basicMap[part] = {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {},
+                               CONST.LEFT: {}, CONST.RIGHT: {}, CONST.SAME: {}}
 
     def remap(self):
         PartRelationMap.last_map = self

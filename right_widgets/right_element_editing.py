@@ -447,28 +447,31 @@ class Mod1SinglePartEditing(QWidget):
             if step_type == int:
                 active_textEdit.setText(str(new_value))
             elif step_type == float:
-                if (active_textEdit in [
+                if active_textEdit in [
                     self.content["坐标"]["QLineEdit"][0],
                     self.content["坐标"]["QLineEdit"][1],
-                    self.content["坐标"]["QLineEdit"][2]]
-                        and self.selected_obj in self.selected_obj.allParts_relationMap.basicMap
-                        and self.selected_obj.allParts_relationMap.basicMap[self.selected_obj] != {}):
-                    # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
-                    # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
-                    reply = QMessageBox.warning(
-                        None, "警告",
-                        f"""更改单个零件的位置，会解除与其他所有零件的方位关系！\n我们非常不建议您这么做！\n是否继续？""",
-                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Help
-                    )
-                    if reply == QMessageBox.No:
-                        return
-                    elif reply == QMessageBox.Help:
-                        # TODO: 弹出帮助窗口
-                        return
-                    elif reply == QMessageBox.Yes:
-                        # 解除关系
-                        relation_map = self.selected_obj.allParts_relationMap
-                        relation_map.del_part(self.selected_obj)
+                    self.content["坐标"]["QLineEdit"][2]
+                ]:
+                    if (self.selected_obj in self.selected_obj.allParts_relationMap.basicMap
+                            and self.selected_obj.allParts_relationMap.basicMap[self.selected_obj] !=
+                            {CONST.FRONT: {}, CONST.BACK: {}, CONST.UP: {}, CONST.DOWN: {}, CONST.LEFT: {},
+                             CONST.RIGHT: {}, CONST.SAME: {}}):
+                        # 如果该零件的关系图为空，则不警告，因为没有关系图，所以不会解除关系
+                        # 如果pos_diff不为零，警告用户，单独更改零件的位置会将本零件在零件关系图中解除所有关系
+                        reply = QMessageBox.warning(
+                            None, "警告",
+                            f"""更改单个零件的位置，会解除与其他所有零件的方位关系！\n我们非常不建议您这么做！\n是否继续？""",
+                            QMessageBox.Yes | QMessageBox.No | QMessageBox.Help
+                        )
+                        if reply == QMessageBox.No:
+                            return
+                        elif reply == QMessageBox.Help:
+                            # TODO: 弹出帮助窗口
+                            return
+                        elif reply == QMessageBox.Yes:
+                            # 解除关系
+                            relation_map = self.selected_obj.allParts_relationMap
+                            relation_map.del_part(self.selected_obj)
                 elif active_textEdit in [self.content["上弧度"]["QLineEdit"][0],
                                          self.content["下弧度"]["QLineEdit"][0]] \
                         and (new_value < 0 or new_value > 1):
@@ -505,7 +508,8 @@ class Mod1SinglePartEditing(QWidget):
     @push_operation
     def change_part_attrs(self):
         changed = [[
-            round(float(self.content["坐标"]["QLineEdit"][0].text()), 3), round(float(self.content["坐标"]["QLineEdit"][1].text()), 3),
+            round(float(self.content["坐标"]["QLineEdit"][0].text()), 3),
+            round(float(self.content["坐标"]["QLineEdit"][1].text()), 3),
             round(float(self.content["坐标"]["QLineEdit"][2].text()), 3)],
             int(self.content["装甲"]["QLineEdit"][0].text()),
             round(float(self.content["原长度"]["QLineEdit"][0].text()), 3),
