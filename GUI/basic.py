@@ -270,7 +270,10 @@ def set_tool_bar_style(tool_bar: QToolBar):
 
 
 def create_rounded_thumbnail(image_path, width, height, corner_radius):
-    original_image = QPixmap(image_path).scaled(width, height, Qt.KeepAspectRatio)
+    if isinstance(image_path, str):
+        original_image = QPixmap(image_path).scaled(width, height, Qt.KeepAspectRatio)
+    else:  # 是QPixmap对象
+        original_image = image_path.scaled(width, height, Qt.KeepAspectRatio)
     rounded_thumbnail = QPixmap(width, height)
     rounded_thumbnail.fill(Qt.transparent)  # 设置背景透明
     painter = QPainter(rounded_thumbnail)

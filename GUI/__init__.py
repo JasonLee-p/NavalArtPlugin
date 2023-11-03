@@ -24,7 +24,7 @@ from .basic import FONT_16, FONT_17, FONT_18, FONT_19, FONT_20, FONT_21, FONT_22
 from .basic import LOCAL_ADDRESS
 from .basic import WinWid, WinHei, RATE
 # 图标
-from .interfaces import ICO_, ADD_, CHOOSE_, ADD_Y, ADD_Z, minimize, maximize, maximize_exit
+from .interfaces import ICO_, ADD_, CHOOSE_, ADD_Y, ADD_Z, TIP_, minimize, maximize, maximize_exit
 # 控件
 from .basic import MyLabel, MyMessageBox, MyComboBox, MySlider, MyLineEdit
 from .basic import CircleSelectButton, CircleSelectButtonGroup, SelectWidgetGroup
@@ -57,7 +57,7 @@ __all__ = [
     "LOCAL_ADDRESS",
     "WinWid", "WinHei", "RATE",
     # 图标
-    "ICO_", "ADD_", "CHOOSE_", "ADD_Y", "ADD_Z", "minimize", "maximize", "maximize_exit",
+    "ICO_", "ADD_", "CHOOSE_", "ADD_Y", "ADD_Z", "TIP_", "minimize", "maximize", "maximize_exit",
     # 控件
     "MyLabel", "MyMessageBox", "MyComboBox", "MySlider", "MyLineEdit",
     "CircleSelectButton", "CircleSelectButtonGroup", "SelectWidgetGroup",

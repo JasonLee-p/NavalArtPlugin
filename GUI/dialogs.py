@@ -175,7 +175,9 @@ class StartWelcomeDialog(BasicDialog):
         self.open_project = False
         # 控件
         self.ICO = QPixmap.fromImage(QImage.fromData(ICO_))
-        self.ico = QLabel()
+        self.TIP = QPixmap.fromImage(QImage.fromData(TIP_))
+        self.ico_lb = QLabel()
+        self.tip_lb = QLabel()
         self.center_layout = QVBoxLayout()
         self.main_layout = QHBoxLayout()
         self.left_widget = QWidget()
@@ -308,19 +310,35 @@ class StartWelcomeDialog(BasicDialog):
         left_widget_main_layout = QHBoxLayout()
         self.left_widget_main.setLayout(left_widget_main_layout)
         left_widget_main_layout.setContentsMargins(0, 20, 0, 0)
-        left_widget_main_layout.setSpacing(20)
+        left_widget_main_layout.setSpacing(10)
         left_widget_main_layout.setAlignment(Qt.AlignCenter)
         #
-        w0 = QWidget()
-        w0.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        w0.setStyleSheet(
+        main_inner_widget = QWidget()
+        main_inner_layout = QVBoxLayout()
+        main_inner_layout.setAlignment(Qt.AlignCenter)
+        main_inner_layout.setContentsMargins(20, 20, 20, 0)
+        main_inner_layout.setSpacing(10)
+        main_inner_widget.setLayout(main_inner_layout)
+        main_inner_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        main_inner_widget.setStyleSheet(
             f"background-color: {BG_COLOR0};"
             f"border-top-left-radius: 55px;"
             f"border-top-right-radius: 55px;"
             f"border-bottom-left-radius: 0px;"
             f"border-bottom-right-radius: 0px;"
         )
-        left_widget_main_layout.addWidget(w0)
+        left_widget_main_layout.addWidget(main_inner_widget)
+        # 赞赏二维码
+        # 对二维码圆角化处理
+        br_tip = create_rounded_thumbnail(self.TIP, 300, 300, 45)
+        self.tip_lb.setPixmap(br_tip)
+        self.tip_lb.setFixedSize(300, 300)
+        self.tip_lb.setStyleSheet(
+            f"background-color: transparent;"
+            f"border-radius: 45px;"
+        )
+        main_inner_layout.addWidget(self.tip_lb, alignment=Qt.AlignCenter)
+        main_inner_layout.addWidget(MyLabel("赞赏二维码", font=FONT_13), alignment=Qt.AlignCenter)
 
     def set_left_down_grid_layout(self):
         email_text = MyLabel("E-mail：", font=FONT_10)
@@ -378,13 +396,13 @@ class StartWelcomeDialog(BasicDialog):
         :return:
         """
         # 添加图标大图
-        self.ico.setPixmap(self.ICO)
-        self.ico.setAlignment(Qt.AlignCenter)
-        self.ico.setFixedSize(254, 254)
-        self.ico.setStyleSheet(f"background-color: #889998;"
-                               f"border-radius: 50px;")
+        self.ico_lb.setPixmap(self.ICO)
+        self.ico_lb.setAlignment(Qt.AlignCenter)
+        self.ico_lb.setFixedSize(254, 254)
+        self.ico_lb.setStyleSheet(f"background-color: #889998;"
+                                  f"border-radius: 50px;")
         # 添加布局
-        self.right_layout.addWidget(self.ico, alignment=Qt.AlignCenter)
+        self.right_layout.addWidget(self.ico_lb, alignment=Qt.AlignCenter)
         # 文字
         _font = FONT_12
         for button in self.buttons.values():
