@@ -280,12 +280,7 @@ def not_implemented(func):
 
 
 def empty_func(*args, **kwargs):
-    """
-    空函数，用于占位
-    :param args:
-    :param kwargs:
-    :return:
-    """
+    """ 空函数，用于占位 """
     pass
 
 

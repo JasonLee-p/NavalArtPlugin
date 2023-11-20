@@ -1,3 +1,4 @@
+from PySide2.QtGui import QColor
 THEME = 'night'
 BG_COLOR0 = '#222324'
 BG_COLOR1 = '#333434'

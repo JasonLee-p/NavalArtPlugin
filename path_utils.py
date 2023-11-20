@@ -4,10 +4,12 @@
 """
 import os
 
+DESKTOP_PATH = os.path.join(os.path.expanduser("~"), 'Desktop')
+
 
 def find_ptb_path():
     # 将PTB_path初始化为桌面位置
-    PTB_path = os.path.join(os.path.expanduser("~"), 'Desktop')
+    PTB_path = DESKTOP_PATH
     # 从C盘开始寻找：
     # 优先在用户目录下寻找，先遍历所有账户名：
     for user in os.listdir('C:\\Users'):
@@ -21,7 +23,7 @@ def find_ptb_path():
 
 def find_na_ship_path():
     # 将PTB_path初始化为桌面位置
-    NA_path = os.path.join(os.path.expanduser("~"), 'Desktop')
+    NA_path = DESKTOP_PATH
     # 从C盘开始寻找：
     # 优先在用户目录下寻找，先遍历所有账户名：
     for user in os.listdir('C:\\Users'):
@@ -49,3 +51,8 @@ def find_na_root_path():
             break
     # 如果在用户目录下没有找到，就返回桌面位置
     return NA_path
+
+
+PTB_PATH = find_ptb_path()
+NA_SHIP_PATH = find_na_ship_path()
+NA_ROOT_PATH = find_na_root_path()
