@@ -2,13 +2,12 @@
 """
 GUI基础参数
 """
-import os
 from base64 import b64decode
 
 import ujson
 from PySide2.QtGui import QFont
 
-from path_utils import find_na_root_path
+from path_utils import DESKTOP_PATH, CONFIG_PATH
 
 try:
     YAHEI = [QFont("Microsoft YaHei", size) if size else None for size in range(5, 101)]
@@ -27,15 +26,35 @@ except Exception as e:
 
 
 # 主要颜色
-_path = os.path.join(find_na_root_path(), 'plugin_config.json')
 try:
-    with open(_path, 'r', encoding='utf-8') as f:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         config_data = ujson.load(f)
     Theme = config_data['Config']['Theme']
     ProjectFolder = config_data['ProjectsFolder']
 except (FileNotFoundError, KeyError, AttributeError):
     Theme = 'Night'
-    ProjectFolder = os.path.join(os.path.expanduser("~"), 'Desktop')
+    ProjectFolder = DESKTOP_PATH
+
+# 其他基础色
+GRAY = '#808080'
+WHITE = '#FFFFFF'
+BLACK = '#000000'
+RED = '#FF0000'
+GREEN = '#00FF00'
+BLUE = '#0000FF'
+YELLOW = '#FFFF00'
+ORANGE = '#FFA500'
+PURPLE = '#800080'
+PINK = '#FFC0CB'
+BROWN = '#A52A2A'
+CYAN = '#00FFFF'
+GOLD = '#FFD700'
+LIGHTER_RED = '#F76677'
+LIGHTER_GREEN = '#6DDF6D'
+LIGHTER_BLUE = '#6D9DDF'
+DARKER_RED = '#C00010'
+DARKER_GREEN = '#00C000'
+DARKER_BLUE = '#0010C0'
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':

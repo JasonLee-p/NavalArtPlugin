@@ -7,7 +7,7 @@ import os
 DESKTOP_PATH = os.path.join(os.path.expanduser("~"), 'Desktop')
 
 
-def find_ptb_path():
+def __find_ptb_path():
     # 将PTB_path初始化为桌面位置
     PTB_path = DESKTOP_PATH
     # 从C盘开始寻找：
@@ -21,7 +21,7 @@ def find_ptb_path():
     return PTB_path
 
 
-def find_na_ship_path():
+def __find_na_ship_path():
     # 将PTB_path初始化为桌面位置
     NA_path = DESKTOP_PATH
     # 从C盘开始寻找：
@@ -37,7 +37,7 @@ def find_na_ship_path():
     return NA_path
 
 
-def find_na_root_path():
+def __find_na_root_path():
     # 将NA_path初始化为桌面位置
     NA_path = os.path.join(os.path.expanduser("~"), 'Desktop')
     # 从C盘开始寻找：
@@ -53,6 +53,7 @@ def find_na_root_path():
     return NA_path
 
 
-PTB_PATH = find_ptb_path()
-NA_SHIP_PATH = find_na_ship_path()
-NA_ROOT_PATH = find_na_root_path()
+PTB_PATH = __find_ptb_path()
+NA_SHIP_PATH = __find_na_ship_path()
+NA_ROOT_PATH = __find_na_root_path()
+CONFIG_PATH = os.path.join(NA_ROOT_PATH, 'plugin_config.json')

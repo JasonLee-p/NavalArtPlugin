@@ -1,12 +1,12 @@
 from PySide2.QtGui import QColor
-THEME = 'night'
-BG_COLOR0 = '#222324'
-BG_COLOR1 = '#333434'
-BG_COLOR2 = '#555657'
-BG_COLOR3 = '#666789'
-FG_COLOR0 = '#f0f0f0'
-FG_COLOR1 = 'firebrick'
-FG_COLOR2 = 'gray'
+THEME: str = 'night'
+BG_COLOR0: str = '#222324'
+BG_COLOR1: str = '#333434'
+BG_COLOR2: str = '#555657'
+BG_COLOR3: str = '#666789'
+FG_COLOR0: str = '#f0f0f0'
+FG_COLOR1: str = 'firebrick'
+FG_COLOR2: str = 'gray'
 
 GLTheme = {
     "背景": (0.1, 0.1, 0.1, 1),

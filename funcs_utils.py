@@ -3,7 +3,7 @@
 """
 
 import ctypes
-from typing import Literal
+from typing import Literal, List
 
 import numpy as np
 from PySide2.QtCore import Qt

@@ -1,11 +1,11 @@
-THEME = 'day'
-BG_COLOR0 = 'beige'
-BG_COLOR1 = 'ivory'
-BG_COLOR2 = '#f0f0ff'
-BG_COLOR3 = 'tan'
-FG_COLOR0 = 'black'
-FG_COLOR1 = 'firebrick'
-FG_COLOR2 = 'gray'
+THEME: str = 'day'
+BG_COLOR0: str = 'beige'
+BG_COLOR1: str = 'ivory'
+BG_COLOR2: str = '#f0f0ff'
+BG_COLOR3: str = 'tan'
+FG_COLOR0: str = 'black'
+FG_COLOR1: str = 'firebrick'
+FG_COLOR2: str = 'gray'
 
 GLTheme = {
     "背景": (0.9, 0.95, 1.0, 1.0),
