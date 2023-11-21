@@ -2,13 +2,103 @@
 """
 基础控件
 """
+from abc import abstractmethod
 from typing import Union, List, Tuple, Type
 
-from basic_data import *
+from .basic_data import *
 
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 from PySide2.QtGui import *
+
+
+def _set_buttons(
+        buttons, sizes, font=YAHEI[9], border=0, bd_color=FG_COLOR0,
+        bd_radius=10, padding=0, bg=(BG_COLOR1, BG_COLOR3, BG_COLOR2, BG_COLOR3),
+        fg=FG_COLOR0
+):
+    """
+    设置按钮样式
+    :param buttons: 按钮列表
+    :param sizes:
+    :param font: QFont对象
+    :param border: 边框宽度
+    :param bd_color: 边框颜色
+    :param bd_radius: 边框圆角
+    :param padding: 内边距
+    :param bg: 按钮背景颜色
+    :param fg: 按钮字体颜色
+    :return:
+    """
+    buttons = list(buttons)
+    if isinstance(bd_radius, int):
+        bd_radius = (bd_radius, bd_radius, bd_radius, bd_radius)
+    if type(sizes[0]) in [int, None]:
+        sizes = [sizes] * len(buttons)
+    if border != 0:
+        border_text = f"{border}px solid {bd_color}"
+    else:
+        border_text = "none"
+    if isinstance(padding, int):
+        padding = (padding, padding, padding, padding)
+    if isinstance(bg, str):
+        bg = (bg, bg, bg, bg)
+    if isinstance(fg, str):
+        fg = (fg, fg, fg, fg)
+    for button in buttons:
+        if sizes[buttons.index(button)][0] is None:
+            # 宽度拉伸
+            button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            button.setFixedHeight(sizes[buttons.index(button)][1])
+        elif sizes[buttons.index(button)][1] is None:
+            # 高度拉伸
+            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Maximum)
+            button.setFixedWidth(sizes[buttons.index(button)][0])
+        else:
+            button.setFixedSize(*sizes[buttons.index(button)])
+        button.setFont(font)
+        button.setStyleSheet(f"""
+            QPushButton{{
+                background-color:{bg[0]};
+                color:{fg[0]};
+                border-top-left-radius: {bd_radius[0]}px;
+                border-top-right-radius: {bd_radius[1]}px;
+                border-bottom-right-radius: {bd_radius[2]}px;
+                border-bottom-left-radius: {bd_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton:hover{{
+                background-color:{bg[1]};
+                color:{fg[1]};
+                border-top-left-radius: {bd_radius[0]}px;
+                border-top-right-radius: {bd_radius[1]}px;
+                border-bottom-right-radius: {bd_radius[2]}px;
+                border-bottom-left-radius: {bd_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton::pressed{{
+                background-color:{bg[2]};
+                color:{fg[2]};
+                border-top-left-radius: {bd_radius[0]}px;
+                border-top-right-radius: {bd_radius[1]}px;
+                border-bottom-right-radius: {bd_radius[2]}px;
+                border-bottom-left-radius: {bd_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+            QPushButton::focus{{
+                background-color:{bg[3]};
+                color:{fg[3]};
+                border-top-left-radius: {bd_radius[0]}px;
+                border-top-right-radius: {bd_radius[1]}px;
+                border-bottom-right-radius: {bd_radius[2]}px;
+                border-bottom-left-radius: {bd_radius[3]}px;
+                border: {border_text};
+                padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
+            }}
+        """)
 
 
 class TextLabel(QLabel):
@@ -28,6 +118,11 @@ class TextLabel(QLabel):
 
 
 class Button(QPushButton):
+    MAXIMIZE_EXIT_IMAGE = QImage.fromData(QByteArray(BYTES_MAXIMIZE))
+    MAXIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MAXIMIZE_EXIT))
+    MINIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MINIMIZE))
+    CLOSE_IMAGE = QImage.fromData(QByteArray(BYTES_CLOSE))
+
     def __init__(
             self, parent,
             tool_tip: str = None,
@@ -55,6 +150,8 @@ class Button(QPushButton):
             fg = [fg] * 4
         if isinstance(padding, int):
             padding = [padding] * 4
+        if isinstance(size, int):
+            size = (size, size)
         self.setFont(font)
         self.setStyleSheet(f"""
                     QPushButton{{
@@ -118,7 +215,6 @@ class Button(QPushButton):
                         padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
                     }}
                 """)
-        self.setAlignment(align)
         self.setFixedSize(size[0], size[1])
         if tool_tip:
             self.setToolTip(tool_tip)
@@ -146,6 +242,17 @@ class TextButton(Button):
         if __set_text:
             self.setText(text)
         super().__init__(parent, tool_tip, bd, bd_color, bd_radius, padding, bg, fg, font, align, size)
+
+
+class IconLabel(QLabel):
+    def __init__(self, parent, ico_bytes, title, height):
+        super().__init__(parent)
+        ico = QIcon(QPixmap(QImage.fromData(QByteArray(ico_bytes))))
+        self.setPixmap(ico.pixmap(QSize(25, 25)))
+        self.setFixedSize(55, height)
+        self.setAlignment(Qt.AlignCenter)
+        self.setToolTip(title)
+        self.setToolTipDuration(5000)
 
 
 class BorderRadiusImage(QLabel):
@@ -185,7 +292,8 @@ class BorderRadiusImage(QLabel):
 
 
 class ImageButton(QPushButton):
-    def __init__(self, parent, img_bytes: bytes, img_size: Union[int, Tuple[int, int]], bd_radius: int = 0, bg: str = BG_COLOR0, tool_tip=None):
+    def __init__(self, parent, img_bytes: bytes, img_size: Union[int, Tuple[int, int]], bd_radius: int = 0,
+                 bg: str = BG_COLOR0, tool_tip=None):
         super().__init__(parent)
         # 处理参数
         if isinstance(img_size, int):
@@ -220,76 +328,100 @@ class ImageButton(QPushButton):
 
 
 class MaximizeButton(Button):
-    def __init__(self, parent, size, bd_radius):
-        super().__init__(parent, "最大化", 0, BG_COLOR0,
+    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+        super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, "#F76677", "#F76677", "#F76677"), FG_COLOR0, YAHEI[9], Qt.AlignCenter, size)
+                         (BG_COLOR1, GRAY, GRAY, GRAY), FG_COLOR0, YAHEI[9], Qt.AlignCenter,
+                         size)
+        self.setIcon(QIcon(QPixmap(Button.MAXIMIZE_IMAGE)))
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("最大化")
-        self.setToolTipDuration(5000)
+        self.setFocusPolicy(Qt.NoFocus)
+        # 绑定点击事件
+        self.clicked.connect(self.clicked_action)
+
+    def clicked_action(self):
+        if self.parent().isMaximized():
+            self.setIcon(QIcon(QPixmap(Button.MAXIMIZE_IMAGE)))
+        else:
+            self.setIcon(QIcon(QPixmap(Button.MAXIMIZE_EXIT_IMAGE)))
 
 
-class MinimizeButton(QPushButton):
-    def __init__(self, parent, size, bd_radius):
+class MinimizeButton(Button):
+    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+        super().__init__(parent, None, 0, BG_COLOR0,
+                         bd_radius, 0,
+                         (BG_COLOR1, GRAY, GRAY, GRAY), FG_COLOR0, YAHEI[9], Qt.AlignCenter,
+                         size)
+        self.setIcon(QIcon(QPixmap(Button.MINIMIZE_IMAGE)))
+        self.setFlat(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+
+
+class CloseButton(Button):
+    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+        super().__init__(parent, None, 0, BG_COLOR0,
+                         bd_radius, 0,
+                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, LIGHTER_RED), FG_COLOR0, YAHEI[9], Qt.AlignCenter, size)
+        self.setIcon(QIcon(QPixmap(Button.CLOSE_IMAGE)))
+        self.setFlat(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+
+
+class CancelButton(Button):
+    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+        super().__init__(parent, None, 0, BG_COLOR0,
+                         bd_radius, 0,
+                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, LIGHTER_RED), FG_COLOR0, YAHEI[9], Qt.AlignCenter, size)
+        self.setFlat(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+
+
+class EnsureButton(Button):
+    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+        super().__init__(parent, None, 0, BG_COLOR0,
+                         bd_radius, 0,
+                         (BG_COLOR1, LIGHTER_GREEN, LIGHTER_GREEN, LIGHTER_GREEN), FG_COLOR0, YAHEI[9], Qt.AlignCenter,
+                         size)
+        self.setFlat(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+
+
+class CircleSelectButton(Button):
+    def __init__(self, parent, relative_widgets: list, tool_tip, radius, color: str, check_color: str):
+        super().__init__(parent, tool_tip, 0, FG_COLOR0, 1, 0, (color, check_color, check_color, check_color),
+                         FG_COLOR0, YAHEI[9], Qt.AlignCenter, (radius * 2, radius * 2))
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setCursor(Qt.PointingHandCursor)
+        self.radius = radius
+        self.relative_widgets = relative_widgets
+        self.bind_relative_widgets()
+
+    def bind_relative_widgets(self):
+        for widget in self.relative_widgets:
+            widget.clicked.connect(self.clicked)
+            widget.setCursor(Qt.PointingHandCursor)
+
+
+class CircleBtWithTextLabel(QPushButton):
+    def __init__(self, parent, text, tool_tip, color, check_color, radius, size=(100, 30), spacing=5):
         super().__init__(parent)
-        self.setFixedSize(size, size)
-        self.setStyleSheet(
-            f"background-color: {BG_COLOR0};"
-            f"border-radius: {bd_radius}px;"
-        )
-        self.setIcon(QIcon(QPixmap(QImage.fromData(QByteArray(BYTES_MINIMIZE)))))
-        self.setFixedSize(size, size)
+        self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(spacing)
+        self.setLayout(self.layout)
+        self.text_label = TextLabel(self, text, font=YAHEI[9], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter)
+        self.__r_widgets = [self.text_label, self]
+        self.circle = CircleSelectButton(self, self._r_widgets, tool_tip, radius, color, check_color)
+        self.layout.addWidget(self.circle, Qt.AlignLeft | Qt.AlignVCenter)
+        self.layout.addWidget(self.text_label, Qt.AlignLeft | Qt.AlignVCenter)
+        self.setFixedSize(size[0], size[1])
         self.setFlat(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("最小化")
-        self.setToolTipDuration(5000)
-
-
-class CloseButton(QPushButton):
-    def __init__(self, parent, size, bd_radius):
-        super().__init__(parent)
-        self.setFixedSize(size, size)
-        self.setStyleSheet(
-            f"background-color: {BG_COLOR0};"
-            f"border-radius: {bd_radius}px;"
-        )
-        self.setIcon(QIcon(QPixmap(QImage.fromData(QByteArray(BYTES_CLOSE)))))
-        self.setFixedSize(size, size)
-        self.setFlat(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("关闭")
-        self.setToolTipDuration(5000)
-
-
-class CancelButton(QPushButton):
-    def __init__(self, parent, size, bd_radius):
-        super().__init__(parent=parent, text="取消")
-        self.setFixedSize(size, size)
-        self.setStyleSheet(
-            f"background-color: {LIGHTER_RED};"
-            f"border-radius: {bd_radius}px;"
-        )
-        self.setFixedSize(size, size)
-        self.setFlat(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("取消")
-        self.setToolTipDuration(5000)
-
-
-class EnsureButton(QPushButton):
-    def __init__(self, parent, size, bd_radius):
-        super().__init__(parent=parent, text="确定")
-        self.setFixedSize(size, size)
-        self.setStyleSheet(
-            f"background-color: {LIGHTER_GREEN};"
-            f"border-radius: {bd_radius}px;"
-        )
-        self.setFixedSize(size, size)
-        self.setFlat(True)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("确定")
-        self.setToolTipDuration(5000)
 
 
 class ImageTextButton(TextButton):
@@ -344,7 +476,8 @@ class ImageTextButton(TextButton):
         self.layout.addStretch()
         self.layout.addLayout(self.layout)
         self.layout.addStretch()
-        super().__init__(parent, text, tool_tip, bd, bd_color, bd_radius, padding, bg, fg, font, align, size, __set_text=False)
+        super().__init__(parent, text, tool_tip, bd, bd_color, bd_radius, padding, bg, fg, font, align, size,
+                         __set_text=False)
 
 
 class ButtonGroup:
@@ -456,44 +589,176 @@ class NumberEdit(TextEdit):
         self.textChanging = False
 
 
+class HorSpliter(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setFixedHeight(1)
+        self.setStyleSheet(f"background-color: {BG_COLOR0};")
+
+
+class VerSpliter(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFixedWidth(1)
+        self.setStyleSheet(f"background-color: {BG_COLOR0};")
+
+
 class Window(QWidget):
     def __init__(
             self, parent, title: str, ico_bites: bytes, ico_size: int = 26, topH: int = 35, bottomH: int = 35,
             size: Tuple[int, int] = (800, 600), show_maximize: bool = True, resizable: bool = True,
-            ensure_bt_fill: bool = False,
-            font=YAHEI[9], bg: str = BG_COLOR1, fg: str = FG_COLOR0, bd_radius: Union[int, Tuple[int, int, int, int]] = 0,
+            font=YAHEI[9], bg: str = BG_COLOR1, fg: str = FG_COLOR0,
+            bd_radius: Union[int, Tuple[int, int, int, int]] = 0,
     ):
+        """
+        提供带图标，顶栏，顶栏关闭按钮，底栏的窗口
+        :param parent:
+        :param title:
+        :param ico_bites:
+        :param ico_size:
+        :param topH:
+        :param bottomH:
+        :param size:
+        :param show_maximize:
+        :param resizable:
+        :param font:
+        :param bg:
+        :param fg:
+        :param bd_radius:
+        """
         super().__init__(parent)
+        self.hide()
+        # 处理参数
+        if isinstance(bd_radius, int):
+            bd_radius = [bd_radius] * 4
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)  # 设置背景透明
         self.setFixedSize(size[0], size[1])
         self.font = font
         self.bg = bg
         self.fg = fg
-        self.bd_radius = bd_radius
         self.topH = topH
         self.bottomH = bottomH
         self.btWid = 55
         self.resizable = resizable
-        self.show_maximize = show_maximize
         self.title = title
-        self.ico_bites = ico_bites
         self.ico_size = ico_size
+        self.bd_radius = bd_radius
         # 初始化控件
+        self.layout = QVBoxLayout(self)
         self.top_widget = QWidget(self)
         self.center_widget = QWidget(self)
         self.bottom_widget = QWidget(self)
         self.top_layout = QHBoxLayout(self.top_widget)
         self.center_layout = QHBoxLayout(self.center_widget)
         self.bottom_layout = QHBoxLayout(self.bottom_widget)
-        self.ico_label = BorderRadiusImage(self.top_widget, self.ico_bites, self.ico_size, 0, self.bg)
-        self.close_button = CloseButton(self, self.btWid, self.bd_radius)
-        self.cancel_button = CancelButton(self, self.btWid, self.bd_radius)
-        self.ensure_button = EnsureButton(self, self.btWid, self.bd_radius)
-        self.maximize_button = MaximizeButton(self, self.btWid, self.bd_radius)
-        self.minimize_button = MinimizeButton(self, self.btWid, self.bd_radius)
-        self.title_label = TextLabel(self, self.title, YAHEI[12], self.fg)
+        # 图标和基础按钮
+        self.ico_label = IconLabel(None, ico_bites, self.title, topH)
+        self.close_button = CloseButton(None, bd_radius=self.bd_radius)
+        self.cancel_button = CancelButton(None, bd_radius=self.bd_radius)
+        self.ensure_button = EnsureButton(None, bd_radius=self.bd_radius)
+        self.maximize_button = MaximizeButton(None, bd_radius=self.bd_radius)
+        self.minimize_button = MinimizeButton(None, bd_radius=self.bd_radius)
+        # 标题
+        self.title_label = TextLabel(None, self.title, YAHEI[12], self.fg)
+        # 顶部拖动区域
+        self.drag_area = self.init_drag_area()
+        self.init_ui()
+        # 显示
+        if show_maximize:
+            self.showMaximized()
+        else:
+            self.show()
+
+    def init_ui(self):
+        self.setStyleSheet(f"""
+            QWidget{{
+                background-color: {self.bg};
+                color: {self.fg};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+            }}
+        """)
+        self.setLayout(self.layout)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.layout.addWidget(self.top_widget)
+        self.layout.addWidget(HorSpliter())
+        self.layout.addWidget(self.center_widget, stretch=1)
+        self.layout.addWidget(HorSpliter())
+        self.layout.addWidget(self.bottom_widget)
+        for _layout in [self.top_layout, self.center_layout, self.bottom_layout]:
+            _layout.setContentsMargins(0, 0, 0, 0)
+            _layout.setSpacing(0)
+        self.init_top_widget()
+        self.bind_bt_funcs()
+
+    def init_top_widget(self):
+        self.top_widget.setFixedHeight(self.topH)
+        self.top_widget.setStyleSheet(f"""
+            QWidget{{
+                background-color: {self.bg};
+                color: {self.fg};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+            }}
+        """)
+        # 控件
+        self.top_layout.addWidget(self.ico_label, Qt.AlignLeft | Qt.AlignVCenter)
+        self.top_layout.addWidget(self.drag_area, Qt.AlignLeft | Qt.AlignVCenter)
+        self.top_layout.addWidget(self.title_label, Qt.AlignLeft | Qt.AlignVCenter)
+
+    def init_drag_area(self):
+        # 添加拖动条，控制窗口大小
+        drag_widget = QWidget()
+        # 设置宽度最大化
+        drag_widget.setFixedWidth(10000)
+        # drag_widget.setFixedSize(5, 5)
+        drag_widget.setStyleSheet("background-color: rgba(0,0,0,0)")
+        drag_widget.mouseMoveEvent = self.mouseMoveEvent
+        drag_widget.mousePressEvent = self.mousePressEvent
+        drag_widget.mouseReleaseEvent = self.mouseReleaseEvent
+        self.layout.addWidget(drag_widget, alignment=Qt.AlignBottom | Qt.AlignRight)
+        return drag_widget
 
 
+    @abstractmethod
+    def init_center_widget(self):
+        pass
 
+    def init_bottom_widget(self):
+        self.bottom_widget.setFixedHeight(self.bottomH)
+        self.bottom_widget.setStyleSheet(f"""
+            QWidget{{
+                background-color: {self.bg};
+                color: {self.fg};
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+            }}
+        """)
+        # 控件
+        self.bottom_layout.addWidget(self.cancel_button, Qt.AlignRight | Qt.AlignVCenter)
+        self.bottom_layout.addWidget(self.ensure_button, Qt.AlignRight | Qt.AlignVCenter)
 
+    def bind_bt_funcs(self):
+        self.close_button.clicked.connect(self.close)
+        self.minimize_button.clicked.connect(self.showMinimized)
+        self.maximize_button.clicked.connect(self.showMaximized)
+        self.ensure_button.clicked.connect(self.ensure)
+        self.cancel_button.clicked.connect(self.cancel)
+
+    def ensure(self):
+        self.close()
+
+    def cancel(self):
+        self.close()
+
+    def showMaximized(self):
+        super().showMaximized()
+        self.maximize_button.setIcon(QIcon(QPixmap(self.maximize_button.MAXIMIZE_EXIT_IMAGE)))
+
+    def showNormal(self):
+        super().showNormal()
+        self.maximize_button.setIcon(QIcon(QPixmap(self.maximize_button.MAXIMIZE_IMAGE)))

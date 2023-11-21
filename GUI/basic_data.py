@@ -2,6 +2,7 @@
 """
 GUI基础参数
 """
+import ctypes
 from base64 import b64decode
 
 import ujson
@@ -58,11 +59,11 @@ DARKER_BLUE = '#0010C0'
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':
-    from theme_config_color.day_color import *
-    from UI_design.ImgPng_day import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
+    from .theme_config_color._day_color import *
+    from .UI_design.ImgPng_day import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
 elif Theme == 'Night':
-    from theme_config_color.night_color import *
-    from UI_design.ImgPng_night import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
+    from .theme_config_color._night_color import *
+    from .UI_design.ImgPng_night import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
 
 
 BYTES_CLOSE = b64decode(close)
@@ -75,3 +76,9 @@ BYTES_ADD_Y = b64decode(add_y)
 BYTES_ADD_Z = b64decode(add_z)
 BYTES_TIP = b64decode(tip)
 BYTES_ICO = b64decode(ICO)
+
+ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 设置高分辨率
+SCALE_FACTOR = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 125  # 获取缩放比例
+user32 = ctypes.windll.user32
+WIN_WID = user32.GetSystemMetrics(0)  # 获取分辨率
+WIN_HEI = user32.GetSystemMetrics(1)  # 获取分辨率

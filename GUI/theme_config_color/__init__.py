@@ -1,4 +1,4 @@
-from . import day_color
-from . import night_color
+from . import _day_color
+from . import _night_color
 
-__all__ = ['day_color', 'night_color']
+__all__ = ['_day_color', '_night_color']
