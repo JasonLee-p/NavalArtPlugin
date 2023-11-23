@@ -18,7 +18,7 @@ if __name__ == '__main__':
             if file.endswith('.png'):
                 with open(os.path.join('ImgPngDay', file), 'rb') as img:
                     img_base64 = base64.b64encode(img.read())
-                    f.write(f'{file[:-4]} = {img_base64}\n\n')
+                    f.write(f'_{file[:-4]} = {img_base64}\n\n')
     with open('ImgPng_night.py', 'a') as f:
         f.write('"""This file is used to store images in the PTB-BlueprintReader app."""\n\n')
         # 只找images内的文件
@@ -26,5 +26,5 @@ if __name__ == '__main__':
             if file.endswith('.png'):
                 with open(os.path.join('ImgPngNight', file), 'rb') as img:
                     img_base64 = base64.b64encode(img.read())
-                    f.write(f'{file[:-4]} = {img_base64}\n\n')
+                    f.write(f'_{file[:-4]} = {img_base64}\n\n')
     print('Done!')

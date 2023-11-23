@@ -2,14 +2,38 @@
 """
 主要窗口
 """
-from GUI.basic_data import *
 from GUI.basic_widgets import *
 
 
 class MainWindow(Window):
+    all_windows = []
+    active_window = None
+
     def __init__(self):
+        self.center_center_widget = QWidget()
+        # 主窗口
+        self.multiDir_main_widget = MainWidgetWithMultiDirectionTab(self.center_center_widget)
+        # 标签页
+        self.structure_tab = MutiDirectionTab(self.multiDir_main_widget, image=STRUCTURE_IMAGE, name='结构')
+        self.layer_tab = MutiDirectionTab(self.multiDir_main_widget, image=LAYER_IMAGE, name='层级')
+        self.user_tab = MutiDirectionTab(self.multiDir_main_widget, image=USER_IMAGE, name='用户')
+        self.framework_tab = MutiDirectionTab(self.multiDir_main_widget, image=FRAMEWORK_IMAGE, name='框架')
+        # 初始化标签页
+        self.init_tab_widgets()
         super().__init__(None, title='NavalArt Hull Editor', ico_bites=BYTES_ICO, size=(1200, 800), resizable=True,
                          show_maximize=True)
+        self.setWindowTitle('NavalArt Hull Editor')
+        MainWindow.all_windows.append(self)
+        MainWindow.active_window = self
+        # 状态变量池
+        self.operating_prj = None
+
+    def init_tab_widgets(self):
+        # 布局
+        self.multiDir_main_widget.add_tab(self.structure_tab, CONST.RIGHT)
+        self.multiDir_main_widget.add_tab(self.layer_tab, CONST.DOWN)
+        self.multiDir_main_widget.add_tab(self.user_tab, CONST.RIGHT)
+        self.multiDir_main_widget.add_tab(self.framework_tab, CONST.LEFT)
 
     def init_top_widget(self):
         self.top_widget.setFixedHeight(self.topH)
@@ -29,12 +53,21 @@ class MainWindow(Window):
         self.top_layout.addWidget(self.close_button, Qt.AlignRight | Qt.AlignVCenter)
 
     def init_center_widget(self):
-        self.center_widget.setStyleSheet(f"""
+        super().init_center_widget()
+        self.center_layout.addWidget(self.multiDir_main_widget)
+
+    def init_bottom_widget(self):
+        self.bottom_widget.setFixedHeight(self.bottomH)
+        self.bottom_widget.setStyleSheet(f"""
             QWidget{{
                 background-color: {self.bg};
                 color: {self.fg};
+                border-bottom-left-radius: {self.bd_radius[0]}px;
+                border-bottom-right-radius: {self.bd_radius[1]}px;
             }}
         """)
+        # 控件
+        self.bottom_layout.addWidget(self.status_label, Qt.AlignLeft | Qt.AlignVCenter)
 
     def resetTheme(self, theme_data):
         ...

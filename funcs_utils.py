@@ -316,3 +316,55 @@ def color_print(text, color: Literal["red", "green", "yellow", "blue", "magenta"
     """
     color_dict = {"red": 31, "green": 32, "yellow": 33, "blue": 34, "magenta": 35, "cyan": 36, "white": 37}
     print(f"\033[{color_dict[color]}m{text}\033[0m")
+
+
+def bool_protection(attr_name):
+    """
+    当实例对象有状态布尔属性用来标记是否正在操作时，
+    保护其不被多线程同时操作
+    :param attr_name:
+    :return:
+    """
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            if getattr(self, attr_name):
+                return
+            setattr(self, attr_name, True)
+            result = func(self, *args, **kwargs)
+            setattr(self, attr_name, False)
+            return result
+        return wrapper
+    return decorator
+
+
+def bool_protection_start(attr_name):
+    """
+    当实例对象有状态布尔属性用来标记是否正在操作时，
+    开始其保护
+    :param attr_name:
+    :return:
+    """
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            if getattr(self, attr_name):
+                return
+            setattr(self, attr_name, True)
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def bool_protection_end(attr_name):
+    """
+    当实例对象有状态布尔属性用来标记是否正在操作时，
+    结束其保护
+    :param attr_name:
+    :return:
+    """
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            result = func(self, *args, **kwargs)
+            setattr(self, attr_name, False)
+            return result
+        return wrapper
+    return decorator

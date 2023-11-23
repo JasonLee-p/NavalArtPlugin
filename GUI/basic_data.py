@@ -6,7 +6,8 @@ import ctypes
 from base64 import b64decode
 
 import ujson
-from PySide2.QtGui import QFont
+from PySide2.QtCore import QByteArray
+from PySide2.QtGui import QFont, QImage
 
 from path_utils import DESKTOP_PATH, CONFIG_PATH
 
@@ -20,11 +21,12 @@ try:
     ITALIC_YAHEI = [QFont("Microsoft YaHei", size, italic=True) if size else None for size in range(5, 101)]
     ITALIC_HEI = [QFont("SimHei", size, italic=True) if size else None for size in range(5, 101)]
     # 加粗斜体
-    BOLD_ITALIC_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold, italic=True) if size else None for size in range(5, 101)]
-    BOLD_ITALIC_HEI = [QFont("SimHei", size, weight=QFont.Bold, italic=True) if size else None for size in range(5, 101)]
+    BOLD_ITALIC_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold, italic=True) if size else None for size in
+                         range(5, 101)]
+    BOLD_ITALIC_HEI = [QFont("SimHei", size, weight=QFont.Bold, italic=True) if size else None for size in
+                       range(5, 101)]
 except Exception as e:
     print(e)
-
 
 # 主要颜色
 try:
@@ -59,26 +61,99 @@ DARKER_BLUE = '#0010C0'
 
 # 根据主题选择颜色，图片
 if Theme == 'Day':
+    # noinspection PyProtectedMember
     from .theme_config_color._day_color import *
-    from .UI_design.ImgPng_day import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
+    # noinspection PyProtectedMember
+    from .UI_design.ImgPng_day import (
+        _close, _add, _choose, _minimize, _maximize, _normal, _ICO,
+        _structure, _layer, _framework, _user
+    )
 elif Theme == 'Night':
+    # noinspection PyProtectedMember
     from .theme_config_color._night_color import *
-    from .UI_design.ImgPng_night import close, add, choose, minimize, maximize, maximize_exit, add_y, add_z, tip, ICO
+    # noinspection PyProtectedMember
+    from .UI_design.ImgPng_night import (
+        _close, _add, _choose, _minimize, _maximize, _normal, _ICO,
+        _structure, _layer, _framework, _user
+    )
+
+_all_imgs = [_close, _add, _choose, _minimize, _maximize, _normal, _ICO, _structure, _layer, _framework, _user]
 
 
-BYTES_CLOSE = b64decode(close)
-BYTES_ADD = b64decode(add)
-BYTES_CHOOSE = b64decode(choose)
-BYTES_MINIMIZE = b64decode(minimize)
-BYTES_MAXIMIZE = b64decode(maximize)
-BYTES_MAXIMIZE_EXIT = b64decode(maximize_exit)
-BYTES_ADD_Y = b64decode(add_y)
-BYTES_ADD_Z = b64decode(add_z)
-BYTES_TIP = b64decode(tip)
-BYTES_ICO = b64decode(ICO)
+BYTES_CLOSE = b64decode(_close)
+BYTES_ADD = b64decode(_add)
+BYTES_CHOOSE = b64decode(_choose)
+BYTES_MINIMIZE = b64decode(_minimize)
+BYTES_MAXIMIZE = b64decode(_maximize)
+BYTES_NORMAL = b64decode(_normal)
+BYTES_ICO = b64decode(_ICO)
+BYTES_STRUCTURE = b64decode(_structure)
+BYTES_LAYER = b64decode(_layer)
+BYTES_FRAMEWORK = b64decode(_framework)
+BYTES_USER = b64decode(_user)
+
+CLOSE_IMAGE = QImage.fromData(QByteArray(BYTES_CLOSE))
+ADD_IMAGE = QImage.fromData(QByteArray(BYTES_ADD))
+CHOOSE_IMAGE = QImage.fromData(QByteArray(BYTES_CHOOSE))
+MINIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MINIMIZE))
+MAXIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MAXIMIZE))
+NORMAL_IMAGE = QImage.fromData(QByteArray(BYTES_NORMAL))
+ICO_IMAGE = QImage.fromData(QByteArray(BYTES_ICO))
+STRUCTURE_IMAGE = QImage.fromData(QByteArray(BYTES_STRUCTURE))
+LAYER_IMAGE = QImage.fromData(QByteArray(BYTES_LAYER))
+FRAMEWORK_IMAGE = QImage.fromData(QByteArray(BYTES_FRAMEWORK))
+USER_IMAGE = QImage.fromData(QByteArray(BYTES_USER))
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 设置高分辨率
 SCALE_FACTOR = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 125  # 获取缩放比例
 user32 = ctypes.windll.user32
 WIN_WID = user32.GetSystemMetrics(0)  # 获取分辨率
 WIN_HEI = user32.GetSystemMetrics(1)  # 获取分辨率
+
+MAIN_STYLE_SHEET = f"""
+    QWidget{{
+        background-color:{BG_COLOR1};
+        color:{FG_COLOR0};
+    }}
+    QPushButton{{
+        background-color:{BG_COLOR1};
+        color:{FG_COLOR0};
+        border-radius: 5px;
+        border: 1px solid {GRAY};
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }}
+    QPushButton:hover{{
+        background-color:{BG_COLOR3};
+        color:{FG_COLOR0};
+        border-radius: 5px;
+        border: 1px solid {FG_COLOR0};
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }}
+    QPushButton:pressed{{
+        background-color:{BG_COLOR2};
+        color:{FG_COLOR0};
+        border-radius: 5px;
+        border: 1px solid {FG_COLOR0};
+        padding-left: 15px;
+        padding-right: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }}
+    // 右键菜单栏按钮样式
+    QMenu::item:selected{{
+        background-color: {BG_COLOR3};
+        color: {FG_COLOR0};
+        border-radius: 5px;
+    }}
+    QMenu::item:disabled{{
+        background-color: {BG_COLOR1};
+        color: {GRAY};
+        border-radius: 5px;
+    }}
+"""

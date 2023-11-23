@@ -3,6 +3,7 @@
 主程序入口
 """
 import sys
+from functools import partial
 
 from GUI import *
 from OpenGLShader import *
@@ -12,60 +13,28 @@ from path_utils import *
 
 
 def main():
-    # 初始化界面和事件处理器
-    QApp = QApplication(sys.argv)
-    # 设置图标
-    QApp.setWindowIcon(QIcon(QPixmap.fromImage(QImage.fromData(BYTES_ICO))))
-    QApp.setStyleSheet(f"""
-                QWidget{{
-                    background-color:{BG_COLOR1};
-                    color:{FG_COLOR0};
-                }}
-                QPushButton{{
-                    background-color:{BG_COLOR1};
-                    color:{FG_COLOR0};
-                    border-radius: 5px;
-                    border: 1px solid {FG_COLOR0};
-                    padding-left: 15px;
-                    padding-right: 15px;
-                    padding-top: 5px;
-                    padding-bottom: 5px;
-                }}
-                QPushButton:hover{{
-                    background-color:{BG_COLOR3};
-                    color:{FG_COLOR0};
-                    border-radius: 5px;
-                    border: 1px solid {FG_COLOR0};
-                    padding-left: 15px;
-                    padding-right: 15px;
-                    padding-top: 5px;
-                    padding-bottom: 5px;
-                }}
-                QPushButton:pressed{{
-                    background-color:{BG_COLOR2};
-                    color:{FG_COLOR0};
-                    border-radius: 5px;
-                    border: 1px solid {FG_COLOR0};
-                    padding-left: 15px;
-                    padding-right: 15px;
-                    padding-top: 5px;
-                    padding-bottom: 5px;
-                }}
-                // 右键菜单栏按钮样式
-                QMenu::item:selected{{
-                    background-color: {BG_COLOR3};
-                    color: {FG_COLOR0};
-                    border-radius: 5px;
-                }}
-                QMenu::item:disabled{{
-                    background-color: {BG_COLOR1};
-                    color: {GRAY};
-                    border-radius: 5px;
-                }}
-            """)
-    main_window = MainWindow()
-    QApp.exec_()
+    main_window0 = MainWindow()
+    main_window1 = MainWindow()
+
+
+def handle_exception(parent, exc_type, exc_value, exc_traceback):
+    color_print(f"""
+        [ERROR] {exc_type}:\n
+        {exc_value}\n
+        {exc_traceback}\n
+    """, "red")
+    QMessageBox.critical(parent, '错误', f'{exc_type}\n{exc_value}')  # 弹出错误提示
+    sys.exit(1)  # 退出程序
 
 
 if __name__ == '__main__':
+    # 初始化界面和事件处理器
+    QApp = QApplication(sys.argv)  # 初始化应用程序
+    QApp.setWindowIcon(QIcon(QPixmap.fromImage(ICO_IMAGE)))  # 设置窗口图标
+    QApp.setStyleSheet(MAIN_STYLE_SHEET)  # 设置全局默认样式表
+    QApp.setQuitOnLastWindowClosed(True)  # 关闭最后一个窗口时退出程序
+    sys.excepthook = partial(handle_exception, QApp)  # 设置异常处理器
+    # 运行业务逻辑
     main()
+    # 退出程序
+    sys.exit(QApp.exec_())
