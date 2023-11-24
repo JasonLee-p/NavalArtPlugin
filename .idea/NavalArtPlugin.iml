@@ -7,6 +7,7 @@
       <excludeFolder url="file://$MODULE_DIR$/image_sources" />
       <excludeFolder url="file://$MODULE_DIR$/NAAssertData" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/environment12" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (NavalArtPlugin_pyside)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

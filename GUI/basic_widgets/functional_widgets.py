@@ -8,9 +8,14 @@ from .buttons import *
 from .buttons import _set_buttons
 from .other_widgets import *
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
-from PySide2.QtGui import QColor, QPixmap
+try:
+    from PySide2.QtCore import Qt
+    from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
+    from PySide2.QtGui import QColor, QPixmap
+except ImportError:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
+    from PyQt5.QtGui import QColor, QPixmap
 
 
 class HSLColorPicker(QWidget):

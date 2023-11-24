@@ -6,10 +6,14 @@ from typing import Union, Tuple, Type
 
 from ..basic_data import *
 
-
-from PySide2.QtCore import *
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
+try:
+    from PySide2.QtCore import *
+    from PySide2.QtWidgets import *
+    from PySide2.QtGui import *
+except ImportError:
+    from PyQt5.QtCore import *
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtGui import *
 
 
 class HorSpliter(QFrame):
@@ -264,18 +268,36 @@ class ColorSlider(QSlider):
 class Splitter(QSplitter):
     def __init__(self, orientation):
         super().__init__(orientation)
+        self.setMouseTracking(True)
+        self.setObjectName("splitter")
+        self.setChildrenCollapsible(False)
+        # self.setOpaqueResize(False)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setHandleWidth(1)
         self.setStyleSheet(f"""
-            QSplitter::handle {{
+            QSplitter::handle:horizontal {{
                 background-color: {BG_COLOR0};
-                width: 2px;
+                color: {FG_COLOR0};
+                width: 1px;
+            }}
+            QSplitter::handle:vertical {{
+                background-color: {BG_COLOR0};
+                color: {FG_COLOR0};
+                width: 1px;
             }}
             QSplitter::handle:hover {{
-                background-color: {BG_COLOR2};
-                width: 2px;
+                background-color: {BG_COLOR1};
+                color: {FG_COLOR0};
+                width: 10px;
             }}
             QSplitter::handle:pressed {{
                 background-color: {BG_COLOR2};
-                width: 2px;
+                color: {FG_COLOR0};
+                width: 10px;
             }}
         """)
-        self.setHandleWidth(1)
+
+    def addWidget(self, widget):
+        # 设置每个分区的最小尺寸为(40, 40)
+        widget.setMinimumSize(40, 40)
+        super().addWidget(widget)

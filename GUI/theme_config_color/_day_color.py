@@ -1,3 +1,6 @@
+from PySide2.QtGui import QColor
+
+
 class ThemeColor:
     def __init__(self, color: str):
         self.color = color
@@ -7,6 +10,14 @@ class ThemeColor:
 
     def __repr__(self):
         return self.color
+
+    @property
+    def rgb(self):
+        if self.color[0] == '#':
+            return int(self.color[1:3], 16), int(self.color[3:5], 16), int(self.color[5:7], 16)
+        else:
+            # 是一个颜色名，例如：'red'
+            return QColor(self.color).getRgb()[:3]
 
 
 THEME: str = 'day'

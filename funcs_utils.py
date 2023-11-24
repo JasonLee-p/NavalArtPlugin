@@ -3,13 +3,16 @@
 """
 
 import ctypes
-from typing import Literal, List
+from typing import Literal
 
 import numpy as np
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QVector3D, QPixmap, QPainter, QPainterPath
-from PySide2.QtWidgets import QMessageBox, QWidget
 from quaternion import quaternion
+try:
+    from PySide2.QtGui import QVector3D
+    from PySide2.QtWidgets import QMessageBox
+except ImportError:
+    from PyQt5.QtGui import QVector3D
+    from PyQt5.QtWidgets import QMessageBox
 
 
 class CONST:
@@ -260,8 +263,12 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
 
 def open_url(url):
     def func(event):
-        from PySide2.QtCore import QUrl
-        from PySide2.QtGui import QDesktopServices
+        try:
+            from PySide2.QtCore import QUrl
+            from PySide2.QtGui import QDesktopServices
+        except ImportError:
+            from PyQt5.QtCore import QUrl
+            from PyQt5.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl(url))
 
     return func
@@ -318,7 +325,7 @@ def color_print(text, color: Literal["red", "green", "yellow", "blue", "magenta"
     print(f"\033[{color_dict[color]}m{text}\033[0m")
 
 
-def bool_protection(attr_name):
+def bool_protection(attr_name=None):
     """
     当实例对象有状态布尔属性用来标记是否正在操作时，
     保护其不被多线程同时操作
@@ -327,11 +334,17 @@ def bool_protection(attr_name):
     """
     def decorator(func):
         def wrapper(self, *args, **kwargs):
-            if getattr(self, attr_name):
+            if attr_name is None:
+                attr_name_ = f"__{func.__name__}_bool_protection__"
+            else:
+                attr_name_ = attr_name
+            if not hasattr(self, attr_name_):  # 如果没有该属性，则创建该属性
+                setattr(self, attr_name_, False)
+            if getattr(self, attr_name_):
                 return
-            setattr(self, attr_name, True)
+            setattr(self, attr_name_, True)
             result = func(self, *args, **kwargs)
-            setattr(self, attr_name, False)
+            setattr(self, attr_name_, False)
             return result
         return wrapper
     return decorator

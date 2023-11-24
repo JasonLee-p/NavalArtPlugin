@@ -6,8 +6,12 @@ import ctypes
 from base64 import b64decode
 
 import ujson
-from PySide2.QtCore import QByteArray
-from PySide2.QtGui import QFont, QImage
+try:
+    from PySide2.QtCore import QByteArray
+    from PySide2.QtGui import QFont, QImage
+except ImportError:
+    from PyQt5.QtCore import QByteArray
+    from PyQt5.QtGui import QFont, QImage
 
 from path_utils import DESKTOP_PATH, CONFIG_PATH
 
@@ -109,51 +113,3 @@ SCALE_FACTOR = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 125  # 获取�
 user32 = ctypes.windll.user32
 WIN_WID = user32.GetSystemMetrics(0)  # 获取分辨率
 WIN_HEI = user32.GetSystemMetrics(1)  # 获取分辨率
-
-MAIN_STYLE_SHEET = f"""
-    QWidget{{
-        background-color:{BG_COLOR1};
-        color:{FG_COLOR0};
-    }}
-    QPushButton{{
-        background-color:{BG_COLOR1};
-        color:{FG_COLOR0};
-        border-radius: 5px;
-        border: 1px solid {GRAY};
-        padding-left: 15px;
-        padding-right: 15px;
-        padding-top: 5px;
-        padding-bottom: 5px;
-    }}
-    QPushButton:hover{{
-        background-color:{BG_COLOR3};
-        color:{FG_COLOR0};
-        border-radius: 5px;
-        border: 1px solid {FG_COLOR0};
-        padding-left: 15px;
-        padding-right: 15px;
-        padding-top: 5px;
-        padding-bottom: 5px;
-    }}
-    QPushButton:pressed{{
-        background-color:{BG_COLOR2};
-        color:{FG_COLOR0};
-        border-radius: 5px;
-        border: 1px solid {FG_COLOR0};
-        padding-left: 15px;
-        padding-right: 15px;
-        padding-top: 5px;
-        padding-bottom: 5px;
-    }}
-    // 右键菜单栏按钮样式
-    QMenu::item:selected{{
-        background-color: {BG_COLOR3};
-        color: {FG_COLOR0};
-        border-radius: 5px;
-    }}
-    QMenu::item:disabled{{
-        background-color: {BG_COLOR1};
-        color: {GRAY};
-        border-radius: 5px;
-    }}
-"""

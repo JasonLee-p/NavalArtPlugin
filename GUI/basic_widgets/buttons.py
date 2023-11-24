@@ -5,9 +5,14 @@
 from .other_widgets import *
 from ..basic_data import *
 
-from PySide2.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
-from PySide2.QtCore import QByteArray, Qt
-from PySide2.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
+try:
+    from PySide2.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
+    from PySide2.QtCore import QByteArray, Qt
+    from PySide2.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
+except ImportError:
+    from PyQt5.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
+    from PyQt5.QtCore import QByteArray, Qt
+    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
 
 
 def _set_buttons(
@@ -123,6 +128,7 @@ class Button(QPushButton):
             font=YAHEI[6],
             align=Qt.AlignCenter,
             size: Union[int, Tuple[int, int]] = (65, 30),
+            alpha=1.0,
     ):
         super().__init__(parent)
         # 处理参数
@@ -133,6 +139,8 @@ class Button(QPushButton):
         if isinstance(bd_radius, int):
             bd_radius = [bd_radius] * 4
         if isinstance(bg, (str, ThemeColor)):
+            r, g, b = ThemeColor(bg).rgb
+            bg = f"rgba({r}, {g}, {b}, {alpha})"
             bg = [bg] * 4
         if isinstance(fg, (str, ThemeColor)):
             fg = [fg] * 4
@@ -305,7 +313,7 @@ class MaximizeButton(Button):
     def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, GRAY, GRAY, GRAY), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, GRAY, GRAY, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
                          size)
         self.setIcon(QIcon(QPixmap(MAXIMIZE_IMAGE)))
         self.setFlat(True)
@@ -325,7 +333,7 @@ class MinimizeButton(Button):
     def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, GRAY, GRAY, GRAY), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, GRAY, GRAY, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
                          size)
         self.setIcon(QIcon(QPixmap(MINIMIZE_IMAGE)))
         self.setFlat(True)
@@ -341,7 +349,7 @@ class CloseButton(Button):
             bd_radius = (0, bd_radius[1], 0, 0)
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, LIGHTER_RED), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
+                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
         self.setIcon(QIcon(QPixmap(CLOSE_IMAGE)))
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
@@ -352,7 +360,7 @@ class CancelButton(Button):
     def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, LIGHTER_RED), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
+                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
@@ -362,7 +370,7 @@ class EnsureButton(Button):
     def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_GREEN, LIGHTER_GREEN, LIGHTER_GREEN), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, LIGHTER_GREEN, LIGHTER_GREEN, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
                          size)
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)

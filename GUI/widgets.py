@@ -3,6 +3,7 @@
 主要窗口
 """
 from GUI.basic_widgets import *
+from OpenGL_plot_objs.opengl_window import GLWin
 
 
 class MainWindow(Window):
@@ -10,9 +11,10 @@ class MainWindow(Window):
     active_window = None
 
     def __init__(self):
-        self.center_center_widget = QWidget()
+        # self.center_center_widget = GLWin(proj_mode='perspective')
+        self.center_center_widget = QFrame()
         # 主窗口
-        self.multiDir_main_widget = MainWidgetWithMultiDirectionTab(self.center_center_widget)
+        self.multiDir_main_widget = MainFrameWithMultiDirectionTab(self.center_center_widget)
         # 标签页
         self.structure_tab = MutiDirectionTab(self.multiDir_main_widget, image=STRUCTURE_IMAGE, name='结构')
         self.layer_tab = MutiDirectionTab(self.multiDir_main_widget, image=LAYER_IMAGE, name='层级')
@@ -38,7 +40,7 @@ class MainWindow(Window):
     def init_top_widget(self):
         self.top_widget.setFixedHeight(self.topH)
         self.top_widget.setStyleSheet(f"""
-            QWidget{{
+            QFrame{{
                 background-color: {self.bg};
                 color: {self.fg};
                 border-top-left-radius: {self.bd_radius[0]}px;
@@ -59,7 +61,7 @@ class MainWindow(Window):
     def init_bottom_widget(self):
         self.bottom_widget.setFixedHeight(self.bottomH)
         self.bottom_widget.setStyleSheet(f"""
-            QWidget{{
+            QFrame{{
                 background-color: {self.bg};
                 color: {self.fg};
                 border-bottom-left-radius: {self.bd_radius[0]}px;
