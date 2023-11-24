@@ -10,13 +10,14 @@ try:
     from PySide2.QtCore import QByteArray, Qt
     from PySide2.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
 except ImportError:
-    from PyQt5.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
-    from PyQt5.QtCore import QByteArray, Qt
-    from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
+    raise ImportError("Please install PySide2 first!")
+    # from PyQt5.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
+    # from PyQt5.QtCore import QByteArray, Qt
+    # from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
 
 
 def _set_buttons(
-        buttons, sizes, font=YAHEI[6], border=0, bd_color=FG_COLOR0,
+        buttons, sizes, font=YAHEI[10], border=0, bd_color=FG_COLOR0,
         bd_radius: Union[int, Tuple[int, int, int, int]] = 10, padding=0,
         bg: Union[str, ThemeColor, tuple] = (BG_COLOR1, BG_COLOR3, BG_COLOR2, BG_COLOR3),
         fg=FG_COLOR0
@@ -313,12 +314,13 @@ class MaximizeButton(Button):
     def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, GRAY, GRAY, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, GRAY, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
                          size)
         self.setIcon(QIcon(QPixmap(MAXIMIZE_IMAGE)))
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setCheckable(False)
         # 绑定点击事件
         self.clicked.connect(self.clicked_action)
 
@@ -333,12 +335,13 @@ class MinimizeButton(Button):
     def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, GRAY, GRAY, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, GRAY, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter,
                          size)
         self.setIcon(QIcon(QPixmap(MINIMIZE_IMAGE)))
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setCheckable(False)
 
 
 class CloseButton(Button):
@@ -349,38 +352,41 @@ class CloseButton(Button):
             bd_radius = (0, bd_radius[1], 0, 0)
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
+                         (BG_COLOR1, LIGHTER_RED, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter, size)
         self.setIcon(QIcon(QPixmap(CLOSE_IMAGE)))
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setCheckable(False)
 
 
 class CancelButton(Button):
     def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_RED, LIGHTER_RED, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter, size)
+                         (BG_COLOR1, LIGHTER_RED, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter, size)
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setCheckable(False)
 
 
 class EnsureButton(Button):
     def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
-                         (BG_COLOR1, LIGHTER_GREEN, LIGHTER_GREEN, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
+                         (BG_COLOR1, LIGHTER_GREEN, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter,
                          size)
         self.setFlat(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.NoFocus)
+        self.setCheckable(False)
 
 
 class CircleSelectButton(Button):
     def __init__(self, parent, relative_widgets: list, tool_tip, radius, color: str, check_color: str):
         super().__init__(parent, tool_tip, 0, FG_COLOR0, 1, 0, (color, check_color, check_color, check_color),
-                         FG_COLOR0, YAHEI[6], Qt.AlignCenter, (radius * 2, radius * 2))
+                         FG_COLOR0, YAHEI[10], Qt.AlignCenter, (radius * 2, radius * 2))
         self.setCheckable(True)
         self.setChecked(False)
         self.setCursor(Qt.PointingHandCursor)
@@ -401,7 +407,7 @@ class CircleBtWithTextLabel(QPushButton):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(spacing)
         self.setLayout(self.layout)
-        self.text_label = TextLabel(self, text, font=YAHEI[6], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter)
+        self.text_label = TextLabel(self, text, font=YAHEI[10], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter)
         self.__r_widgets = [self.text_label, self]
         self.circle = CircleSelectButton(self, self._r_widgets, tool_tip, radius, color, check_color)
         self.layout.addWidget(self.circle, Qt.AlignLeft | Qt.AlignVCenter)
@@ -431,7 +437,7 @@ class ImageTextButton(TextButton):
             padding: Union[int, Tuple[int, int, int, int]] = 0,
             bg: Union[str, ThemeColor, Tuple[str, str, str, str]] = BG_COLOR0,
             fg: Union[str, ThemeColor, Tuple[str, str, str, str]] = FG_COLOR0,
-            font=YAHEI[6],
+            font=YAHEI[10],
             align=Qt.AlignCenter,
             size: Union[int, Tuple[int, int]] = (65, 30),
     ):

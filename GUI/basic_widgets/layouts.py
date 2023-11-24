@@ -3,9 +3,8 @@
 定义一些常用的布局
 """
 import time
-import typing
 from abc import abstractmethod
-from typing import Literal, List
+from typing import Literal, List, Dict
 
 from .buttons import *
 
@@ -34,6 +33,8 @@ class TabButton(Button):
         """
         super().__init__(None, tool_tip, 0, BG_COLOR1, bd_radius, bg=(BG_COLOR1, BG_COLOR3, GRAY, BG_COLOR3),
                          size=30)
+        # 状态
+        self.click_pos = None
         # 处理参数
         if isinstance(bd_radius, int):
             bd_radius = [bd_radius] * 4
@@ -41,15 +42,8 @@ class TabButton(Button):
         self.setIcon(QIcon(QPixmap(image)))
         self.setFocusPolicy(Qt.NoFocus)
         self.setFlat(True)
-        self.tab: MutiDirectionTab = tab
+        self.tab: _MutiDirectionTab = tab
         self.bd_radius = bd_radius
-        # # 绑定点击事件
-        # self.pressed.connect(self.pressed_action)
-        # self.clicked.connect(self.clicked_action)
-        # 状态
-        self.click_pos = None
-        # 重新定向移动事件
-        self.mouseMoveEvent = self.tab.main_widget_with_multidir.mouseMoveEvent
         # 阴影
         self.shadow = QGraphicsDropShadowEffect()
         self.shadow.setOffset(0, 0)
@@ -57,27 +51,52 @@ class TabButton(Button):
         self.shadow.setBlurRadius(20)
         self.setGraphicsEffect(self.shadow)
         # 临时按钮，用于拖动显示
-        self.temp_button = Button(self.tab.main_widget_with_multidir, None, 0, BG_COLOR1, bd_radius,
-                                  bg=(GRAY, BG_COLOR3, GRAY, BG_COLOR3), size=30, alpha=0.6)
+        self._temp_button = Button(None, None, 0, BG_COLOR1, bd_radius,
+                                   bg=(GRAY, BG_COLOR3, GRAY, BG_COLOR3), size=30, alpha=0.6)
         self.init_temp_button()
-        self.temp_button.setIcon(QIcon(QPixmap(image)))
+        self._temp_button.setIcon(QIcon(QPixmap(image)))
 
     def init_temp_button(self):
-        self.temp_button.hide()
-        self.temp_button.setFocusPolicy(Qt.NoFocus)
-        self.temp_button.setFlat(True)
-        self.temp_button.setGraphicsEffect(self.shadow)
+        self._temp_button.setVisible(False)
+        self._temp_button.setWindowFlags(Qt.FramelessWindowHint)
+        self._temp_button.setAttribute(Qt.WA_TranslucentBackground)
+        self._temp_button.setFocusPolicy(Qt.NoFocus)
+        self._temp_button.setFlat(True)
+        self._temp_button.setGraphicsEffect(self.shadow)
 
     def mousePressEvent(self, event):
+        """
+        先改变状态，变为可拖动状态，不立即开始拖动状态，在主控件中判断：当有一定距离后再开始拖动。
+        然后将可拖动tab的信息传递给全局.
+        注意，当鼠标按下按钮，只有按钮的 mousePressEvent 会被调用。
+        :param event:
+        :return:
+        """
+        super().mousePressEvent(event)
         self.click_pos = event.globalPos()
-        self.tab.main_widget_with_multidir.dragging_tab = self.tab
+        _MutiDirectionTab.init_draggable_tab(self.tab)
 
-    def mouseRealaseEvent(self, event):
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)  # 将事件传递给父控件
+        if get_distance(self.click_pos, event.globalPos()) < 25:
+            tabFrame = self.tab.main_widget_with_multidir.TabWidgetMap[self.tab.direction]
+            tabFrame.change_tab(self.tab)
+            if hasattr(self, 'func_'):
+                self.func_()
+
+    def start_dragging(self):
+        """ 开始拖动，修改状态量 """
+        self._temp_button.setVisible(True)
+
+    def move_temp_bt(self, pos):
+        """ 移动临时按钮 """
+        self._temp_button.move(pos)
+
+    def end_dragging(self):
+        """ 结束拖动，修改状态量 """
         self.click_pos = None
-        self.temp_button.hide()
-        self.temp_button.move(self.pos())
-        tab_widget = self.tab.main_widget_with_multidir.TabWidgetMap[self.tab.direction]
-        tab_widget.change_tab(self.tab)
+        self._temp_button.setVisible(False)
+        self._temp_button.move(self.mapToGlobal(QPoint(0, 0)))
 
 
 class ButtonGroup:
@@ -91,6 +110,7 @@ class ButtonGroup:
         if buttons:
             self.buttons = buttons
             for button in buttons:
+                button.setFocusPolicy(Qt.NoFocus)
                 button.setCheckable(True)
                 button.setChecked(False)
                 button.clicked.connect(lambda: self.button_clicked(button))
@@ -127,6 +147,7 @@ class ButtonGroup:
         :return:
         """
         button.setCheckable(True)
+        button.setFocusPolicy(Qt.NoFocus)
         button.func_ = lambda: self.button_clicked(button)
         button.clicked.connect(button.func_)
         if button in self.buttons:
@@ -162,12 +183,13 @@ class ButtonGroup:
                 self.current = None
 
 
-class MutiDirectionTab(QFrame):
-    dragging_tab: Union['MutiDirectionTab', None] = None
-    dragging_button: Union['TabButton', None] = None
+class _MutiDirectionTab(QFrame):
+    __draggable_tab = None
+    _dragging_tab: Union['_MutiDirectionTab', None] = None
+    _dragging_button: Union['TabButton', None] = None
 
     def __init__(self, main_widget_with_multidir, init_direction=CONST.RIGHT,
-                 image: QImage = None, name: str = None,
+                 name: str = None, image: QImage = None,
                  bg: Union[ThemeColor, str] = BG_COLOR1, fg: Union[ThemeColor, str] = FG_COLOR0,
                  bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         """
@@ -177,9 +199,10 @@ class MutiDirectionTab(QFrame):
         if isinstance(bd_radius, int):
             bd_radius = [bd_radius] * 4
         super().__init__()
+        self.setMouseTracking(True)
         self.name = name
-        self.direction = init_direction
-        self.main_widget_with_multidir = main_widget_with_multidir
+        self.direction = init_direction  # 当前位置
+        self.main_widget_with_multidir = main_widget_with_multidir  # 父窗口
         # 按钮
         self.button = TabButton(self, image=image, tool_tip=name)
         # 设置样式
@@ -199,9 +222,59 @@ class MutiDirectionTab(QFrame):
         self._layout = QVBoxLayout(self)
         self.top_widget = QWidget()
         self.top_layout = QHBoxLayout(self.top_widget)
-        self.title_label = TextLabel(self, name, YAHEI[7], fg)
-        self.title_label.setFixedHeight(30)
+        self.title_label = TextLabel(self, name, YAHEI[11], fg)
+        self.title_label.setFixedHeight(26)
         self._init_top_widget()
+
+    def __str__(self):
+        return f"Tab: {self.name}"
+
+    def __repr__(self):
+        return f"Tab: {self.name}"
+
+    @classmethod
+    def get_drag_result(cls) -> Tuple['_MutiDirectionTab', 'TabButton']:
+        """
+        :return: dragging_tab, dragging_button
+        """
+        return cls._dragging_tab, cls._dragging_button
+
+    @classmethod
+    def check_draggable(cls, globalPos: QPoint):
+        if cls.__draggable_tab and cls.__draggable_tab.button.click_pos:
+            if cls._dragging_tab:
+                return True
+            elif get_distance(cls.__draggable_tab.button.click_pos, globalPos) > 35:
+                cls.start_dragging_button()
+                return True
+        return False
+
+    @classmethod
+    def init_draggable_tab(cls, tab: '_MutiDirectionTab'):
+        """ 初始化可拖动的标签页 """
+        cls.__draggable_tab = tab
+
+    @classmethod
+    def start_dragging_button(cls):
+        """
+        开始拖动，修改状态量
+        """
+        cls._dragging_tab = cls.__draggable_tab
+        cls._dragging_button = cls.__draggable_tab.button
+        cls._dragging_button.start_dragging()
+        # 更新所有区域，用于判断鼠标释放时的区域
+        FreeTabFrame.update_all_area()
+
+    @classmethod
+    def end_dragging_button(cls):
+        """
+        结束拖动，修改状态量
+        """
+        if cls._dragging_button:
+            cls._dragging_button.end_dragging()
+            cls._dragging_button = None
+        cls.__draggable_tab = None
+        cls._dragging_tab = None
 
     def _init_top_widget(self):
         self._layout.setContentsMargins(10, 5, 10, 10)
@@ -234,35 +307,59 @@ class MutiDirectionTab(QFrame):
         """
         绘制拖动时的半透明小按钮
         """
-        bt = cls.dragging_button
-        # 获取原始按钮的位置
-        pos_diff = QCursor.pos() - bt.click_pos
-        bt_pos = bt.pos() + bt.parent().pos() + bt.parent().parent().pos()  # 获取原始按钮的位置
-        bt.temp_button.move(bt_pos + pos_diff)  # 移动临时按钮
-        bt.temp_button.update()
+        bt = cls._dragging_button
+        if not bt or not bt.click_pos:
+            color_print(f"[WARNING] No dragging button or no click pos while drawing", "red")
+        # 直接令鼠标位置为按钮中心，不考虑起始位置
+        new_pos = QCursor.pos()-QPoint(15, 15)
+        bt.move_temp_bt(new_pos)
+
+
+class MutiDirectionTab(_MutiDirectionTab):
+    def __init__(self, main_widget_with_multidir, init_direction=CONST.RIGHT,
+                 name: str = None, image: QImage = None):
+        super().__init__(main_widget_with_multidir, init_direction, name, image)
 
 
 class FreeTabFrame(QFrame):
+    _StyleSheet = f"""
+        QFrame{{
+            background-color: {BG_COLOR1};
+            color: {FG_COLOR0};
+            border: 1px solid {BG_COLOR1};
+        }}
+    """
+    _DraggedInStyleSheet = f"""
+        QFrame{{
+            background-color: {BG_COLOR1};
+            color: {FG_COLOR0};
+            border: 1px solid {LIGHTER_BLUE};
+        }}
+    """
     ALIGN_MAP = {CONST.LEFT: Qt.AlignLeft | Qt.AlignVCenter, CONST.RIGHT: Qt.AlignRight | Qt.AlignVCenter,
                  CONST.UP: Qt.AlignTop | Qt.AlignHCenter, CONST.DOWN: Qt.AlignBottom | Qt.AlignHCenter}
     LAYOUT_MAP = {CONST.LEFT: QHBoxLayout, CONST.RIGHT: QHBoxLayout, CONST.UP: QVBoxLayout, CONST.DOWN: QVBoxLayout}
+    all_tabFrames: List['FreeTabFrame'] = []
+    dragged_in_frame: Union['FreeTabFrame', None] = None
 
-    def __init__(self, bt_widget, bt_direction: Literal['left', 'right', 'up', 'down'], multi_direction_tab=None):
+    def __init__(self, direction, bt_widget, bt_direction: Literal['left', 'right', 'up', 'down'], multi_direction_tab=None):
         """
-        一个可自由拖动的标签页
+        一个内容标签可自由拖动的标签页
         :param bt_widget: 装按钮的容器，无需初始化布局
         :param bt_direction: 按钮容器的布局方向，为 CONST.LEFT/RIGHT/UP/DOWN
         """
         self.multi_direction_tab = multi_direction_tab
+        self.direction = direction
         super().__init__()
         # 状态变量
-        self.is_dragging = False
-        self.highlight = False
+        self.dragged_in = False  # 是否被拖入
         self.current_tab = None
         self.all_tabs = []
+        self.area = [QPoint(0, 0), QPoint(0, 0)]
         # 控件
         self.button_group = ButtonGroup()
         self.bt_widget = bt_widget
+        self.bt_widget.area = [QPoint(0, 0), QPoint(0, 0)]
         self.bt_direction = bt_direction
         self.bt_widget_layout: QLayout = FreeTabFrame.LAYOUT_MAP[bt_direction](self.bt_widget)
         self.bt_widget_layout.setAlignment(FreeTabFrame.ALIGN_MAP[bt_direction])
@@ -271,25 +368,40 @@ class FreeTabFrame(QFrame):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.set_style()
+        self.setStyleSheet(FreeTabFrame._StyleSheet)
+        FreeTabFrame.all_tabFrames.append(self)
 
-    def set_style(self):
-        _StyleSheet = f"""
-            QFrame{{
-                background-color: {BG_COLOR1};
-                color: {FG_COLOR0};
-                border: 1px solid {BG_COLOR1};
-            }}
+    def __str__(self):
+        return f"TabFrame: {self.direction}: {self.all_tabs}"
+
+    def __repr__(self):
+        return f"TabFrame: {self.direction}: {self.all_tabs}"
+
+    @classmethod
+    def update_all_area(cls):
+        for tw in cls.all_tabFrames:
+            tw.update_area()
+
+    def update_area(self):
         """
-        self.setStyleSheet(_StyleSheet)
-        self.bt_widget.setStyleSheet(_StyleSheet)
+        更新拖动区域，区域为对基窗口的绝对位置
+        """
+        pos = self.mapToGlobal(QPoint(0, 0))
+        self.area[0] = pos
+        self.area[1] = pos + QPoint(self.size().width(), self.size().height())
+        btw_pos = self.bt_widget.mapToGlobal(QPoint(0, 0))
+        self.bt_widget.area[0] = btw_pos
+        self.bt_widget.area[1] = btw_pos + QPoint(self.bt_widget.size().width(), self.bt_widget.size().height())
 
-    def highlight_style(self):
-        _StyleSheet = f"QFrame{{border: 1px solid {LIGHTER_BLUE};}}"
-        self.setStyleSheet(_StyleSheet)
-        self.bt_widget.setStyleSheet(_StyleSheet)
+    def return_normal_style(self):
+        self.dragged_in = False
+        self.setStyleSheet(self._StyleSheet)
 
-    def add_tab(self, tab: MutiDirectionTab):
+    def dragged_in_style(self):
+        self.dragged_in = True
+        self.setStyleSheet(self._DraggedInStyleSheet)
+
+    def add_tab(self, tab: _MutiDirectionTab):
         """
         添加标签页
         :param tab:
@@ -298,7 +410,7 @@ class FreeTabFrame(QFrame):
         if not self.multi_direction_tab:
             return
         self.button_group.add(tab.button)
-        tab.direction = self.multi_direction_tab.DirMap[self]
+        tab.direction = self.direction
         self.bt_widget_layout.addWidget(tab.button)
         self.layout.addWidget(tab)
         self.all_tabs.append(tab)
@@ -306,8 +418,9 @@ class FreeTabFrame(QFrame):
             self.current_tab.hide()
         self.current_tab = tab
         tab.show()
+        tab.button.show()
 
-    def remove_tab(self, tab: MutiDirectionTab):
+    def remove_tab(self, tab: _MutiDirectionTab):
         """
         移除标签页
         :param tab:
@@ -325,8 +438,9 @@ class FreeTabFrame(QFrame):
             else:
                 self.current_tab = None
         tab.hide()
+        tab.button.hide()
 
-    def change_tab(self, tab: MutiDirectionTab):
+    def change_tab(self, tab: _MutiDirectionTab):
         """
         切换标签页
         :param tab:
@@ -338,26 +452,23 @@ class FreeTabFrame(QFrame):
         if self.current_tab:
             self.current_tab.hide()
         self.current_tab = tab
+        tab.button.click_pos = None
         tab.show()
 
 
-class MainFrameWithMultiDirectionTab(QFrame):
+class MultiDirTabMainFrame(QFrame):
 
     def __init__(self, center_frame: QFrame):
         """
-        一个带有多个可各个方向拖动的标签的窗口
+        一个带有多个可各个方向拖动的标签的窗口；
         下方的标签占据整个窗口宽度
         """
         super().__init__()
-        self._dragged_in_tabFrame = None
         self.center_frame = center_frame
         try:
             self.center_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         except AttributeError:
             color_print(f"[WARNING] Center frame {center_frame} has no attribute 'setSizePolicy'.", "red")
-        self.current_frames = {CONST.LEFT: Union[MutiDirectionTab, None], CONST.RIGHT: Union[MutiDirectionTab, None],
-                               CONST.DOWN: Union[MutiDirectionTab, None]}
-        self.setMouseTracking(True)
         # 总布局
         self.layout = QHBoxLayout(self)
         self.spliterL, self.spliterR = VerSpliter(), VerSpliter()
@@ -365,28 +476,26 @@ class MainFrameWithMultiDirectionTab(QFrame):
         self.ver_spliter = Splitter(Qt.Horizontal)  # 垂直分割器，用于分割左右两个TabWidget
         self.hor_spliter = Splitter(Qt.Vertical)  # 水平分割器，用于分割中间的控件和下方的TabWidget
         # 按钮容器
-        self.left_bt_frame = QFrame()
-        self.left_bt_layout = QVBoxLayout(self.left_bt_frame)
+        self.left_bt_layout = QVBoxLayout()  # 左侧按钮容器
         self.left_up_bt_frame = QFrame()  # 用于 left_tab_widget 的按钮
         self.left_down_bt_frame = QFrame()  # 用于 down_tab_widget 的按钮
         self.right_bt_frame = QFrame()  # 用于 right_tab_widget 的按钮
         # TabWidgets
-        self.down_tab_widget = FreeTabFrame(self.left_down_bt_frame, CONST.DOWN, self)
-        self.left_tab_widget = FreeTabFrame(self.left_up_bt_frame, CONST.UP, self)
-        self.right_tab_widget = FreeTabFrame(self.right_bt_frame, CONST.UP, self)
-        self.DirMap = {self.left_tab_widget: CONST.LEFT,
-                       self.right_tab_widget: CONST.RIGHT,
-                       self.down_tab_widget: CONST.DOWN}
-        self.TabWidgetMap = {CONST.LEFT: self.left_tab_widget, CONST.RIGHT: self.right_tab_widget,
-                             CONST.DOWN: self.down_tab_widget}
+        self.down_tab_frame = FreeTabFrame(CONST.DOWN, self.left_down_bt_frame, CONST.DOWN, self)
+        self.left_tab_frame = FreeTabFrame(CONST.LEFT, self.left_up_bt_frame, CONST.UP, self)
+        self.right_tab_frame = FreeTabFrame(CONST.RIGHT, self.right_bt_frame, CONST.UP, self)
+        self.TabWidgetMap: Dict[Literal['left', 'right', 'down'], FreeTabFrame] = {
+            CONST.LEFT: self.left_tab_frame, CONST.RIGHT: self.right_tab_frame,
+            CONST.DOWN: self.down_tab_frame
+        }
         self.init_ui()
 
     def init_ui(self):
-        self.ver_spliter.addWidget(self.left_tab_widget)
+        self.ver_spliter.addWidget(self.left_tab_frame)
         self.ver_spliter.addWidget(self.center_frame)
-        self.ver_spliter.addWidget(self.right_tab_widget)
+        self.ver_spliter.addWidget(self.right_tab_frame)
         self.hor_spliter.addWidget(self.ver_spliter)
-        self.hor_spliter.addWidget(self.down_tab_widget)
+        self.hor_spliter.addWidget(self.down_tab_frame)
 
         self.ver_spliter.setStretchFactor(0, 1)
         self.ver_spliter.setStretchFactor(1, 100)
@@ -394,34 +503,32 @@ class MainFrameWithMultiDirectionTab(QFrame):
         self.hor_spliter.setStretchFactor(0, 5)
         self.hor_spliter.setStretchFactor(1, 1)
 
-        self.layout.addWidget(self.left_bt_frame)
+        self.layout.addLayout(self.left_bt_layout)
         self.layout.addWidget(self.spliterL)
         self.layout.addWidget(self.hor_spliter)
         self.layout.addWidget(self.spliterR)
         self.layout.addWidget(self.right_bt_frame)
 
-        # for frm in [self.left_up_bt_frame, self.left_up_bt_frame, self.left_down_bt_frame,
-        #             self.right_bt_frame, self.spliterL, self.spliterR]:
-        #     frm.mouseMoveEvent = self.mouseMoveEvent
-        #     frm.mousePressEvent = self.mousePressEvent
-        #     frm.mouseReleaseEvent = self.mouseReleaseEvent
-
-        self.left_up_bt_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.left_down_bt_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        for frm in [self.left_up_bt_frame, self.left_down_bt_frame]:
+            frm.mouseMoveEvent = self.mouseMoveEvent
+            frm.mousePressEvent = self.mousePressEvent
+            frm.mouseReleaseEvent = self.mouseReleaseEvent
         self.left_bt_layout.addWidget(self.left_up_bt_frame, stretch=3)
         self.left_bt_layout.addWidget(self.left_down_bt_frame, stretch=1)
 
         self.left_up_bt_frame.setFixedWidth(40)
         self.left_down_bt_frame.setFixedWidth(40)
-        self.left_bt_frame.setFixedWidth(40)
         self.right_bt_frame.setFixedWidth(40)
-        self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.left_bt_layout.setContentsMargins(0, 0, 0, 0)
         self.left_bt_layout.setSpacing(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.left_bt_layout.setContentsMargins(0, 0, 0, 0)
+        self.left_up_bt_frame.setContentsMargins(0, 0, 0, 0)
+        self.left_down_bt_frame.setContentsMargins(0, 0, 0, 0)
+        self.right_bt_frame.setContentsMargins(0, 0, 0, 0)
         self.setContentsMargins(0, 0, 0, 0)
 
-    def add_tab(self, tab: MutiDirectionTab, direction: Literal['left', 'right', 'down']):
+    def add_tab(self, tab: _MutiDirectionTab, direction: Literal['left', 'right', 'down']):
         """
         添加标签页
         :param tab:
@@ -430,17 +537,19 @@ class MainFrameWithMultiDirectionTab(QFrame):
         """
         self.TabWidgetMap[direction].add_tab(tab)
 
-    def move_tab(self, tab: MutiDirectionTab, orgin_dir: Literal['left', 'right', 'down'],
-                 target_dir: Literal['left', 'right', 'down']):
+    def __move_tab(self, tab: _MutiDirectionTab, orgin_dir: Literal['left', 'right', 'down'],
+                   target_dir: Literal['left', 'right', 'down']):
         """
         移动标签页
         """
         tab.is_operating = False
         self.TabWidgetMap[orgin_dir].remove_tab(tab)
         self.TabWidgetMap[target_dir].add_tab(tab)
-        self.update()
 
-    def remove_tab(self, tab: MutiDirectionTab):
+    def hide_tabFrame(self, direction: Literal['left', 'right', 'down']):
+        ...
+
+    def remove_tab(self, tab: _MutiDirectionTab):
         """
         移除标签页
         :param tab:
@@ -449,91 +558,83 @@ class MainFrameWithMultiDirectionTab(QFrame):
         self.TabWidgetMap[tab.direction].remove_tab(tab)
         self.update()
 
-    def mouseMoveEvent(self, event):
-        """
-        标签页按钮的 mouseMoveEvent 已经被重新定向到这里
-        """
-        if event.buttons() == Qt.LeftButton:
-            self.left_mouse_move(event)
-        super().mouseMoveEvent(event)
-
-    def left_mouse_move(self, event):
-        bt = MutiDirectionTab.dragging_button
-        if not MutiDirectionTab.dragging_tab:
-            return
-        if bt.isChecked():
-            # 如果按钮被按下，且鼠标移动，说明开始拖动
-            pos = event.globalPos()
-            if not bt.temp_button.isVisible():
-                # 如果距离离起始已经大于10，就要开始绘制拖动时的半透明小按钮
-                if get_distance(bt.click_pos, pos) > 15:
-                    bt.temp_button.show()
-            else:
-                MutiDirectionTab.draw_temp_button()
-                self.check_pos_in_area()
-                for tw in [self.left_tab_widget, self.right_tab_widget, self.down_tab_widget]:
-                    if not tw.isVisible():
-                        continue
-                    if tw == self._dragged_in_tabFrame and not tw.highlight:
-                        tw.highlight_style()
-                        tw.highlight = True
-                    elif tw != self._dragged_in_tabFrame and tw.highlight:
-                        tw.set_style()
-                        tw.highlight = False
-                self.update()
-            event.accept()
-            ...
-
-    def mouseReleaseEvent(self, event):
-        bt = MutiDirectionTab.dragging_button
-        if bt:
-            # 隐藏临时按钮
-            bt.temp_button.hide()
-            bt.temp_button.move(bt.pos())
-            # 重置按钮状态
-            bt.click_pos = None
-            # 移动标签页
-            if self._dragged_in_tabFrame:
-                self._dragged_in_tabFrame.set_style()
-                self._dragged_in_tabFrame.highlight = False
-                from_dir = MutiDirectionTab.dragging_tab.direction
-                tar_dir = self.DirMap[self._dragged_in_tabFrame]
-                self.move_tab(MutiDirectionTab.dragging_tab, from_dir, tar_dir)
-            MutiDirectionTab.dragging_tab = None
-
-
-    @bool_protection()
-    def check_pos_in_area(self):
+    def __update_in_area(self):
         """
         检查鼠标释放时的区域
         """
-        self._dragged_in_tabFrame = None
         pos = QCursor.pos()
         _tw_btw_map = {
-            self.left_tab_widget: self.left_tab_widget.bt_widget,
-            self.right_tab_widget: self.right_tab_widget.bt_widget,
-            self.down_tab_widget: self.down_tab_widget.bt_widget
+            self.left_tab_frame: self.left_tab_frame.bt_widget,
+            self.right_tab_frame: self.right_tab_frame.bt_widget,
+            self.down_tab_frame: self.down_tab_frame.bt_widget
         }
         for tw, btw in _tw_btw_map.items():
             if not tw.isVisible():
                 continue
-            tw_pos = tw.pos() + tw.parent().pos() + tw.parent().parent().pos()
-            tw_size = tw.size()
-            if tw_pos.x() < pos.x() < tw_pos.x() + tw_size.width() and \
-                    tw_pos.y() < pos.y() < tw_pos.y() + tw_size.height():
-                self._dragged_in_tabFrame = tw
-            btw_pos = btw.pos() + btw.parent().pos() + btw.parent().parent().pos()
-            btw_size = btw.size()
-            if btw_pos.x() < pos.x() < btw_pos.x() + btw_size.width() and \
-                    btw_pos.y() < pos.y() < btw_pos.y() + btw_size.height():
-                self._dragged_in_tabFrame = tw
+            if tw.area[0].x() < pos.x() < tw.area[1].x() and tw.area[0].y() < pos.y() < tw.area[1].y():
+                return tw
+            if btw.area[0].x() < pos.x() < btw.area[1].x() and btw.area[0].y() < pos.y() < btw.area[1].y():
+                return tw
+        return None
+
+    def __button_move(self):
+        FreeTabFrame.dragged_in_frame = self.__update_in_area()
+        for tw in [self.left_tab_frame, self.right_tab_frame, self.down_tab_frame]:
+            if not tw.isVisible():
+                continue
+            if tw == FreeTabFrame.dragged_in_frame and not tw.dragged_in:
+                tw.dragged_in_style()
+            elif tw != FreeTabFrame.dragged_in_frame and tw.dragged_in:
+                tw.return_normal_style()
+        _MutiDirectionTab.draw_temp_button()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton:
+            if _MutiDirectionTab.check_draggable(event.globalPos()):
+                self.__button_move()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            tab, bt = _MutiDirectionTab.get_drag_result()
+            if bt and FreeTabFrame.dragged_in_frame:
+                tar_dir = FreeTabFrame.dragged_in_frame.direction
+                if tab.direction != tar_dir:
+                    # tabFrame之间交换tab
+                    self.__move_tab(tab, tab.direction, tar_dir)
+                # 恢复样式
+                tar_tabFrame = self.TabWidgetMap[tar_dir]
+                tar_tabFrame.return_normal_style()
+            FreeTabFrame.dragged_in_frame = None
+        _MutiDirectionTab.end_dragging_button()
+        QCoreApplication.processEvents()
+        # bt = MutiDirectionTab._dragging_button
+        # if bt:
+        #     # 移动标签页
+        #     if df := FreeTabFrame.dragged_in_frame:
+        #         df.set_style()
+        #         df.highlight = False
+        #         from_dir = MutiDirectionTab._dragging_tab.direction
+        #         tar_dir = df.direction
+        #         if from_dir != tar_dir:
+        #             self.move_tab(MutiDirectionTab._dragging_tab, from_dir, tar_dir)
+        #         FreeTabFrame.dragged_in_frame = None
+        #     elif get_distance(bt.click_pos, event.globalPos()) < 20:
+        #         print(f"Change Tab {bt.tab}")
+        #         tabFrame = self.TabWidgetMap[bt.tab.direction]
+        #         tabFrame.change_tab(bt.tab)
+        #     for tf in FreeTabFrame.all_tabFrames:
+        #         tf.set_style()
+        #         tf.update()
+        #     # QApplication.sendEvent(bt, event)
+        # self.update()
 
 
 class Window(QWidget):
     def __init__(
             self, parent, title: str, ico_bites: bytes, ico_size: int = 26, topH: int = 40, bottomH: int = 35,
             size: Tuple[int, int] = (800, 600), show_maximize: bool = True, resizable: bool = True,
-            font=YAHEI[6], bg: Union[str, ThemeColor] = BG_COLOR1, fg: Union[str, ThemeColor] = FG_COLOR0,
+            font=YAHEI[11], bg: Union[str, ThemeColor] = BG_COLOR1, fg: Union[str, ThemeColor] = FG_COLOR0,
             bd_radius: Union[int, Tuple[int, int, int, int]] = 7,
             ask_if_close=True
     ):
@@ -594,7 +695,7 @@ class Window(QWidget):
         self.maximize_button = MaximizeButton(None)
         self.minimize_button = MinimizeButton(None)
         # 标题
-        self.title_label = TextLabel(None, self.title, YAHEI[8], self.fg)
+        self.title_label = TextLabel(None, self.title, YAHEI[11], self.fg)
         # 其他可能用到的控件
         self.status_label = QLabel(None)
         # 顶部拖动区域
@@ -660,6 +761,7 @@ class Window(QWidget):
     def mouseReleaseEvent(self, _):
         # 拖动窗口时，鼠标释放后停止拖动
         self.m_flag = False if self.m_flag else self.m_flag
+        self.m_Position = None
 
     def mouseMoveEvent(self, event):
         # 当鼠标在标题栏按下且非最大化时，移动窗口
@@ -724,9 +826,11 @@ class Window(QWidget):
     def showMaximized(self):
         if self.resizable and not self.isMaximized():
             super().showMaximized()
+            FreeTabFrame.update_all_area()
             self.maximize_button.setIcon(QIcon(QPixmap.fromImage(NORMAL_IMAGE)))
         else:
             super().showNormal()
+            FreeTabFrame.update_all_area()
             self.maximize_button.setIcon(QIcon(QPixmap.fromImage(MAXIMIZE_IMAGE)))
 
     def animate(self, start=0, end=1, duration=200):

@@ -31,7 +31,7 @@ class VerSpliter(QFrame):
 
 
 class TextLabel(QLabel):
-    def __init__(self, parent, text, font=YAHEI[6], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter):
+    def __init__(self, parent, text, font=YAHEI[10], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter):
         super().__init__(parent=parent, text=text)
         self.text = text
         self.setFont(font)
@@ -99,7 +99,7 @@ class ProgressBar(QProgressBar):
 
 
 class TextEdit(QLineEdit):
-    def __init__(self, parent, text="", tool_tip: str = None, font=YAHEI[6]):
+    def __init__(self, parent, text="", tool_tip: str = None, font=YAHEI[10]):
         super().__init__(parent)
         self.setFont(font)
         self.setText(text)
@@ -142,7 +142,7 @@ class NumberEdit(TextEdit):
             rounding: int = 0,
             default_value: int = 0,
             step: Union[int, float] = int(1),
-            font=YAHEI[6],
+            font=YAHEI[10],
             tool_tip: str = None
     ):
         super().__init__(parent, str(default_value), tool_tip, font)

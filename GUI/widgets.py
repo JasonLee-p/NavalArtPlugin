@@ -12,14 +12,14 @@ class MainWindow(Window):
 
     def __init__(self):
         # self.center_center_widget = GLWin(proj_mode='perspective')
-        self.center_center_widget = QFrame()
+        self.gl_widget = QFrame()
         # 主窗口
-        self.multiDir_main_widget = MainFrameWithMultiDirectionTab(self.center_center_widget)
+        self.main_widget = MultiDirTabMainFrame(self.gl_widget)
         # 标签页
-        self.structure_tab = MutiDirectionTab(self.multiDir_main_widget, image=STRUCTURE_IMAGE, name='结构')
-        self.layer_tab = MutiDirectionTab(self.multiDir_main_widget, image=LAYER_IMAGE, name='层级')
-        self.user_tab = MutiDirectionTab(self.multiDir_main_widget, image=USER_IMAGE, name='用户')
-        self.framework_tab = MutiDirectionTab(self.multiDir_main_widget, image=FRAMEWORK_IMAGE, name='框架')
+        self.structure_tab = MutiDirectionTab(self.main_widget, name='结构', image=STRUCTURE_IMAGE)
+        self.layer_tab = MutiDirectionTab(self.main_widget, name='层级', image=LAYER_IMAGE)
+        self.user_tab = MutiDirectionTab(self.main_widget, name='用户', image=USER_IMAGE)
+        self.framework_tab = MutiDirectionTab(self.main_widget, name='框架', image=FRAMEWORK_IMAGE)
         # 初始化标签页
         self.init_tab_widgets()
         super().__init__(None, title='NavalArt Hull Editor', ico_bites=BYTES_ICO, size=(1200, 800), resizable=True,
@@ -32,10 +32,10 @@ class MainWindow(Window):
 
     def init_tab_widgets(self):
         # 布局
-        self.multiDir_main_widget.add_tab(self.structure_tab, CONST.RIGHT)
-        self.multiDir_main_widget.add_tab(self.layer_tab, CONST.DOWN)
-        self.multiDir_main_widget.add_tab(self.user_tab, CONST.RIGHT)
-        self.multiDir_main_widget.add_tab(self.framework_tab, CONST.LEFT)
+        self.main_widget.add_tab(self.structure_tab, CONST.RIGHT)
+        self.main_widget.add_tab(self.layer_tab, CONST.DOWN)
+        self.main_widget.add_tab(self.user_tab, CONST.RIGHT)
+        self.main_widget.add_tab(self.framework_tab, CONST.LEFT)
 
     def init_top_widget(self):
         self.top_widget.setFixedHeight(self.topH)
@@ -56,7 +56,7 @@ class MainWindow(Window):
 
     def init_center_widget(self):
         super().init_center_widget()
-        self.center_layout.addWidget(self.multiDir_main_widget)
+        self.center_layout.addWidget(self.main_widget)
 
     def init_bottom_widget(self):
         self.bottom_widget.setFixedHeight(self.bottomH)

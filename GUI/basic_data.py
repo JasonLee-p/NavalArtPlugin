@@ -16,19 +16,17 @@ except ImportError:
 from path_utils import DESKTOP_PATH, CONFIG_PATH
 
 try:
-    YAHEI = [QFont("Microsoft YaHei", size) if size else None for size in range(5, 101)]
-    HEI = [QFont("SimHei", size) if size else None for size in range(5, 101)]
+    YAHEI = [QFont("Microsoft YaHei", size) for size in range(0, 101)]
+    HEI = [QFont("SimHei", size) if size else None for size in range(0, 101)]
     # 加粗
-    BOLD_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold) if size else None for size in range(5, 101)]
-    BOLD_HEI = [QFont("SimHei", size, weight=QFont.Bold) if size else None for size in range(5, 101)]
+    BOLD_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold) for size in range(0, 101)]
+    BOLD_HEI = [QFont("SimHei", size, weight=QFont.Bold) for size in range(0, 101)]
     # 斜体
-    ITALIC_YAHEI = [QFont("Microsoft YaHei", size, italic=True) if size else None for size in range(5, 101)]
-    ITALIC_HEI = [QFont("SimHei", size, italic=True) if size else None for size in range(5, 101)]
+    ITALIC_YAHEI = [QFont("Microsoft YaHei", size, italic=True) for size in range(0, 101)]
+    ITALIC_HEI = [QFont("SimHei", size, italic=True) for size in range(0, 101)]
     # 加粗斜体
-    BOLD_ITALIC_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold, italic=True) if size else None for size in
-                         range(5, 101)]
-    BOLD_ITALIC_HEI = [QFont("SimHei", size, weight=QFont.Bold, italic=True) if size else None for size in
-                       range(5, 101)]
+    BOLD_ITALIC_YAHEI = [QFont("Microsoft YaHei", size, weight=QFont.Bold, italic=True) for size in range(0, 101)]
+    BOLD_ITALIC_HEI = [QFont("SimHei", size, weight=QFont.Bold, italic=True) for size in range(0, 101)]
 except Exception as e:
     print(e)
 
