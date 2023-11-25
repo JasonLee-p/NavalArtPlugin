@@ -151,72 +151,83 @@ class Button(QPushButton):
             size = (size, size)
         self.align = align  # TODO
         self.setFont(font)
-        self.setStyleSheet(f"""
-                    QPushButton{{
-                        background-color:{bg[0]};
-                        color:{fg[0]};
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: {bd_text};
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                    QPushButton:hover{{
-                        background-color:{bg[1]};
-                        color:{fg[1]};
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: {bd_text};
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                    QPushButton::pressed{{
-                        background-color:{bg[2]};
-                        color:{fg[2]};
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: {bd_text};
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                    QPushButton::focus{{
-                        background-color:{bg[3]};
-                        color:{fg[3]};
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: {bd_text};
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                    QPushButton::disabled{{
-                        background-color:{bg[0]};
-                        color: gray;
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: 1px solid gray;
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                    QPushButton::checked{{
-                        background-color:{bg[2]};
-                        color:{fg[2]};
-                        border-top-left-radius: {bd_radius[0]}px;
-                        border-top-right-radius: {bd_radius[1]}px;
-                        border-bottom-right-radius: {bd_radius[2]}px;
-                        border-bottom-left-radius: {bd_radius[3]}px;
-                        border: {bd_text};
-                        padding: {padding[0]}px {padding[1]}px {padding[2]}px {padding[3]}px;
-                    }}
-                """)
+        # 属性
+        self.bg = bg
+        self.fg = fg
+        self.bd_radius = bd_radius
+        self.padding = padding
+        self._bd_text = bd_text
+        self.alpha = alpha
+        # 设置样式
+        self.set_style()
         self.setFixedSize(size[0], size[1])
         if tool_tip:
             self.setToolTip(tool_tip)
             self.setToolTipDuration(3000)
+
+    def set_style(self):
+        self.setStyleSheet(f"""
+            QPushButton{{
+                background-color:{self.bg[0]};
+                color:{self.fg[0]};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: {self._bd_text};
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+            QPushButton:hover{{
+                background-color:{self.bg[1]};
+                color:{self.fg[1]};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: {self._bd_text};
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+            QPushButton::pressed{{
+                background-color:{self.bg[2]};
+                color:{self.fg[2]};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: {self._bd_text};
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+            QPushButton::focus{{
+                background-color:{self.bg[3]};
+                color:{self.fg[3]};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: {self._bd_text};
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+            QPushButton::disabled{{
+                background-color:{self.bg[0]};
+                color: gray;
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: 1px solid gray;
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+            QPushButton::checked{{
+                background-color:{self.bg[2]};
+                color:{self.fg[2]};
+                border-top-left-radius: {self.bd_radius[0]}px;
+                border-top-right-radius: {self.bd_radius[1]}px;
+                border-bottom-right-radius: {self.bd_radius[2]}px;
+                border-bottom-left-radius: {self.bd_radius[3]}px;
+                border: {self._bd_text};
+                padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
+            }}
+        """)
 
     def reset_theme(self, theme_data):
         """
