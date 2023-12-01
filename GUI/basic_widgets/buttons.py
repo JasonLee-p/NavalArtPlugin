@@ -5,20 +5,14 @@
 from .other_widgets import *
 from ..basic_data import *
 
-try:
-    from PySide2.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
-    from PySide2.QtCore import QByteArray, Qt
-    from PySide2.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
-except ImportError:
-    raise ImportError("Please install PySide2 first!")
-    # from PyQt5.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
-    # from PyQt5.QtCore import QByteArray, Qt
-    # from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
+from PySide6.QtGui import QImage, QPixmap, QPainter, QPainterPath, QIcon
+from PySide6.QtCore import QByteArray, Qt
+from PySide6.QtWidgets import QPushButton, QHBoxLayout, QSizePolicy
 
 
 def _set_buttons(
         buttons, sizes, font=YAHEI[10], border=0, bd_color=FG_COLOR0,
-        bd_radius: Union[int, Tuple[int, int, int, int]] = 10, padding=0,
+        bd_radius: Union[int, Tuple[int, int, int, int]] = 7, padding=0,
         bg: Union[str, ThemeColor, tuple] = (BG_COLOR1, BG_COLOR3, BG_COLOR2, BG_COLOR3),
         fg=FG_COLOR0
 ):
@@ -107,15 +101,6 @@ def _set_buttons(
 
 
 class Button(QPushButton):
-    # ICO_IMAGE = QImage.fromData(QByteArray(BYTES_ICO))
-    # NORMAL_IMAGE = QImage.fromData(QByteArray(BYTES_NORMAL))
-    # MAXIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MAXIMIZE))
-    # MINIMIZE_IMAGE = QImage.fromData(QByteArray(BYTES_MINIMIZE))
-    # CLOSE_IMAGE = QImage.fromData(QByteArray(BYTES_CLOSE))
-    # STRUCTURE_IMAGE = QImage.fromData(QByteArray(BYTES_STURCTURE))
-    # LAYER_IMAGE = QImage.fromData(QByteArray(BYTES_LAYER))
-    # FRAMEWORK_IMAGE = QImage.fromData(QByteArray(BYTES_FRAMEWORK))
-    # USER_IMAGE = QImage.fromData(QByteArray(BYTES_USER))
 
     def __init__(
             self, parent,
@@ -128,7 +113,7 @@ class Button(QPushButton):
             fg: Union[str, ThemeColor, Tuple[str, str, str, str]] = FG_COLOR0,
             font=YAHEI[6],
             align=Qt.AlignCenter,
-            size: Union[int, Tuple[int, int]] = (65, 30),
+            size: Union[int, Tuple[int, int]] = (55, 25),
             alpha=1.0,
     ):
         super().__init__(parent)
@@ -209,12 +194,12 @@ class Button(QPushButton):
             }}
             QPushButton::disabled{{
                 background-color:{self.bg[0]};
-                color: gray;
+                color: {GRAY};
                 border-top-left-radius: {self.bd_radius[0]}px;
                 border-top-right-radius: {self.bd_radius[1]}px;
                 border-bottom-right-radius: {self.bd_radius[2]}px;
                 border-bottom-left-radius: {self.bd_radius[3]}px;
-                border: 1px solid gray;
+                border: 1px solid {GRAY};
                 padding: {self.padding[0]}px {self.padding[1]}px {self.padding[2]}px {self.padding[3]}px;
             }}
             QPushButton::checked{{
@@ -275,7 +260,7 @@ class TextButton(Button):
             fg: Union[str, ThemeColor, Tuple[str, str, str, str]] = FG_COLOR0,
             font=YAHEI[6],
             align=Qt.AlignCenter,
-            size: Union[int, Tuple[int, int]] = (65, 30),
+            size: Union[int, Tuple[int, int]] = (55, 25),
             __set_text: bool = True
     ):
         self.text = text
@@ -322,7 +307,7 @@ class ImageButton(QPushButton):
 
 
 class MaximizeButton(Button):
-    def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
+    def __init__(self, parent, size=(45, 30), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
                          (BG_COLOR1, GRAY, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[6], Qt.AlignCenter,
@@ -343,7 +328,7 @@ class MaximizeButton(Button):
 
 
 class MinimizeButton(Button):
-    def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
+    def __init__(self, parent, size=(45, 30), bd_radius: Union[int, Tuple[int, int, int, int]] = 0):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
                          (BG_COLOR1, GRAY, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter,
@@ -356,7 +341,7 @@ class MinimizeButton(Button):
 
 
 class CloseButton(Button):
-    def __init__(self, parent, size=(55, 40), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+    def __init__(self, parent, size=(45, 30), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         if isinstance(bd_radius, int):
             bd_radius = (0, bd_radius, 0, 0)
         else:
@@ -372,7 +357,7 @@ class CloseButton(Button):
 
 
 class CancelButton(Button):
-    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+    def __init__(self, parent, size=(45, 30), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
                          (BG_COLOR1, LIGHTER_RED, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter, size)
@@ -383,7 +368,7 @@ class CancelButton(Button):
 
 
 class EnsureButton(Button):
-    def __init__(self, parent, size=(55, 35), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
+    def __init__(self, parent, size=(45, 30), bd_radius: Union[int, Tuple[int, int, int, int]] = 5):
         super().__init__(parent, None, 0, BG_COLOR0,
                          bd_radius, 0,
                          (BG_COLOR1, LIGHTER_GREEN, BG_COLOR1, BG_COLOR1), FG_COLOR0, YAHEI[10], Qt.AlignCenter,
@@ -412,7 +397,7 @@ class CircleSelectButton(Button):
 
 
 class CircleBtWithTextLabel(QPushButton):
-    def __init__(self, parent, text, tool_tip, color, check_color, radius, size=(100, 30), spacing=5):
+    def __init__(self, parent, text, tool_tip, color, check_color, radius, size=(100, 25), spacing=5):
         super().__init__(parent)
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -441,7 +426,7 @@ class ImageTextButton(TextButton):
             img_pos: str = ImgLeft,
             img_size: Union[int, Tuple[int, int]] = 0,
             img_bd_radius: int = 0,
-            spacing: int = 5,
+            spacing: int = 4,
             bd: Union[int, Tuple[int, int, int, int]] = 0,
             bd_color: Union[str, ThemeColor, Tuple[str, str, str, str]] = FG_COLOR0,
             bd_radius: Union[int, Tuple[int, int, int, int]] = 0,
@@ -450,7 +435,7 @@ class ImageTextButton(TextButton):
             fg: Union[str, ThemeColor, Tuple[str, str, str, str]] = FG_COLOR0,
             font=YAHEI[10],
             align=Qt.AlignCenter,
-            size: Union[int, Tuple[int, int]] = (65, 30),
+            size: Union[int, Tuple[int, int]] = (55, 25),
     ):
         """
         四个状态分别为：默认，鼠标悬停，鼠标按下，获得焦点
@@ -469,8 +454,7 @@ class ImageTextButton(TextButton):
         :param font:
         """
         self.text_label = TextLabel(text, font, fg if isinstance(fg, (str, ThemeColor)) else fg[0])
-        self.img_label = BorderRadiusImage(parent, img_bytes, img_size, img_bd_radius,
-                                           bg if isinstance(bg, (str, ThemeColor)) else bg[0])
+        self.img_label = BorderRadiusImage(parent, img_bytes, img_size, img_bd_radius)
         self.layout = QHBoxLayout() if img_pos in [self.ImgLeft, self.ImgRight] else QVBoxLayout()
         self.widgets = [self.img_label, self.text_label] if img_pos in [self.ImgLeft, self.ImgTop] else [
             self.text_label, self.img_label]

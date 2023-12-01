@@ -5,14 +5,11 @@
 import ctypes
 from typing import Literal
 
-import numpy as np
+from numpy import linalg, cos, sin, radians, array, conj, linspace
 from quaternion import quaternion
-try:
-    from PySide2.QtGui import QVector3D
-    from PySide2.QtWidgets import QMessageBox
-except ImportError:
-    from PyQt5.QtGui import QVector3D
-    from PyQt5.QtWidgets import QMessageBox
+
+from PySide6.QtGui import QVector3D
+from PySide6.QtWidgets import QMessageBox
 
 
 class CONST:
@@ -77,13 +74,13 @@ def rotate_quaternion(vec, rot: list):
     """
     if rot == [0, 0, 0]:
         # 标准化为单位向量
-        return vec / np.linalg.norm(vec)
+        return vec / linalg.norm(vec)
     # 转换为弧度
-    rot = np.radians(rot)
+    rot = radians(rot)
     # 计算旋转的四元数
-    q_x = np.array([np.cos(rot[0] / 2), np.sin(rot[0] / 2), 0, 0])
-    q_y = np.array([np.cos(rot[1] / 2), 0, np.sin(rot[1] / 2), 0])
-    q_z = np.array([np.cos(rot[2] / 2), 0, 0, np.sin(rot[2] / 2)])
+    q_x = array([cos(rot[0] / 2), sin(rot[0] / 2), 0, 0])
+    q_y = array([cos(rot[1] / 2), 0, sin(rot[1] / 2), 0])
+    q_z = array([cos(rot[2] / 2), 0, 0, sin(rot[2] / 2)])
 
     # 合并三个旋转四元数
     q = quaternion(1, 0, 0, 0)
@@ -103,11 +100,11 @@ def rotate_quaternion(vec, rot: list):
         raise ValueError("Invalid RotateOrder!")
 
     # 进行四元数旋转
-    rotated_point_quat = q * np.quaternion(0, *vec) * np.conj(q)
+    rotated_point_quat = q * quaternion(0, *vec) * conj(q)
     # 提取旋转后的点坐标
-    rotated_point = np.array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
+    rotated_point = array([rotated_point_quat.x, rotated_point_quat.y, rotated_point_quat.z])
     # 标准化为单位向量
-    rotated_point = rotated_point / np.linalg.norm(rotated_point)
+    rotated_point = rotated_point / linalg.norm(rotated_point)
     return rotated_point
 
 
@@ -120,18 +117,18 @@ def get_part_world_dirs(part_rot: list, excepted_dir: Literal["front_back", "up_
     """
     front_vec, left_vec, up_vec = None, None, None
     if not excepted_dir:
-        front_vec = tuple(rotate_quaternion(np.array([0., 0., 1.]), part_rot))
-        left_vec = tuple(rotate_quaternion(np.array([1., 0., 0.]), part_rot))
-        up_vec = tuple(rotate_quaternion(np.array([0., 1., 0.]), part_rot))
+        front_vec = tuple(rotate_quaternion(array([0., 0., 1.]), part_rot))
+        left_vec = tuple(rotate_quaternion(array([1., 0., 0.]), part_rot))
+        up_vec = tuple(rotate_quaternion(array([0., 1., 0.]), part_rot))
     elif excepted_dir == CONST.FRONT_BACK:
-        left_vec = tuple(rotate_quaternion(np.array([1., 0., 0.]), part_rot))
-        up_vec = tuple(rotate_quaternion(np.array([0., 1., 0.]), part_rot))
+        left_vec = tuple(rotate_quaternion(array([1., 0., 0.]), part_rot))
+        up_vec = tuple(rotate_quaternion(array([0., 1., 0.]), part_rot))
     elif excepted_dir == CONST.UP_DOWN:
-        front_vec = tuple(rotate_quaternion(np.array([0., 0., 1.]), part_rot))
-        left_vec = tuple(rotate_quaternion(np.array([1., 0., 0.]), part_rot))
+        front_vec = tuple(rotate_quaternion(array([0., 0., 1.]), part_rot))
+        left_vec = tuple(rotate_quaternion(array([1., 0., 0.]), part_rot))
     elif excepted_dir == CONST.LEFT_RIGHT:
-        front_vec = tuple(rotate_quaternion(np.array([0., 0., 1.]), part_rot))
-        up_vec = tuple(rotate_quaternion(np.array([0., 1., 0.]), part_rot))
+        front_vec = tuple(rotate_quaternion(array([0., 0., 1.]), part_rot))
+        up_vec = tuple(rotate_quaternion(array([0., 1., 0.]), part_rot))
     front, back, left, right, up, down = None, None, None, None, None, None
     if front_vec in VECTOR_RELATION_MAP.keys():
         front = VECTOR_RELATION_MAP[front_vec]["Larger"]
@@ -183,7 +180,7 @@ def get_bezier(start, s_control, back, b_control, x):
     t = (x - start[0]) / (back[0] - start[0])
     # 贝塞尔曲线公式
     result = (1 - t) ** 3 * start + 3 * (1 - t) ** 2 * t * s_control + 3 * (1 - t) * t ** 2 * b_control + t ** 3 * back
-    return np.array(result)
+    return array(result)
 
 
 def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
@@ -203,20 +200,20 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
 
     # 计算控制点位置
     distance = x_scl / 4
-    start = np.array([0, 0])
-    end = np.array([x_scl, y_scl])
-    dir_s = np.array([1, front_k])
-    dir_b = np.array([1, back_k])
+    start = array([0, 0])
+    end = array([x_scl, y_scl])
+    dir_s = array([1, front_k])
+    dir_b = array([1, back_k])
     # 标准化后乘以距离
-    dir_s = dir_s * distance / np.linalg.norm(dir_s)
-    dir_b = dir_b * distance / np.linalg.norm(dir_b)
+    dir_s = dir_s * distance / linalg.norm(dir_s)
+    dir_b = dir_b * distance / linalg.norm(dir_b)
     start_control = start + dir_s
     end_control = end - dir_b
     if draw:
         # 在matplotlib绘制贝塞尔曲线：
         import matplotlib.pyplot as plt
         # 从0到length之间生成100个点
-        t_values = np.linspace(0, x_scl, 100)
+        t_values = linspace(0, x_scl, 100)
         # 初始化存储曲线上点的空数组
         curve_points = []
         # 计算贝塞尔曲线上的点
@@ -224,7 +221,7 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
             point = get_bezier(start, start_control, end, end_control, t / x_scl)
             curve_points.append(point)
         # 转换为NumPy数组以便于绘图
-        curve_points = np.array(curve_points)
+        curve_points = array(curve_points)
         # 绘制贝塞尔曲线
         plt.figure(figsize=(8, 6))
         plt.plot(curve_points[:, 0], curve_points[:, 1], label='Bezier Curve', color='blue')
@@ -262,13 +259,9 @@ def fit_bezier(front_k, back_k, x_scl, y_scl, n, draw=False):
 
 
 def open_url(url):
-    def func(event):
-        try:
-            from PySide2.QtCore import QUrl
-            from PySide2.QtGui import QDesktopServices
-        except ImportError:
-            from PyQt5.QtCore import QUrl
-            from PyQt5.QtGui import QDesktopServices
+    def func(_):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl(url))
 
     return func
@@ -323,6 +316,17 @@ def color_print(text, color: Literal["red", "green", "yellow", "blue", "magenta"
     """
     color_dict = {"red": 31, "green": 32, "yellow": 33, "blue": 34, "magenta": 35, "cyan": 36, "white": 37}
     print(f"\033[{color_dict[color]}m{text}\033[0m")
+
+
+def print_time(func):
+    def wrapper(*args, **kwargs):
+        import time
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"函数{func.__name__}运行时间：{end-start}")
+        return result
+    return wrapper
 
 
 def bool_protection(attr_name=None):

@@ -8,27 +8,24 @@ from .buttons import *
 from .buttons import _set_buttons
 from .other_widgets import *
 
-try:
-    from PySide2.QtCore import Qt
-    from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
-    from PySide2.QtGui import QColor, QPixmap
-except ImportError:
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
-    from PyQt5.QtGui import QColor, QPixmap
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QApplication
+from PySide6.QtGui import QColor, QPixmap
 
 
 class HSLColorPicker(QWidget):
     def __init__(self):
         self.current_color = QColor.fromHsl(180, 255, 127)
         self.updating = False
+        self.align = Qt.AlignRight | Qt.AlignTop
+        self.align_center = Qt.AlignRight | Qt.AlignVCenter
         super().__init__()
         self.layout = QVBoxLayout()
         self.HSL_layout = QGridLayout()
-        self.layoutContentMargins = (10, 10, 10, 10)
-        self.layoutVerticalSpacing = 10
-        self.layoutHorizontalSpacing = 20
-        self.sliderHei = 30
+        self.layoutContentMargins = (4, 4, 4, 4)
+        self.layoutVerticalSpacing = 4
+        self.layoutHorizontalSpacing = 16
+        self.sliderHei = 25
         self.hue_slider = ColorSlider(ColorSlider.H, self.sliderHei)
         self.hue_label = TextLabel(None, "色相:")
         self.saturation_slider = ColorSlider(ColorSlider.S, self.sliderHei)
@@ -45,44 +42,65 @@ class HSLColorPicker(QWidget):
         self.labelR = TextLabel(None, "R:")
         self.labelG = TextLabel(None, "G:")
         self.labelB = TextLabel(None, "B:")
-        self.labelR_value = NumberEdit(None, self, num_range=(0, 255))
-        self.labelG_value = NumberEdit(None, self, num_range=(0, 255))
-        self.labelB_value = NumberEdit(None, self, num_range=(0, 255))
+        self.labelR_value = NumberEdit(None, self, num_range=(0, 255), size=(35, 20))
+        self.labelG_value = NumberEdit(None, self, num_range=(0, 255), size=(35, 20))
+        self.labelB_value = NumberEdit(None, self, num_range=(0, 255), size=(35, 20))
         self.init_ui()
 
     def init_ui(self):
         self.init_HSL()
         self.initMessage()
         self.setLayout(self.layout)
+        self.layout.setAlignment(self.align)
 
+    # noinspection PyUnresolvedReferences
     def init_HSL(self):
+        self.HSL_layout.setContentsMargins(1, 1, 1, 1)
+        self.HSL_layout.setSpacing(1)
         self.HSL_layout.setContentsMargins(*self.layoutContentMargins)
         self.HSL_layout.setVerticalSpacing(self.layoutVerticalSpacing)
         self.HSL_layout.setHorizontalSpacing(self.layoutHorizontalSpacing)
-        self.HSL_layout.setAlignment(Qt.AlignCenter)
+        self.HSL_layout.setAlignment(self.align)
         color_preview_r = 3 * self.sliderHei + 2 * self.layoutVerticalSpacing - 8
         self.color_preview.setFixedSize(color_preview_r, color_preview_r)
-        self.color_preview.setStyleSheet(f"""
-            QLabel{{
-                border-radius: 10px;
-                background-color: {BG_COLOR1};
-                border: 0px solid {BG_COLOR1};
-            }}
-        """)
         self.update_color()
 
         self.hue_slider.valueChanged.connect(self.update_color)
         self.saturation_slider.valueChanged.connect(self.update_color)
         self.lightness_slider.valueChanged.connect(self.update_color)
 
-        self.HSL_layout.addWidget(self.hue_label, 0, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.HSL_layout.addWidget(self.hue_slider, 0, 1, alignment=Qt.AlignCenter)
-        self.HSL_layout.addWidget(self.saturation_label, 1, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.HSL_layout.addWidget(self.saturation_slider, 1, 1, alignment=Qt.AlignCenter)
-        self.HSL_layout.addWidget(self.brightness_label, 2, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.HSL_layout.addWidget(self.lightness_slider, 2, 1, alignment=Qt.AlignCenter)
-        self.HSL_layout.addWidget(self.color_preview, 0, 2, 3, 1, alignment=Qt.AlignCenter)
+        self.HSL_layout.addWidget(self.hue_label, 0, 0, self.align_center)
+        self.HSL_layout.addWidget(self.hue_slider, 0, 1, self.align_center)
+        self.HSL_layout.addWidget(self.saturation_label, 1, 0, self.align_center)
+        self.HSL_layout.addWidget(self.saturation_slider, 1, 1, self.align_center)
+        self.HSL_layout.addWidget(self.brightness_label, 2, 0, self.align_center)
+        self.HSL_layout.addWidget(self.lightness_slider, 2, 1, self.align_center)
+        self.HSL_layout.addWidget(self.color_preview, 0, 2, 3, 1, self.align_center)
         self.layout.addLayout(self.HSL_layout)
+
+    def initMessage(self):
+        self.message_layout.setAlignment(self.align)
+        self.message_layout.setContentsMargins(1, 1, 1, 1)
+        self.RGB_layout.setAlignment(self.align)
+        self.RGB_layout.setContentsMargins(20, 1, 20, 1)
+        self.RGB_layout.setVerticalSpacing(4)
+        self.RGB_layout.setHorizontalSpacing(8)
+        self.RGB_layout.setAlignment(self.align)
+
+        self.RGB_layout.addWidget(self.labelR, 0, 0, self.align_center)
+        self.RGB_layout.addWidget(self.labelR_value, 0, 1, self.align_center)
+        self.RGB_layout.addWidget(self.labelG, 1, 0, self.align_center)
+        self.RGB_layout.addWidget(self.labelG_value, 1, 1, self.align_center)
+        self.RGB_layout.addWidget(self.labelB, 2, 0, self.align_center)
+        self.RGB_layout.addWidget(self.labelB_value, 2, 1, self.align_center)
+
+        # 绑定到输入事件
+        self.labelR_value.textChanged.connect(self.update_rgb_color)
+        self.labelG_value.textChanged.connect(self.update_rgb_color)
+        self.labelB_value.textChanged.connect(self.update_rgb_color)
+
+        self.message_layout.addLayout(self.RGB_layout)
+        self.layout.addLayout(self.message_layout)
 
     def mousePressEvent(self, event):
         # 鼠标在控件外的时候，取色
@@ -105,41 +123,16 @@ class HSLColorPicker(QWidget):
                 self.labelG_value.setText(str(self.current_color.green()))
                 self.labelB_value.setText(str(self.current_color.blue()))
 
-    def initMessage(self):
-        self.message_layout.setContentsMargins(0, 0, 0, 0)
-        self.RGB_layout.setContentsMargins(25, 0, 25, 0)
-        self.RGB_layout.setVerticalSpacing(5)
-        self.RGB_layout.setHorizontalSpacing(10)
-        self.RGB_layout.setAlignment(Qt.AlignCenter)
-        self.labelR_value.setFixedSize(50, 30)
-        self.labelG_value.setFixedSize(50, 30)
-        self.labelB_value.setFixedSize(50, 30)
-
-        self.RGB_layout.addWidget(self.labelR, 0, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.RGB_layout.addWidget(self.labelR_value, 0, 1, alignment=Qt.AlignCenter)
-        self.RGB_layout.addWidget(self.labelG, 1, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.RGB_layout.addWidget(self.labelG_value, 1, 1, alignment=Qt.AlignCenter)
-        self.RGB_layout.addWidget(self.labelB, 2, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.RGB_layout.addWidget(self.labelB_value, 2, 1, alignment=Qt.AlignCenter)
-
-        # 绑定到输入事件
-        self.labelR_value.textChanged.connect(self.update_rgb_color)
-        self.labelG_value.textChanged.connect(self.update_rgb_color)
-        self.labelB_value.textChanged.connect(self.update_rgb_color)
-
-        self.message_layout.addStretch(1)
-        self.message_layout.addLayout(self.RGB_layout)
-        self.layout.addLayout(self.message_layout)
-
     def update_color(self):
         if self.updating:
             return
         self.updating = True
-        hue = self.hue_slider.value()
-        saturation = self.saturation_slider.value()
-        lightness = self.lightness_slider.value()
 
-        self.current_color = QColor.fromHsl(hue, saturation, lightness)
+        self.current_color = QColor.fromHsl(
+            self.hue_slider.value(),
+            self.saturation_slider.value(),
+            self.lightness_slider.value()
+        )
         # 更新滑动条颜色
         self.hue_slider.update()
         self.saturation_slider.update()
@@ -150,6 +143,7 @@ class HSLColorPicker(QWidget):
         self.labelB_value.setText(str(self.current_color.blue()))
         self.update_color_preview()
         self.updating = False
+        QApplication.processEvents()
 
     def update_rgb_color(self):
         if self.updating:
@@ -174,17 +168,15 @@ class HSLColorPicker(QWidget):
         self.updating = False
 
     def update_color_preview(self):
-        self.color_preview.setStyleSheet(f"""
-            QLabel{{
-                border-radius: 10px;
-                background-color: {self.current_color.name()};
-                border: 0px solid {BG_COLOR1};
-            }}
-        """)
+        self.color_preview.setStyleSheet(f"""QLabel{{
+            border-radius: 10px;
+            background-color: {self.current_color.name()};
+            border: 0px solid {BG_COLOR1};
+        }}""")
 
 
 class BasicDialog(QDialog):
-    def __init__(self, parent=None, border_radius=10, title=None, size=QSize(400, 300), center_layout=None,
+    def __init__(self, parent=None, border_radius=8, title=None, size=QSize(400, 300), center_layout=None,
                  resizable=False, hide_top=False, hide_bottom=False, ensure_bt_fill=False):
         self.close_bg = QIcon(QPixmap.fromImage(Button.CLOSE_IMAGE))
         self._parent = parent
@@ -205,12 +197,12 @@ class BasicDialog(QDialog):
         self.title = title
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setFixedSize(size)
-        self.topH = 35
+        self.topH = 30
         self.TitleFont = YAHEI[10]
         self.ContentFont = YAHEI[15]
         # 设置边框阴影
         self.shadow = QGraphicsDropShadowEffect(self)
-        self.shadow.setOffset(0, 0)
+        self.shadow.setOffset(0)
         self.shadow.setColor(QColor(0, 0, 0, 50))
         self.shadow.setBlurRadius(15)
         self.setGraphicsEffect(self.shadow)
@@ -296,7 +288,7 @@ class BasicDialog(QDialog):
         self.top_layout.addWidget(text_label, alignment=Qt.AlignCenter)
         self.top_layout.addStretch(1)
         # 按钮
-        cb_size = (self.topH + 10, self.topH)
+        cb_size = (self.topH + 8, self.topH)
         self.close_button.setIcon(self.close_bg)
         self.close_button.setFocusPolicy(Qt.NoFocus)
         _set_buttons([self.close_button], sizes=cb_size, border=0, bg=(BG_COLOR1, "#F76677", "#F76677", "#F76677"))

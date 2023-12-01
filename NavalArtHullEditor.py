@@ -16,15 +16,33 @@ except Exception as e:
     sys.exit(1)
 
 
+VERSION = "0.0.3.0"
+TESTING = False
+
+
+def init_QApp():
+    app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(QPixmap(ICO_IMAGE)))
+    app.setApplicationName("NavalArt HullEditor")
+    app.setApplicationVersion(VERSION)
+    app.setOrganizationName("JasonLee")
+    # 设置主题
+    app.setStyle("Fusion")
+    return app
+
+
 def main():
     main_window = MainWindow()
 
 
 def handle_exception(parent, exc_type, exc_value, exc_traceback):
-    traceback_text = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-    color_print(f"""[ERROR] {exc_type}:\n{traceback_text}""", "red")
-    input(f"[INFO] Press any key to exit...")
-    sys.exit(1)  # 退出程序
+    if TESTING:
+        traceback_text = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        color_print(f"""[ERROR] {exc_type}:\n{traceback_text}""", "red")
+        input(f"[INFO] Press any key to exit...")
+        sys.exit(1)  # 退出程序
+    else:
+        QMessageBox.critical(parent, "错误", f"{exc_type}: {exc_value}")
 
 
 if __name__ == '__main__':
@@ -34,10 +52,12 @@ if __name__ == '__main__':
     fmt.setProfile(QSurfaceFormat.CoreProfile)
     QSurfaceFormat.setDefaultFormat(fmt)
     # 初始化界面和事件处理器
-    QApp = QApplication(sys.argv)  # 初始化应用程序
-    QApp.setWindowIcon(QIcon(QPixmap.fromImage(ICO_IMAGE)))  # 设置窗口图标
+    QApp = init_QApp()
     sys.excepthook = partial(handle_exception, QApp)  # 设置异常处理器
     # 运行业务逻辑
     main()
+    # main_win = QMainWindow()
+    # main_win.setLayout(QVBoxLayout())
+    # main_win.layout().addWidget(QOpenGLWidget())
     # 退出程序
-    sys.exit(QApp.exec_())
+    sys.exit(QApp.exec())

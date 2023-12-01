@@ -4,16 +4,12 @@
 """
 from typing import Union, Tuple, Type
 
+from funcs_utils import print_time
 from ..basic_data import *
 
-try:
-    from PySide2.QtCore import *
-    from PySide2.QtWidgets import *
-    from PySide2.QtGui import *
-except ImportError:
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtGui import *
+from PySide6.QtCore import *
+from PySide6.QtWidgets import *
+from PySide6.QtGui import *
 
 
 class HorSpliter(QFrame):
@@ -24,19 +20,18 @@ class HorSpliter(QFrame):
 
 
 class VerSpliter(QFrame):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
         self.setFixedWidth(1)
         self.setStyleSheet(f"background-color: {BG_COLOR0};")
 
 
 class TextLabel(QLabel):
-    def __init__(self, parent, text, font=YAHEI[10], color=FG_COLOR0, align=Qt.AlignLeft | Qt.AlignVCenter):
+    def __init__(self, parent, text, font=YAHEI[10], color=FG_COLOR0, align=Qt.AlignLeft):
         super().__init__(parent=parent, text=text)
         self.text = text
         self.setFont(font)
-        self.setStyleSheet(f"color:{color};")
-        self.setAttribute(Qt.WA_TranslucentBackground)  # 设置背景透明
+        self.setStyleSheet(f"background-color: rgba(0, 0, 0, 0); color: {color};")
         self.setAlignment(align)
 
     def set_text(self, text, color: str = None):
@@ -49,9 +44,13 @@ class TextLabel(QLabel):
 class IconLabel(QLabel):
     def __init__(self, parent, ico_bytes, title, height):
         super().__init__(parent)
-        ico = QIcon(QPixmap(QImage.fromData(QByteArray(ico_bytes))))
-        self.setPixmap(ico.pixmap(QSize(25, 25)))
-        self.setFixedSize(55, height)
+        ico = QIcon()
+        icon = QPixmap()
+        icon_image = QImage.fromData(QByteArray(ico_bytes))
+        icon.convertFromImage(icon_image)
+        ico.addPixmap(icon, QIcon.Normal, QIcon.Off)
+        self.setPixmap(ico.pixmap(QSize(20, 20)))
+        self.setFixedSize(45, height)
         self.setAlignment(Qt.AlignCenter)
         self.setToolTip(title)
         self.setToolTipDuration(5000)
@@ -59,7 +58,7 @@ class IconLabel(QLabel):
 
 class BorderRadiusImage(QLabel):
     def __init__(self, parent, img_bytes: bytes, img_size: Union[int, Tuple[int, int]], bd_radius: int = 0,
-                 bg: Union[ThemeColor, str] = BG_COLOR0, tool_tip=None):
+                 tool_tip=None):
         super().__init__(parent)
         # 处理参数
         if isinstance(img_size, int):
@@ -68,13 +67,15 @@ class BorderRadiusImage(QLabel):
             self.width, self.height = img_size[0], img_size[1]
         self.img_bytes = img_bytes
         self.bd_radius = bd_radius
-        self.bg = bg
-
-        img = QPixmap(QImage.fromData(QByteArray(self.img_bytes)))
+        image = QImage.fromData(QByteArray(self.img_bytes))
+        img = QPixmap()
+        img.convertFromImage(image)
         img.scaled(self.width, self.height, Qt.KeepAspectRatio)
-        rounded_img = QPixmap(self.width, self.height)
+        rounded_img = QPixmap()
+        rounded_img.scaled(self.width, self.height, Qt.KeepAspectRatio)
         rounded_img.fill(Qt.transparent)
-        painter = QPainter(rounded_img)
+        painter = QPainter()
+        painter.begin(rounded_img)
         painter.setRenderHint(QPainter.Antialiasing)
         # 创建一个椭圆路径来表示圆角
         path = QPainterPath()
@@ -84,7 +85,7 @@ class BorderRadiusImage(QLabel):
         painter.end()
         self.setPixmap(rounded_img)
         self.setStyleSheet(
-            f"background-color: {self.bg};"
+            f"background-color: rgba(0, 0, 0, 0);"
             f"border-radius: {self.bd_radius}px;"
         )
         self.setFixedSize(self.width, self.height)
@@ -94,18 +95,16 @@ class BorderRadiusImage(QLabel):
 
 
 class ProgressBar(QProgressBar):
-    def __init__(self, lengh, ):
-        ...
+    ...
 
 
 class TextEdit(QLineEdit):
-    def __init__(self, parent, text="", tool_tip: str = None, font=YAHEI[10]):
-        super().__init__(parent)
+    def __init__(self, text, parent, tool_tip: str = None, font=YAHEI[10]):
+        super().__init__(text, parent)
         self.setFont(font)
-        self.setText(text)
         self.setStyleSheet(f"""
             QLineEdit{{
-                background-color: {BG_COLOR1}; 
+                background-color: rgba(0, 0, 0, 0);
                 color: {FG_COLOR0}; 
                 border: 1px solid {FG_COLOR0}; 
                 border-radius: 5px;
@@ -118,8 +117,8 @@ class TextEdit(QLineEdit):
             }}
             QLineEdit::disabled{{
                 background-color: {BG_COLOR1}; 
-                color: gray; 
-                border: 1px solid gray; 
+                color: {GRAY};
+                border: 1px solid {GRAY};
                 border-radius: 5px;
             }}
             QLineEdit::focus{{
@@ -137,7 +136,7 @@ class TextEdit(QLineEdit):
 class NumberEdit(TextEdit):
     def __init__(
             self, parent, root_parent,
-            size: Tuple[int, int] = (100, 30),
+            size: Tuple[int, int] = (100, 20),
             num_type: Type[int] = int, num_range: tuple = (-100000, 100000),
             rounding: int = 0,
             default_value: int = 0,
@@ -145,7 +144,7 @@ class NumberEdit(TextEdit):
             font=YAHEI[10],
             tool_tip: str = None
     ):
-        super().__init__(parent, str(default_value), tool_tip, font)
+        super().__init__(str(default_value), parent, tool_tip, font)
         self.root_parent = root_parent
         self.num_type = num_type
         self.num_range = num_range
@@ -191,7 +190,7 @@ class ColorSlider(QSlider):
     S = "s"
     L = "l"
 
-    def __init__(self, _type, height=30):
+    def __init__(self, _type, height=20):
         super().__init__(Qt.Horizontal)
         # 设置track不可见
         self.hei = height
@@ -250,19 +249,16 @@ class ColorSlider(QSlider):
         # 半透明矩形
         painter.setPen(Qt.NoPen)
         painter.setBrush(QColor(0, 0, 0, 127))
-        painter.drawRect(pos_x - 6, 5, 12, self.hei - 10)
+        painter.drawRect(pos_x - 5, 5, 10, self.hei - 10)
         # 绘制游标上的三角形（FG_COLOR0）
         painter.setPen(Qt.NoPen)
         painter.setBrush(QColor(str(FG_COLOR0)))
+        # noinspection PyArgumentList
         painter.drawPolygon(QPolygon([
             QPoint(pos_x - 5, 0),
             QPoint(pos_x + 5, 0),
             QPoint(pos_x, 5),
         ]))
-
-    def update(self):
-        self.repaint()
-        super().update()
 
 
 class Splitter(QSplitter):
@@ -271,10 +267,14 @@ class Splitter(QSplitter):
         self.setMouseTracking(True)
         self.setObjectName("splitter")
         self.setChildrenCollapsible(False)
-        # self.setOpaqueResize(False)
         self.setContentsMargins(0, 0, 0, 0)
         self.setHandleWidth(1)
         self.setStyleSheet(f"""
+            QSplitter::handle {{
+                background-color: {BG_COLOR0};
+                color: {FG_COLOR0};
+                width: 1px;
+            }}
             QSplitter::handle:horizontal {{
                 background-color: {BG_COLOR0};
                 color: {FG_COLOR0};
@@ -286,14 +286,14 @@ class Splitter(QSplitter):
                 width: 1px;
             }}
             QSplitter::handle:hover {{
-                background-color: {BG_COLOR1};
-                color: {FG_COLOR0};
-                width: 10px;
-            }}
-            QSplitter::handle:pressed {{
                 background-color: {BG_COLOR2};
                 color: {FG_COLOR0};
-                width: 10px;
+                width: 1px;
+            }}
+            QSplitter::handle:pressed {{
+                background-color: {BG_COLOR3};
+                color: {FG_COLOR0};
+                width: 1px;
             }}
         """)
 
@@ -301,3 +301,79 @@ class Splitter(QSplitter):
         # 设置每个分区的最小尺寸为(40, 40)
         widget.setMinimumSize(40, 40)
         super().addWidget(widget)
+
+
+class ScrollArea(QScrollArea):
+    _STYLE_SHEET = f"""
+            QScrollArea{{
+                background-color: rgba(0, 0, 0, 0); color: {FG_COLOR0};
+                border: 0px solid {FG_COLOR0}; border-radius: 0px;
+            }}
+            QScrollBar:vertical {{
+                background-color: {BG_COLOR0}; border-radius: 4px; width: 8px; margin: 0px 0px 0px 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {BG_COLOR2}; border-radius: 4px; min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {BG_COLOR3}; border-radius: 4px; min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:pressed {{
+                background-color: {GRAY}; border-radius: 4px; min-height: 20px;
+            }}
+            QScrollBar::add-line:vertical {{
+                height: 0px; subcontrol-position: bottom; subcontrol-origin: margin;
+            }}
+            QScrollBar::sub-line:vertical {{
+                height: 0px; subcontrol-position: top; subcontrol-origin: margin;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background-color: {BG_COLOR0}; border-radius: 4px; height: 8px; margin: 0px 0px 0px 0px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background-color: {BG_COLOR2}; border-radius: 4px; min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background-color: {BG_COLOR3}; border-radius: 4px; min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:pressed {{
+                background-color: {GRAY}; border-radius: 4px; min-width: 20px;
+            }}
+            QScrollBar::add-line:horizontal {{
+                width: 0px; subcontrol-position: right; subcontrol-origin: margin;
+            }}
+            QScrollBar::sub-line:horizontal {{
+                width: 0px; subcontrol-position: left; subcontrol-origin: margin;
+            }}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+                background: none;
+            }}
+        """
+
+    def __init__(self, parent, widget, orientation):
+        super().__init__(parent)
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
+        if orientation == Qt.Horizontal:
+            self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        elif orientation == Qt.Vertical:
+            self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        else:
+            self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setStyleSheet(ScrollArea._STYLE_SHEET)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShadow(QFrame.Plain)
+
+    def wheelEvent(self, event):
+        # 绑定滚轮事件：Shift滚轮水平滚动，其他情况垂直滚动
+        if event.modifiers() == Qt.ShiftModifier:
+            self.horizontalScrollBar().event(event)
+        else:
+            self.verticalScrollBar().event(event)

@@ -4,9 +4,11 @@
 """
 from typing import Literal
 
-from GUI.basic_windows import GLWindow
+from GUI.basic_windows import GLWidget
+from .plot_objs import *
 
 
-class GLWin(GLWindow):
+class GLWin(GLWidget):
     def __init__(self, proj_mode: Literal['ortho', 'perspective'] = 'perspective'):
-        super().__init__(proj_mode)
+        super().__init__(proj_mode=proj_mode)
+        self.plot_object = PlotObj()

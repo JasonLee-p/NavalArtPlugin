@@ -11,18 +11,20 @@ class MainWindow(Window):
     active_window = None
 
     def __init__(self):
-        # self.center_center_widget = GLWin(proj_mode='perspective')
-        self.gl_widget = QFrame()
+        self.gl_widget = GLWin(proj_mode='perspective')
+        self.gl_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         # 主窗口
         self.main_widget = MultiDirTabMainFrame(self.gl_widget)
         # 标签页
-        self.structure_tab = MutiDirectionTab(self.main_widget, name='结构', image=STRUCTURE_IMAGE)
+        self.structure_tab = ElementLayerTab(self.main_widget)
         self.layer_tab = MutiDirectionTab(self.main_widget, name='层级', image=LAYER_IMAGE)
         self.user_tab = MutiDirectionTab(self.main_widget, name='用户', image=USER_IMAGE)
-        self.framework_tab = MutiDirectionTab(self.main_widget, name='框架', image=FRAMEWORK_IMAGE)
+        self.framework_tab = MutiDirectionTab(self.main_widget, name='框架', image=STRUCTURE_IMAGE)
+        self.structure_tab.set_layout(QVBoxLayout())
+        self.structure_tab.main_layout.addWidget(HSLColorPicker())
         # 初始化标签页
         self.init_tab_widgets()
-        super().__init__(None, title='NavalArt Hull Editor', ico_bites=BYTES_ICO, size=(1200, 800), resizable=True,
+        super().__init__(None, title='NavalArt Hull Editor', ico_bites=BYTES_ICO, size=(1000, 618), resizable=True,
                          show_maximize=True)
         self.setWindowTitle('NavalArt Hull Editor')
         MainWindow.all_windows.append(self)
@@ -73,3 +75,24 @@ class MainWindow(Window):
 
     def resetTheme(self, theme_data):
         ...
+
+
+class ElementLayerTab(MutiDirectionTab):
+    def __init__(self, parent):
+        super().__init__(parent, CONST.LEFT, "结构层级", FRAMEWORK_IMAGE)
+        self.set_layout(QVBoxLayout())
+        self.main_layout.addWidget(HSLColorPicker())
+
+
+class ElementInfoTab(MutiDirectionTab):
+    def __init__(self, parent):
+        super().__init__(parent, CONST.LEFT, "元素信息", FRAMEWORK_IMAGE)
+        self.set_layout(QVBoxLayout())
+        self.main_layout.addWidget(HSLColorPicker())
+
+
+class ElementEditTab(MutiDirectionTab):
+    def __init__(self, parent):
+        super().__init__(parent, CONST.LEFT, "元素编辑", FRAMEWORK_IMAGE)
+        self.set_layout(QVBoxLayout())
+        self.main_layout.addWidget(HSLColorPicker())

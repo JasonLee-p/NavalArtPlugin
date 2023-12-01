@@ -6,12 +6,8 @@ import ctypes
 from base64 import b64decode
 
 import ujson
-try:
-    from PySide2.QtCore import QByteArray
-    from PySide2.QtGui import QFont, QImage
-except ImportError:
-    from PyQt5.QtCore import QByteArray
-    from PyQt5.QtGui import QFont, QImage
+from PySide6.QtCore import QByteArray
+from PySide6.QtGui import QFont, QImage
 
 from path_utils import DESKTOP_PATH, CONFIG_PATH
 
@@ -41,7 +37,6 @@ except (FileNotFoundError, KeyError, AttributeError):
     ProjectFolder = DESKTOP_PATH
 
 # 其他基础色
-GRAY = '#808080'
 WHITE = '#FFFFFF'
 BLACK = '#000000'
 RED = '#FF0000'
@@ -62,7 +57,7 @@ DARKER_GREEN = '#00C000'
 DARKER_BLUE = '#0010C0'
 
 # 根据主题选择颜色，图片
-if Theme == 'Day':
+if Theme == 'Light' or Theme == 'Day':
     # noinspection PyProtectedMember
     from .theme_config_color._day_color import *
     # noinspection PyProtectedMember
@@ -70,7 +65,7 @@ if Theme == 'Day':
         _close, _add, _choose, _minimize, _maximize, _normal, _ICO,
         _structure, _layer, _framework, _user
     )
-elif Theme == 'Night':
+elif Theme == 'Dark' or Theme == 'Night':
     # noinspection PyProtectedMember
     from .theme_config_color._night_color import *
     # noinspection PyProtectedMember
@@ -107,7 +102,7 @@ FRAMEWORK_IMAGE = QImage.fromData(QByteArray(BYTES_FRAMEWORK))
 USER_IMAGE = QImage.fromData(QByteArray(BYTES_USER))
 
 ctypes.windll.shcore.SetProcessDpiAwareness(1)  # 设置高分辨率
-SCALE_FACTOR = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 125  # 获取缩放比例
+SCALE_FACTOR = ctypes.windll.shcore.GetScaleFactorForDevice(0)  # 获取缩放比例
 user32 = ctypes.windll.user32
 WIN_WID = user32.GetSystemMetrics(0)  # 获取分辨率
 WIN_HEI = user32.GetSystemMetrics(1)  # 获取分辨率

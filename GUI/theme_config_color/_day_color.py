@@ -1,4 +1,4 @@
-from PySide2.QtGui import QColor
+from PySide6.QtGui import QColor
 
 
 class ThemeColor:
@@ -21,12 +21,13 @@ class ThemeColor:
 
 
 THEME: str = 'day'
-BG_COLOR0 = ThemeColor('beige')
-BG_COLOR1 = ThemeColor('ivory')
-BG_COLOR2 = ThemeColor('#f0f0ff')
-BG_COLOR3 = ThemeColor('tan')
-FG_COLOR0 = ThemeColor('black')
-FG_COLOR1 = ThemeColor('firebrick')
+BG_COLOR0 = ThemeColor('#fffff0')
+BG_COLOR1 = ThemeColor('#f5f5dC')
+BG_COLOR2 = ThemeColor('#ddddc6')
+BG_COLOR3 = ThemeColor('#d2c08c')
+FG_COLOR0 = ThemeColor('#101010')
+FG_COLOR1 = ThemeColor('#b22222')
+GRAY = ThemeColor('#bcb9b0')
 
 GLTheme = {
     "背景": (0.9, 0.95, 1.0, 1.0),
