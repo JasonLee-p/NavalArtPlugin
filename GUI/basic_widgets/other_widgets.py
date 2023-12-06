@@ -297,6 +297,11 @@ class Splitter(QSplitter):
             }}
         """)
 
+    def createHandle(self):
+        handle = super().createHandle()
+        handle.setMouseTracking(True)
+        return handle
+
     def addWidget(self, widget):
         # 设置每个分区的最小尺寸为(40, 40)
         widget.setMinimumSize(40, 40)

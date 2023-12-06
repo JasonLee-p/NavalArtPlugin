@@ -493,11 +493,8 @@ class MultiDirTabMainFrame(QFrame):
         下方的标签占据整个窗口宽度
         """
         super().__init__()
+        self.setMouseTracking(True)
         self.center_widget = center_frame
-        try:
-            self.center_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        except AttributeError:
-            color_print(f"[WARNING] Center frame {center_frame} has no attribute 'setSizePolicy'.", "red")
         # 总布局
         self.layout = QHBoxLayout(self)
         self.spliterL, self.spliterR = VerSpliter(self), VerSpliter(self)

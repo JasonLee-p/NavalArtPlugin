@@ -17,7 +17,7 @@ except Exception as e:
 
 
 VERSION = "0.0.3.0"
-TESTING = False
+TESTING = True
 
 
 def init_QApp():
@@ -42,7 +42,7 @@ def handle_exception(parent, exc_type, exc_value, exc_traceback):
         input(f"[INFO] Press any key to exit...")
         sys.exit(1)  # 退出程序
     else:
-        QMessageBox.critical(parent, "错误", f"{exc_type}: {exc_value}")
+        MessageBox(f"{exc_type}:\n{exc_value}", CONST.ERROR)
 
 
 if __name__ == '__main__':

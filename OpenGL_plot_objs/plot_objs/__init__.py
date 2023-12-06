@@ -2,4 +2,4 @@
 """
 定义 OpenGL 绘制对象
 """
-from .basic import *
+from .basic_po import *

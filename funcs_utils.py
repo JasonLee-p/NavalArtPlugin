@@ -13,6 +13,13 @@ from PySide6.QtWidgets import QMessageBox
 
 
 class CONST:
+    # 信息类型
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    PROMPT = "prompt"
+    QUESTION = "question"
+
     # 具体方位
     FRONT = "front"
     BACK = "back"
@@ -21,6 +28,13 @@ class CONST:
     LEFT = "left"
     RIGHT = "right"
     SAME = "same"
+
+    FRONT_NORMAL = (0., 0., 1.)
+    BACK_NORMAL = (0., 0., -1.)
+    LEFT_NORMAL = (-1., 0., 0.)
+    RIGHT_NORMAL = (1., 0., 0.)
+    UP_NORMAL = (0., 1., 0.)
+    DOWN_NORMAL = (0., -1., 0.)
 
     # 方位组合
     FRONT_BACK = "front_back"
