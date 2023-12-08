@@ -18,18 +18,18 @@ class PlotObj:
         self.vertices_with_normal = None
         self.indices = None
         self.vbo = None
+        self.ebo = None
         # 状态量
         self.is_updating = False
 
     @bool_protection("is_updating")
-    def draw(self):
+    def paint_obj(self):
         if self.vertices_with_normal is None or self.indices is None:
             color_print("[ERROR] 顶点或索引未初始化", "red")
             return
-        # 绑定顶点缓冲区
-        self.vertices_with_normal.bind()
-        # 绑定索引缓冲区
-        self.indices.bind()
+        # 绑定顶点缓冲区和索引缓冲区
+        self.vbo.bind()
+        self.ebo.bind()
         # 启用顶点属性
         glEnableVertexAttribArray(0)
         # 设置顶点属性指针
@@ -38,12 +38,11 @@ class PlotObj:
         glEnableVertexAttribArray(1)
         # 设置法线属性指针
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * 4, c_void_p(3 * 4))
-        # 设置模型矩阵
         # 绘制
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_INT, None)
         # 解绑
-        self.vertices_with_normal.unbind()
-        self.indices.unbind()
+        self.vbo.unbind()
+        self.ebo.unbind()
 
     @bool_protection("is_updating")
     def update(self, vertices: np.ndarray, indices: np.ndarray):
@@ -53,8 +52,10 @@ class PlotObj:
         :param indices: np.int
         :return:
         """
-        self.vertices_with_normal = vbo.VBO(vertices)
-        self.indices = vbo.VBO(indices, target=GL_ELEMENT_ARRAY_BUFFER)
+        self.vertices_with_normal = vertices
+        self.indices = indices
+        self.vbo = vbo.VBO(self.vertices_with_normal)
+        self.ebo = vbo.VBO(self.indices, target=GL_ELEMENT_ARRAY_BUFFER)
 
     def move(self, offset: np.ndarray, target_pos: np.ndarray = None):
         """
@@ -132,18 +133,12 @@ class Cube(PlotObj):
         ], dtype=np.float32)
         # 索引（逆时针序）
         indices = np.array([
-            # 前面
-            0, 1, 2, 1, 2, 3,
-            # 后面
-            4, 5, 6, 5, 6, 7,
-            # 左面
-            8, 9, 10, 9, 10, 11,
-            # 右面
-            12, 13, 14, 13, 14, 15,
-            # 上面
-            16, 17, 18, 17, 18, 19,
-            # 下面
-            20, 21, 22, 21, 22, 23
+            2, 1, 0, 1, 2, 3,  # 前面
+            4, 5, 6, 7, 6, 5,  # 后面
+            10, 9, 8, 9, 10, 11,  # 左面
+            12, 13, 14, 15, 14, 13,  # 右面
+            18, 17, 16, 17, 18, 19,  # 上面
+            20, 21, 22, 23, 22, 21  # 下面
         ], dtype=np.uint32)
         return vertices_with_normal, indices
 
@@ -152,3 +147,49 @@ class Cube(PlotObj):
         self.half_size = size / 2
         vertices_with_normal, indices = self.get_cube_vertices()
         self.update(vertices_with_normal, indices)
+
+
+class Sphere(PlotObj):
+    def __init__(self, pos: np.ndarray, radius: float, color: np.ndarray = np.array([127, 127, 127, 255]), resolution: int = 100):
+        super().__init__()
+        self.pos = pos
+        self.radius = radius
+        self.color = color
+        self.resolution = resolution
+        vertices_with_normal, indices = self.get_sphere_vertices()
+        self.update(vertices_with_normal, indices)
+
+    def get_sphere_vertices(self):
+        """
+        获取球体的顶点和索引
+        :return:
+        """
+        # 顶点
+        vertices = []
+        for i in range(self.resolution):
+            for j in range(self.resolution):
+                theta = np.pi * i / (self.resolution - 1)
+                phi = 2 * np.pi * j / (self.resolution - 1)
+                x = self.radius * np.sin(theta) * np.cos(phi)
+                y = self.radius * np.sin(theta) * np.sin(phi)
+                z = self.radius * np.cos(theta)
+                vertices.append([x, y, z])
+        vertices = np.array(vertices, dtype=np.float32)
+        # 索引
+        indices = []
+        for i in range(self.resolution - 1):
+            for j in range(self.resolution - 1):
+                indices.append(i * self.resolution + j)
+                indices.append(i * self.resolution + j + 1)
+                indices.append((i + 1) * self.resolution + j)
+                indices.append((i + 1) * self.resolution + j)
+                indices.append(i * self.resolution + j + 1)
+                indices.append((i + 1) * self.resolution + j + 1)
+        indices = np.array(indices, dtype=np.uint32)
+        # 法线
+        normals = vertices.copy()
+        for i in range(normals.shape[0]):
+            normals[i] = normals[i] / np.linalg.norm(normals[i])
+        # 顶点法线
+        vertices_with_normal = np.hstack((vertices, normals))
+        return vertices_with_normal, indices

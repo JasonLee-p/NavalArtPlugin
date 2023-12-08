@@ -307,6 +307,9 @@ class Splitter(QSplitter):
         widget.setMinimumSize(40, 40)
         super().addWidget(widget)
 
+    def dragMoveEvent(self, event):
+        super().dragMoveEvent(event)
+
 
 class ScrollArea(QScrollArea):
     _STYLE_SHEET = f"""

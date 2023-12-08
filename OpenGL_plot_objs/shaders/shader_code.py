@@ -2,22 +2,14 @@
 """
 着色器代码
 """
+import os
 
-FragmentShaderCode = """
-# version 330 core
-out vec4 FragColor;
-uniform vec4 ourColor;
-void main()
-{
-    FragColor = ourColor;
-}
-"""
+__org_dir = os.getcwd()
+__vs_file_dir = os.path.join(__org_dir, "OpenGL_plot_objs", "shaders", "VERTEX_SHADER.glsl")
+__fs_file_dir = os.path.join(__org_dir, "OpenGL_plot_objs", "shaders", "FRAGMENT_SHADER.glsl")
 
-VertexShaderCode = """
-# version 330 core
-layout (location = 0) in vec3 aPos;
-void main()
-{
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-}
-"""
+with open(__vs_file_dir, "r", encoding="utf-8") as f:
+    VERTEX_SHADER = f.read()
+
+with open(__fs_file_dir, "r", encoding="utf-8") as f:
+    FRAGMENT_SHADER = f.read()

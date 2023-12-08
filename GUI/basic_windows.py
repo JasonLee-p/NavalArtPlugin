@@ -11,117 +11,11 @@ from OpenGL import GL
 from PySide6.QtOpenGL import *
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
+from OpenGL_plot_objs.shaders import VERTEX_SHADER, FRAGMENT_SHADER
 from .basic_widgets import *
-# from OpenGL_plot_objs.shaders import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
-VERTEX_SHADER = """
-#version 330 core
-
-layout(location = 0) in vec3 inPosition; // 顶点位置
-layout(location = 1) in vec3 inNormal;   // 顶点法向量
-
-out vec3 FragPos;      // 片段位置（传递给片段着色器）
-out vec3 Normal;       // 法向量（传递给片段着色器）
-
-uniform mat4 model;    // 模型矩阵
-uniform mat4 view;     // 视图矩阵
-uniform mat4 projection; // 投影矩阵
-
-void main() {
-    FragPos = vec3(model * vec4(inPosition, 1.0)); // 将顶点变换到世界坐标系
-    Normal = inNormal; // 计算法向量并变换到世界坐标系
-
-    gl_Position = projection * view * vec4(FragPos, 1.0); // 计算最终的顶点位置
-}
-
-"""
-
-FRAGMENT_SHADER = """
-#version 330 core
-in vec3 FragPos;                           // 片段位置
-in vec3 Normal;                            // 法向量
-
-// 渲染选项
-
-uniform vec3 lightPos;                     // 光源位置
-uniform vec3 viewPos;                      // 观察者位置
-uniform vec3 lightColor;                   // 光源颜色
-uniform vec3 objectColor;                  // 物体颜色
-
-uniform float ambientStrength = 0.1;       // 环境光强度
-uniform float specularStrength = 0.4;      // 镜面光强度
-uniform int shininess = 16;                // 镜面光高光大小
-
-out vec4 FragColor;
-
-// FXAA抗锯齿函数
-vec3 applyFXAA(sampler2D tex, vec2 fragCoord, vec2 resolution, float reduceMul, float reduceMin) {
-    vec3 rgbNW = texture(tex, (fragCoord + vec2(-1.0, -1.0)) / resolution).xyz;
-    vec3 rgbNE = texture(tex, (fragCoord + vec2(1.0, -1.0)) / resolution).xyz;
-    vec3 rgbSW = texture(tex, (fragCoord + vec2(-1.0, 1.0)) / resolution).xyz;
-    vec3 rgbSE = texture(tex, (fragCoord + vec2(1.0, 1.0)) / resolution).xyz;
-    vec3 rgbM = texture(tex, fragCoord / resolution).xyz;
-    vec3 luma = vec3(0.299, 0.587, 0.114);
-    vec4 fragColor;
-    float lumaNW = dot(rgbNW, luma);
-    float lumaNE = dot(rgbNE, luma);
-    float lumaSW = dot(rgbSW, luma);
-    float lumaSE = dot(rgbSE, luma);
-    float lumaM = dot(rgbM, luma);
-    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
-    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
-    
-
-    vec2 dir;
-    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
-    dir.y = ((lumaNW + lumaSW) - (lumaNE + lumaSE));
-
-    float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * reduceMul), reduceMin);
-
-    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
-    dir = min(vec2(reduceMul, reduceMul), max(vec2(-reduceMul, -reduceMul), dir * rcpDirMin)) * resolution;
-
-    vec3 rgbA = 0.5 * (texture(tex, fragCoord / resolution + dir / resolution).xyz +
-                       texture(tex, fragCoord / resolution - dir / resolution).xyz);
-    vec3 rgbB = rgbA * 0.5 + 0.25 * (texture(tex, fragCoord / resolution + dir / resolution * 2.0).xyz +
-                                        texture(tex, fragCoord / resolution - dir / resolution * 2.0).xyz);
-    float lumaB = dot(rgbB, luma);
-    if ((lumaB < lumaMin) || (lumaB > lumaMax)) {
-        fragColor = vec4(rgbA, 1.0);
-    } else {
-        fragColor = vec4(rgbB, 1.0);
-    }
-    return fragColor;
-}
-
-void main() {
-    // 计算光线方向和法向量之间的角度
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(Normal, lightDir), 0.0);
-
-    // 计算角度的权重
-    float angleWeight = (diff + 1.0) / 2.0; // 角度值范围从[-1,1]映射到[0,1]
-
-    // 使用角度权重来混合颜色
-    vec3 diffuse = mix(lightColor * objectColor, objectColor, angleWeight);
-
-    // 环境光照计算
-    vec3 ambient = ambientStrength * lightColor;
-
-    // 镜面光照计算
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, Normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 specular = specularStrength * spec * lightColor;
-
-    // 最终颜色
-    vec3 result = (ambient + diffuse + specular);
-    vec4 FragColor = vec4(result, 1.0);
-}
-"""
 
 
 def rotate_object(angle: float, axis: Union[list, tuple, np.ndarray]):
@@ -171,7 +65,7 @@ class Camera:
         self.width = width
         self.height = height
         self.tar = QVector3D(0, 0, 0)  # 摄像机的目标位置
-        self.pos = QVector3D(100, 20, 40)  # 摄像机的位置
+        self.pos = QVector3D(100, 0, 0)  # 摄像机的位置
         self.angle = self.calculate_angle()  # 摄像机的方向
         self.distance = (self.tar - self.pos).length()  # 摄像机到目标的距离
         self.up = QVector3D(0, 1, 0)  # 摄像机的上方向，y轴正方向
@@ -181,23 +75,28 @@ class Camera:
         Camera.all_cameras.append(self)
 
     @property
-    def modelview_matrix(self):
-        matrix = QMatrix4x4()
-        return matrix.lookAt(self.pos, self.tar, self.up)
-
-    @property
     def model_matrix(self):
-        matrix = QMatrix4x4()
-        return matrix.lookAt(self.pos, self.tar, self.up)
+        """
+        模型矩阵，用于将物体从模型坐标系变换到世界坐标系
+        :return:
+        """
+        model_matrix = QMatrix4x4()
+        model_matrix.rotate(self.angle.x(), 1, 0, 0)
+        model_matrix.rotate(self.angle.y(), 0, 1, 0)
+        model_matrix.rotate(self.angle.z(), 0, 0, 1)
+        return model_matrix
 
     @property
-    def projection_matrix(self):
-        matrix = QMatrix4x4()
-        return matrix.perspective(self.fovy, self.width / self.height, 0.1, 100000)
+    def view_matrix(self):
+        view_matrix = QMatrix4x4()
+        view_matrix.lookAt(self.pos, self.tar, self.up)
+        return view_matrix
 
     @property
-    def viewport(self):
-        return 0, 0, self.width, self.height
+    def proj_matrix(self):
+        proj_matrix = QMatrix4x4()
+        proj_matrix.perspective(self.fovy, self.width / self.height, 0.1, 5000)
+        return proj_matrix
 
     def change_target(self, tar):
         self.pos = tar + (self.pos - self.tar).normalized() * self.distance
@@ -314,11 +213,13 @@ class GLWidget(QOpenGLWidget):
         super().__init__()
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.StrongFocus)
-        # 统计数据
+        self.setFixedSize(WIN_WID - 200, WIN_HEI - 200)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # 统计数据和状态
         self.paint_start_time = 0
         # 设置基本参数
         self.theme_color = GLTheme
-        self.lightPos = QVector3D(5000, 3000, 5000)
+        self.lightPos = QVector3D(0, 3000, 0)
         self.lightColor = QVector3D(1, 1, 1)
         self.fovy = 45
         # 绘制对象
@@ -333,28 +234,31 @@ class GLWidget(QOpenGLWidget):
         self.camera = Camera(self.width, self.height, {"缩放": 0.4, "旋转": 0.4, "平移": 0.4})
 
     def paintGL(self):
+        super().paintGL()
         # 判断窗口大小是否改变
         if self.width != QOpenGLWidget.width(self) or self.height != QOpenGLWidget.height(self):
             self.resizeGL(QOpenGLWidget.width(self), QOpenGLWidget.height(self))
-            self.width, self.height = QOpenGLWidget.width(self), QOpenGLWidget.height(self)
         # 清除屏幕
         glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
         self.shaderProgram.bind()
-        self.shaderProgram.setUniformValue("view", self.viewMatrix())  # 设置视角
-        self.shaderProgram.setUniformValue("model", self.modelMatrix())  # 设置模型矩阵
+        self.shaderProgram.setUniformValue("view", self.camera.view_matrix)  # 设置视角
+        self.shaderProgram.setUniformValue("model", self.camera.model_matrix)  # 设置模型矩阵
         self.shaderProgram.setUniformValue("viewPos", self.camera.pos)  # 设置视角位置
-        self.shaderProgram.setUniformValue("objectColor", QVector3D(0.5, 0.5, 0.5))  # 设置物体颜色
+        self.shaderProgram.setUniformValue("objectColor", QVector4D(0.5, 0.5, 0.5, 1.0))  # 设置物体颜色
         # 绘制
         self.vao.bind()
+        st = time.time()
+        total_num = 0
         for tag, objs in self.plot_objs.items():
             for obj in objs:
-                obj.draw()
+                obj.paint_obj()
+                total_num += obj.indices.size
         self.vao.release()
-        self.shaderProgram.release()
-        self.parent().update()
-        print(f"[INFO] {1000 / (time.time() - self.paint_start_time)} FPS")
+        # 限制帧率
+        print(f"[INFO] FPS: {1 / (time.time() - self.paint_start_time):.2f}")
         self.paint_start_time = time.time()
+        self.parent().update()
 
     def initializeGL(self):
         super().initializeGL()
@@ -372,14 +276,15 @@ class GLWidget(QOpenGLWidget):
         self.shaderProgram.addShader(fragmentShader)
         self.shaderProgram.link()
         # 在initializeGL方法中更新着色器的uniform变量
-        objectColor = QVector3D(0.3, 0.3, 0.3)
+        objectColor = QVector4D(0.5, 0.5, 0.5, 1.0)
         self.shaderProgram.bind()
         self.shaderProgram.setUniformValue("lightPos", self.lightPos)
         self.shaderProgram.setUniformValue("lightColor", self.lightColor)
         self.shaderProgram.setUniformValue("viewPos", self.camera.pos)
         self.shaderProgram.setUniformValue("objectColor", objectColor)
+        self.shaderProgram.release()
 
-        # 创建顶点数组对象和顶点缓冲区
+        # 创建顶点数组对象
         self.vao = QOpenGLVertexArrayObject(self)
         self.vao.create()
         self.vao.bind()
@@ -388,27 +293,10 @@ class GLWidget(QOpenGLWidget):
     def resizeGL(self, w, h):
         # 设置视口和投影矩阵
         glViewport(0, 0, w, h)
-        _projection = self.projectionMatrix()
         self.shaderProgram.bind()
-        self.shaderProgram.setUniformValue("projection", _projection)
-        self.shaderProgram.release()
-
-    def viewMatrix(self):
-        view = QMatrix4x4()
-        view.lookAt(self.camera.pos, self.camera.tar, self.camera.up)
-        return view
-
-    def modelMatrix(self):
-        model = QMatrix4x4()
-        model.rotate(self.camera.angle.x(), 1.0, 0.0, 0.0)
-        model.rotate(self.camera.angle.y(), 0.0, 1.0, 0.0)
-        model.rotate(self.camera.angle.z(), 0.0, 0.0, 1.0)
-        return model
-
-    def projectionMatrix(self):
-        pj = QMatrix4x4()
-        pj.perspective(self.camera.fovy, self.width / self.height, 0.1, 2000.0)
-        return pj
+        self.shaderProgram.setUniformValue("projection", self.camera.proj_matrix)
+        self.width, self.height = QOpenGLWidget.width(self), QOpenGLWidget.height(self)
+        self.camera.width, self.camera.height = self.width, self.height
 
     def init_render(self):
         glClearColor(*self.theme_color["背景"])
@@ -416,14 +304,14 @@ class GLWidget(QOpenGLWidget):
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
         # 设置深度测试
-        glEnable(GL.GL_DEPTH_TEST)
-        glDepthFunc(GL.GL_LESS)
+        glEnable(GL_DEPTH_TEST)
+        glDepthFunc(GL_LESS)
 
     def mousePressEvent(self, event):
         if QApplication.keyboardModifiers() == Qt.AltModifier:  # Alt按下的时候，不移动视角
             return
         self.lastPos = event.pos()
-        self.update()
+        self.parent().update()
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.MiddleButton:
@@ -436,21 +324,17 @@ class GLWidget(QOpenGLWidget):
             dy = event.y() - self.lastPos.y()
             self.camera.rotate(dx, dy)
             self.lastPos = event.pos()
-        self.update()
+        self.parent().update()
 
     def mouseReleaseEvent(self, event):
         if QApplication.keyboardModifiers() == Qt.AltModifier:  # Alt按下的时候，不移动视角
             return
         self.lastPos = None
-        self.update()
+        self.parent().update()
 
     def wheelEvent(self, event):
         if event.angleDelta().y() > 0:
             self.camera.zoom(-0.11)
         else:
             self.camera.zoom(0.11)
-        self.update()
-
-    def update(self):
-        super().update()
         self.parent().update()

@@ -638,7 +638,8 @@ class MultiDirTabMainFrame(QFrame):
             FreeTabFrame.dragged_in_frame = None
         # noinspection PyProtectedMember
         _MutiDirectionTab._end_dragging_button()
-        QCoreApplication.processEvents()
+        self.update()
+        QApplication.processEvents()
 
 
 class Window(QWidget):

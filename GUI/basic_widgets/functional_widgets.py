@@ -143,7 +143,6 @@ class HSLColorPicker(QWidget):
         self.labelB_value.setText(str(self.current_color.blue()))
         self.update_color_preview()
         self.updating = False
-        QApplication.processEvents()
 
     def update_rgb_color(self):
         if self.updating:
